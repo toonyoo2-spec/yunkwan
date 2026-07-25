@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>우리집 가계부</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="stylesheet" href="common.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
@@ -214,7 +217,7 @@ button{font-family:inherit;}
 .chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 
 .tx-form{
-  display:grid;grid-template-columns: 118px 84px 96px 1fr 1.3fr 110px 84px 40px;
+  display:grid;grid-template-columns: 88px 118px 68px 104px 104px 1fr 96px 44px;
   gap:8px;padding:14px 18px;background:var(--paper);border-bottom:1px solid var(--line);
   align-items:center;
 }
@@ -222,10 +225,11 @@ button{font-family:inherit;}
 .tx-form input, .tx-form select{
   width:100%;border:1px solid var(--line-strong);border-radius:8px;padding:7px 8px;
   font-size:12.5px;font-family:inherit;background:var(--surface);color:var(--ink);
+  min-width:0;box-sizing:border-box;
 }
 .tx-form .add-btn{
   background:var(--accent);color:#fff;border:none;border-radius:8px;
-  height:32px;font-weight:700;cursor:pointer;font-size:16px;line-height:1;
+  height:32px;font-weight:700;cursor:pointer;font-size:18px;line-height:1;
 }
 .tx-form .add-btn:hover{opacity:.85;}
 
@@ -344,14 +348,21 @@ table.tx-table tbody tr.tx-row:hover{background:var(--paper);}
 tr.edit-row{background:var(--paper);}
 tr.edit-row td{padding:12px 10px;}
 .tx-edit-form{
-  display:grid;grid-template-columns:118px 84px 96px 1fr 1fr 100px 90px auto;gap:8px;align-items:center;
+  display:grid;grid-template-columns:88px 118px 68px 104px 104px 1fr 96px auto;gap:8px;align-items:center;
 }
 @media (max-width:900px){.tx-edit-form{grid-template-columns:repeat(2,1fr);}}
 .tx-edit-form input, .tx-edit-form select{
   width:100%;border:1px solid var(--line-strong);border-radius:8px;padding:7px 8px;
   font-size:12.5px;font-family:inherit;background:var(--surface);color:var(--ink);
+  min-width:0;box-sizing:border-box;
 }
 .edit-actions{display:flex;gap:6px;}
+.fixed-field{
+  display:flex;align-items:center;height:100%;
+  border:1px dashed var(--line-strong);border-radius:8px;padding:7px 8px;
+  font-size:12px;color:var(--muted);background:var(--paper);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .ghost-btn.danger{color:var(--expense);border-color:var(--expense);}
 .ghost-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
 
@@ -541,6 +552,7 @@ function bootApp(){
   _appBooted = true;
   seedIfEmpty();
   initRecurringTemplatesIfEmpty();
+  migrateFamilyCategory();
   route();
 }
 
@@ -571,7 +583,6 @@ const PERSONAL_TAXONOMY = {
     "자동차": ["주차비", "기타"],
     "건강": ["실비보험", "병원비", "운동"],
     "구독": ["OTT", "AI", "쇼핑", "기타"],
-    "가족": ["보라네", "관이네"],
     "경조사": ["가족", "지인"],
     "저축·투자": ["저축", "투자"]
   }
@@ -585,7 +596,7 @@ const TAXONOMY = {
       "통신비": ["핸드폰"],
       "자동차": ["자동차보험", "운전자보험", "할부금", "주차비", "기타"],
       "구독": ["OTT", "AI", "쇼핑", "기타"],
-      "가족": ["보라네", "관이네", "기타"],
+      "가족": ["가족", "명절", "생일"],
       "저축·투자": ["저축", "투자"]
     }
   },
@@ -625,7 +636,7 @@ const DEFAULT_RECURRING_TEMPLATES = [
   { key:"r_google_g",  day:14, scope:"관",   main:"구독",   category:"기타",     note:"관 구글",                       amount:2400,   payment:"농협[관]" },
   { key:"r_mgmtfee",   day:20, scope:"공동", main:"주거비", category:"관리비",   note:"관리비",                       amount:250000, payment:"하나[보라]" },
   { key:"r_tvnet",     day:21, scope:"공동", main:"주거비", category:"TV인터넷", note:"TV / 인터넷",                  amount:46563,  payment:"농협[관]" },
-  { key:"r_borafee",   day:22, scope:"공동", main:"가족",   category:"보라네",   note:"보라네 회비",                   amount:200000, payment:"하나[보라]" },
+  { key:"r_borafee",   day:22, scope:"공동", main:"가족",   category:"가족",     note:"보라네 회비",                   amount:200000, payment:"하나[보라]" },
   { key:"r_ins_b",     day:23, scope:"보라", main:"건강",   category:"실비보험", note:"보라보험(삼성화재)",           amount:22210,  payment:"하나[보라]" },
   { key:"r_ins_g",     day:23, scope:"관",   main:"건강",   category:"실비보험", note:"관 보험(삼성화재)",             amount:16647,  payment:"농협[관]" },
   { key:"r_mortgage",  day:25, scope:"공동", main:"주거비", category:"집대출",   note:"보금자리론",                   amount:680000, payment:"하나[보라]" },
@@ -901,6 +912,31 @@ function initRecurringTemplatesIfEmpty(){
   }
 }
 
+/* 보라/관 개인 소유였던 '가족' 중분류를 공동으로 일원화 (기존 저장 데이터 보정용, 매번 실행해도 안전) */
+function migrateFamilyCategory(){
+  const validSubs = ["가족","명절","생일"];
+  DB.list().forEach(t=>{
+    if(t.main === '가족' && t.scope !== '공동'){
+      DB.update(t.id, {
+        scope: '공동',
+        category: validSubs.includes(t.category) ? t.category : '가족'
+      });
+    }
+  });
+  const templates = DB.getRecurringTemplates();
+  if(templates){
+    let changed = false;
+    templates.forEach(t=>{
+      if(t.main === '가족' && (t.scope !== '공동' || !validSubs.includes(t.category))){
+        t.scope = '공동';
+        t.category = validSubs.includes(t.category) ? t.category : '가족';
+        changed = true;
+      }
+    });
+    if(changed) DB.saveRecurringTemplates(templates);
+  }
+}
+
 function ensureRecurringForMonth(ym){
   const [y,m] = ym.split('-').map(Number);
   const dim = daysInMonth(y,m);
@@ -1028,7 +1064,7 @@ function renderSummary(){
           <select id="rc_category"></select>
           <input type="text" id="rc_note" placeholder="내용 (예: 관리비)">
           <input type="number" id="rc_amount" placeholder="금액">
-          <button class="add-btn" onclick="submitRecurring()" title="추가">＋</button>
+          <button class="add-btn" onclick="submitRecurring()" title="추가">+</button>
         </div>
         <div class="payment-toggle" id="paymentToggleRc" data-selected="">
           <span class="payment-toggle-label">결제수단</span>
@@ -1174,11 +1210,11 @@ function recurDisplayRowHtml(t){
 function recurEditRowHtml(t){
   return `<tr class="edit-row">
     <td colspan="7">
-      <div class="tx-edit-form" style="grid-template-columns:56px 84px 1fr 1fr 1fr 90px auto;">
+      <div class="tx-edit-form" style="grid-template-columns:64px 88px 96px 96px 1fr 96px auto;">
         <input type="number" id="rce_day_${t.key}" value="${t.day}" min="1" max="31">
-        <select id="rce_scope_${t.key}" onchange="onRceScopeChange('${t.key}')">${SCOPES.map(s=>`<option ${s===t.scope?'selected':''}>${s}</option>`).join('')}</select>
-        <select id="rce_main_${t.key}" onchange="onRceMainChange('${t.key}')">${mainOptions(t.scope, '지출', t.main)}</select>
-        <select id="rce_category_${t.key}">${catOptions(t.scope, '지출', t.main, t.category)}</select>
+        <select id="rce_scope_${t.key}">${SCOPES.map(s=>`<option ${s===t.scope?'selected':''}>${s}</option>`).join('')}</select>
+        <span class="fixed-field" title="대분류는 지출로 고정돼요">지출</span>
+        <span class="fixed-field" title="중분류/소분류는 바꿀 수 없어요. 다른 분류가 필요하면 삭제 후 새로 추가해주세요.">${t.main} · ${t.category}</span>
         <input type="text" id="rce_note_${t.key}" value="${escapeAttr(t.note)}">
         <input type="number" id="rce_amount_${t.key}" value="${t.amount}">
         <div class="edit-actions">
@@ -1196,16 +1232,6 @@ function recurEditRowHtml(t){
 }
 function startEditRecur(key){ state.editingRecurKey = key; renderRecurringTable(); }
 function cancelRecurEdit(){ state.editingRecurKey = null; renderRecurringTable(); }
-function onRceScopeChange(key){
-  const scope = document.getElementById('rce_scope_'+key).value;
-  document.getElementById('rce_main_'+key).innerHTML = mainOptions(scope, '지출', null);
-  onRceMainChange(key);
-}
-function onRceMainChange(key){
-  const scope = document.getElementById('rce_scope_'+key).value;
-  const main = document.getElementById('rce_main_'+key).value;
-  document.getElementById('rce_category_'+key).innerHTML = catOptions(scope, '지출', main, null);
-}
 function saveRecurEdit(key){
   const day = Number(document.getElementById('rce_day_'+key).value);
   const amount = Number(document.getElementById('rce_amount_'+key).value);
@@ -1217,10 +1243,9 @@ function saveRecurEdit(key){
     templates[idx] = {
       ...templates[idx],
       day, scope: document.getElementById('rce_scope_'+key).value,
-      main: document.getElementById('rce_main_'+key).value,
-      category: document.getElementById('rce_category_'+key).value,
       note: document.getElementById('rce_note_'+key).value,
       amount, payment
+      // main/category는 고정 — 수정하려면 삭제 후 새로 추가
     };
     DB.saveRecurringTemplates(templates);
   }
@@ -1313,7 +1338,7 @@ function renderMonth(ym){
           <select id="f_category"></select>
           <input type="text" id="f_note" placeholder="내용 (예: 스타벅스)">
           <input type="number" id="f_amount" placeholder="금액">
-          <button class="add-btn" onclick="submitTx('${ym}')" title="추가">＋</button>
+          <button class="add-btn" onclick="submitTx('${ym}')" title="추가">+</button>
         </div>
         <div class="payment-toggle" id="paymentToggleAdd" data-selected="">
           <span class="payment-toggle-label">결제수단</span>
