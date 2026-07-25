@@ -164,6 +164,7 @@ button{font-family:inherit;}
 .badge.expense{background:var(--expense-soft);color:var(--expense);}
 .badge.saving{background:var(--saving-soft);color:var(--saving);}
 .badge.invest{background:var(--invest-soft);color:var(--invest);}
+.badge.fixed-badge{background:var(--invest-soft);color:var(--invest);font-size:10px;padding:1px 7px;vertical-align:middle;}
 
 /* =========================================================
    달력 (지출 히트맵)
@@ -260,10 +261,17 @@ table.tx-table-main th:nth-child(2),table.tx-table-main td:nth-child(2){width:60
 table.tx-table-main th:nth-child(3),table.tx-table-main td:nth-child(3){width:50px;}   /* 대분류 */
 table.tx-table-main th:nth-child(4),table.tx-table-main td:nth-child(4){width:76px;}   /* 중분류 */
 table.tx-table-main th:nth-child(5),table.tx-table-main td:nth-child(5){width:76px;}   /* 소분류 */
-table.tx-table-main th:nth-child(7),table.tx-table-main td:nth-child(7){width:112px;}  /* 결제수단 */
-table.tx-table-main th:nth-child(8),table.tx-table-main td:nth-child(8){width:96px;}   /* 금액 */
+table.tx-table-main th:nth-child(6),table.tx-table-main td:nth-child(6){width:140px;}  /* 내용 (축소) */
+table.tx-table-main th:nth-child(7),table.tx-table-main td:nth-child(7){width:144px;}  /* 금액 (확대) */
+table.tx-table-main th:nth-child(8),table.tx-table-main td:nth-child(8){width:118px;overflow:visible;}  /* 결제수단 (버튼형) */
 table.tx-table-main td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 table.tx-table-main td.mono{font-variant-numeric:tabular-nums;}
+.pay-quick-select{
+  width:100%;border:1px solid var(--line-strong);border-radius:100px;padding:4px 6px;
+  font-size:11px;font-family:inherit;background:var(--surface);color:var(--ink-soft);
+  cursor:pointer;
+}
+.pay-quick-select:hover{border-color:var(--accent);color:var(--ink);}
 
 .row-actions{display:flex;gap:4px;}
 .icon-btn{
@@ -848,6 +856,7 @@ const state = {
   catDrillMain: null,
   editingTxId: null,
   editingRecurKey: null,
+  recurringPanelOpen: false,
   currentYm: null,
   compareYm: null,
   compareTarget: null,
@@ -937,6 +946,11 @@ function migrateFamilyCategory(){
   }
 }
 
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
 function ensureRecurringForMonth(ym){
   const [y,m] = ym.split('-').map(Number);
   const dim = daysInMonth(y,m);
@@ -945,13 +959,15 @@ function ensureRecurringForMonth(ym){
     DB.list().filter(t=>t.recurringKey && t.date.startsWith(ym)).map(t=>t.recurringKey)
   );
   const skips = new Set(DB.getRecurringSkips());
+  const today = todayStr();
   templates.forEach(tpl=>{
     if(existingKeys.has(tpl.key)) return;
     if(skips.has(tpl.key + '|' + ym)) return;
     const day = Math.min(tpl.day, dim);
+    const date = ym + '-' + String(day).padStart(2,'0');
+    if(date > today) return; // 아직 오늘이 지나지 않은 날짜(미래)는 반영하지 않음
     DB.add({
-      date: ym + '-' + String(day).padStart(2,'0'),
-      type: '지출', scope: tpl.scope, main: tpl.main, category: tpl.category,
+      date, type: '지출', scope: tpl.scope, main: tpl.main, category: tpl.category,
       note: tpl.note, amount: tpl.amount, user: tpl.payment, payment: tpl.payment,
       recurringKey: tpl.key
     });
@@ -1055,7 +1071,12 @@ function renderSummary(){
     </div>
 
     <div class="section">
-      <div class="section-head"><h2>정기 자동이체</h2><span class="hint">연도·월과 무관하게 매월 자동으로 채워져요 · 수정하면 다음 달부터 반영돼요</span></div>
+      <div class="section-head">
+        <h2>정기 자동이체</h2>
+        <button class="ghost-btn" onclick="toggleRecurringPanel()" id="recurringToggleBtn" style="font-size:11px;">${state.recurringPanelOpen ? '접기' : '관리하기'}</button>
+      </div>
+      <div class="hint" style="margin:-8px 0 10px;">지출 카테고리 표의 <span class="badge fixed-badge">고정</span> 배지가 자동이체 항목이에요 · 날짜/금액을 바꾸고 싶으면 여기서 관리하세요</div>
+      <div id="recurringManagePanel" style="display:${state.recurringPanelOpen ? 'block' : 'none'};">
       <div class="card table-card">
         <div class="tx-form" style="grid-template-columns:56px 84px 1fr 1fr 1fr 90px 40px;">
           <input type="number" id="rc_day" placeholder="일" min="1" max="31">
@@ -1078,6 +1099,7 @@ function renderSummary(){
           <tbody id="recurringBody"></tbody>
         </table>
         </div>
+      </div>
       </div>
     </div>
   `;
@@ -1146,9 +1168,11 @@ function buildCategoryMatrixRows(list, monthYms){
 
     html += `<tr class="scope-divider"><td colspan="15">${scopeKey}</td></tr>`;
     rows.forEach(r=>{
+      const isFixed = scTx.some(t=>t.main===r.main && t.category===r.cat && t.recurringKey);
+      const fixedBadge = isFixed ? `<span class="badge fixed-badge" title="정기 자동이체로 채워지는 항목">고정</span>` : '';
       html += `<tr>
         <td style="color:var(--muted);white-space:nowrap;">${r.main||'미분류'}</td>
-        <td style="font-weight:600;white-space:nowrap;">${r.cat||'미분류'}</td>
+        <td style="font-weight:600;white-space:nowrap;">${r.cat||'미분류'} ${fixedBadge}</td>
         ${r.monthsArr.map(v=>`<td class="amt">${v? v.toLocaleString('ko-KR'):'·'}</td>`).join('')}
         <td class="amt expense" style="font-weight:700;">${r.total.toLocaleString('ko-KR')}</td>
       </tr>`;
@@ -1158,6 +1182,14 @@ function buildCategoryMatrixRows(list, monthYms){
 }
 
 /* ---- 정기 자동이체 관리 (Summary 페이지) ---- */
+function toggleRecurringPanel(){
+  state.recurringPanelOpen = !state.recurringPanelOpen;
+  const panel = document.getElementById('recurringManagePanel');
+  const btn = document.getElementById('recurringToggleBtn');
+  if(panel) panel.style.display = state.recurringPanelOpen ? 'block' : 'none';
+  if(btn) btn.textContent = state.recurringPanelOpen ? '접기' : '관리하기';
+}
+
 function onRcScopeChange(){
   const scope = document.getElementById('rc_scope').value;
   document.getElementById('rc_main').innerHTML = mainOptions(scope, '지출', null);
@@ -1347,7 +1379,7 @@ function renderMonth(ym){
         <div style="overflow-x:auto;">
         <table class="tx-table tx-table-main">
           <thead><tr>
-            <th>구분</th><th>날짜</th><th>대분류</th><th>중분류</th><th>소분류</th><th>내용</th><th>결제수단</th><th style="text-align:right">금액</th>
+            <th>구분</th><th>날짜</th><th>대분류</th><th>중분류</th><th>소분류</th><th>내용</th><th style="text-align:right">금액</th><th>결제수단</th>
           </tr></thead>
           <tbody id="txBody"></tbody>
         </table>
@@ -1674,9 +1706,19 @@ function displayRowHtml(t){
     <td data-label="중분류" style="color:var(--muted)" title="${escapeAttr(t.main)}">${mainLabel}</td>
     <td data-label="소분류" style="font-weight:600" title="${escapeAttr(t.category)}">${catLabel}</td>
     <td data-label="내용" title="${escapeAttr(t.note)}">${escapeAttr(t.note)}</td>
-    <td data-label="결제수단" style="color:var(--muted)" title="${escapeAttr(t.user)}">${escapeAttr(t.user)}</td>
     <td class="amt ${TYPE_KEY[t.type]}" data-label="금액">${Number(t.amount).toLocaleString('ko-KR')}</td>
+    <td data-label="결제수단" onclick="event.stopPropagation()">
+      <select class="pay-quick-select" onchange="quickSetPayment('${t.id}', this.value)">
+        <option value="" ${!t.user?'selected':''}>미지정</option>
+        ${PAYMENT_METHODS.map(p=>`<option value="${escapeAttr(p)}" ${p===t.user?'selected':''}>${p}</option>`).join('')}
+      </select>
+    </td>
   </tr>`;
+}
+
+function quickSetPayment(id, value){
+  DB.update(id, { user: value, payment: value });
+  renderTxTable(state.currentYm);
 }
 
 function editRowHtml(t){
