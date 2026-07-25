@@ -69,7 +69,7 @@ button{font-family:inherit;}
 /* =========================================================
    레이아웃
    ========================================================= */
-#app{max-width:1180px;margin:0 auto;padding:28px 20px 80px;}
+#app{max-width:1600px;width:95%;margin:0 auto;padding:32px 24px 80px;}
 
 .topbar{
   display:flex;align-items:baseline;justify-content:space-between;
@@ -338,6 +338,55 @@ tr.edit-row td{padding:12px 10px;}
   font-size:12.5px;font-family:inherit;background:var(--surface);color:var(--ink);
 }
 .edit-actions{display:flex;gap:6px;}
+
+/* =========================================================
+   모바일 최적화 (폰 화면에서 잘리거나 좌우 정렬이 깨지는 부분 정리)
+   ========================================================= */
+@media (max-width:640px){
+  #app{padding:20px 14px 60px;}
+  .topbar{align-items:flex-start;}
+  .kpis{grid-template-columns:repeat(2,1fr);}
+  .month-nav h1{font-size:19px;}
+
+  /* 거래 추가 폼: 한 줄에 한 항목씩, 버튼은 라벨과 함께 전체폭 */
+  .tx-form{grid-template-columns:1fr;padding:12px;}
+  .tx-form .add-btn{
+    width:100%;height:38px;font-size:13px;font-weight:700;
+  }
+  .tx-form .add-btn::before{content:"거래 추가";margin-right:4px;font-size:12.5px;}
+
+  /* 수정 폼도 한 줄에 한 항목씩 */
+  .tx-edit-form{grid-template-columns:1fr;}
+  .edit-actions{justify-content:flex-end;}
+
+  /* 거래내역 테이블 → 카드형 리스트로 전환 (가로 스크롤/잘림 방지) */
+  table.tx-table.tx-table-main thead{display:none;}
+  table.tx-table.tx-table-main,
+  table.tx-table.tx-table-main tbody,
+  table.tx-table.tx-table-main tr,
+  table.tx-table.tx-table-main td{display:block;width:100%;}
+  table.tx-table.tx-table-main tr.tx-row{
+    border:1px solid var(--paper-line);border-radius:var(--radius-s);
+    padding:10px 12px;margin-bottom:8px;
+  }
+  table.tx-table.tx-table-main td{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:4px 0;border-bottom:none;text-align:right;
+  }
+  table.tx-table.tx-table-main td::before{
+    content:attr(data-label);color:var(--muted);font-size:11px;font-weight:600;
+    text-align:left;flex-shrink:0;
+  }
+  table.tx-table.tx-table-main td.amt{font-size:14px;font-weight:700;}
+  table.tx-table.tx-table-main tr.empty-row{border:none;padding:0;}
+  table.tx-table.tx-table-main tr.empty-row td{display:block;text-align:center;padding:24px 0;}
+  table.tx-table.tx-table-main tr.empty-row td::before{content:none;}
+  table.tx-table.tx-table-main tr.edit-row{border:1px solid var(--line-strong);border-radius:var(--radius-s);margin-bottom:8px;}
+  table.tx-table.tx-table-main tr.edit-row td{display:block;padding:10px;}
+  table.tx-table.tx-table-main tr.edit-row td::before{content:none;}
+
+  /* 카테고리별 월간 매트릭스 표는 그대로 가로 스크롤 유지 (overflow-x:auto 래퍼 존재) */
+}
 .ghost-btn.danger{color:var(--expense);border-color:var(--expense);}
 .ghost-btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 
@@ -1015,7 +1064,7 @@ function renderMonth(ym){
           <button class="add-btn" onclick="submitTx('${ym}')" title="추가">＋</button>
         </div>
         <div style="overflow-x:auto;">
-        <table class="tx-table">
+        <table class="tx-table tx-table-main">
           <thead><tr>
             <th>날짜</th><th>구분</th><th>대분류</th><th>카테고리</th><th>내용</th><th>사용자</th><th style="text-align:right">금액</th>
           </tr></thead>
@@ -1381,13 +1430,13 @@ function renderTxTable(ym){
 
 function displayRowHtml(t){
   return `<tr class="tx-row" onclick="startEditTx('${t.id}')">
-    <td class="mono" style="color:var(--muted)">${t.date.slice(5)}</td>
-    <td><span class="badge ${TYPE_KEY[t.type]}">${t.type}</span></td>
-    <td style="color:var(--muted)"><span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${t.type}','${t.main}')">${t.main}</span></td>
-    <td style="font-weight:600"><span class="filter-link" onclick="event.stopPropagation();quickFilterCat('${t.type}','${t.main}','${t.category}')">${t.category}</span></td>
-    <td>${escapeAttr(t.note)}</td>
-    <td style="color:var(--muted)">${escapeAttr(t.user)}</td>
-    <td class="amt ${TYPE_KEY[t.type]}">${Number(t.amount).toLocaleString('ko-KR')}</td>
+    <td class="mono" data-label="날짜" style="color:var(--muted)">${t.date.slice(5)}</td>
+    <td data-label="구분"><span class="badge ${TYPE_KEY[t.type]}">${t.type}</span></td>
+    <td data-label="대분류" style="color:var(--muted)"><span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${t.type}','${t.main}')">${t.main}</span></td>
+    <td data-label="카테고리" style="font-weight:600"><span class="filter-link" onclick="event.stopPropagation();quickFilterCat('${t.type}','${t.main}','${t.category}')">${t.category}</span></td>
+    <td data-label="내용">${escapeAttr(t.note)}</td>
+    <td data-label="사용자" style="color:var(--muted)">${escapeAttr(t.user)}</td>
+    <td class="amt ${TYPE_KEY[t.type]}" data-label="금액">${Number(t.amount).toLocaleString('ko-KR')}</td>
   </tr>`;
 }
 
