@@ -69,12 +69,10 @@ button{font-family:inherit;}
   margin-bottom:22px;flex-wrap:wrap;gap:10px;
 }
 .topbar .brand{display:flex;align-items:baseline;gap:10px;}
-.topbar .brand .mark{
-  width:34px;height:34px;border-radius:9px;background:var(--ink);
-  display:inline-flex;align-items:center;justify-content:center;
-  color:var(--paper);font-family:var(--font);font-size:17px;font-weight:700;
-  transform:translateY(4px);
+.home-btn{
+  display:inline-block;font-size:12.5px;color:var(--sub);text-decoration:none;margin-bottom:8px;
 }
+.home-btn:hover{color:var(--accent);}
 .topbar h1{font-size:26px;}
 .topbar .sub{color:var(--muted);font-size:13px;}
 .topbar .actions{display:flex;gap:8px;align-items:center;}
@@ -165,6 +163,7 @@ button{font-family:inherit;}
 .badge.saving{background:var(--saving-soft);color:var(--saving);}
 .badge.invest{background:var(--invest-soft);color:var(--invest);}
 .badge.fixed-badge{background:var(--invest-soft);color:var(--invest);font-size:10px;padding:1px 7px;vertical-align:middle;}
+.fixed-tag{font-size:10px;color:var(--invest);font-weight:700;margin-left:3px;}
 
 /* =========================================================
    달력 (지출 히트맵)
@@ -256,12 +255,12 @@ table.tx-table td.amt.invest{color:var(--invest);}
 
 /* 거래내역 표(tx-table-main) 컬럼 폭 최적화 */
 table.tx-table-main{table-layout:fixed;}
-table.tx-table-main th:nth-child(1),table.tx-table-main td:nth-child(1){width:58px;}   /* 구분 */
+table.tx-table-main th:nth-child(1),table.tx-table-main td:nth-child(1){width:92px;}   /* 구분 */
 table.tx-table-main th:nth-child(2),table.tx-table-main td:nth-child(2){width:60px;}   /* 날짜 */
 table.tx-table-main th:nth-child(3),table.tx-table-main td:nth-child(3){width:50px;}   /* 대분류 */
 table.tx-table-main th:nth-child(4),table.tx-table-main td:nth-child(4){width:76px;}   /* 중분류 */
 table.tx-table-main th:nth-child(5),table.tx-table-main td:nth-child(5){width:76px;}   /* 소분류 */
-table.tx-table-main th:nth-child(6),table.tx-table-main td:nth-child(6){width:140px;}  /* 내용 (축소) */
+table.tx-table-main th:nth-child(6),table.tx-table-main td:nth-child(6){width:112px;}  /* 내용 (축소) */
 table.tx-table-main th:nth-child(7),table.tx-table-main td:nth-child(7){width:144px;}  /* 금액 (확대) */
 table.tx-table-main th:nth-child(8),table.tx-table-main td:nth-child(8){width:118px;overflow:visible;}  /* 결제수단 (버튼형) */
 table.tx-table-main td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -561,6 +560,8 @@ function bootApp(){
   seedIfEmpty();
   initRecurringTemplatesIfEmpty();
   migrateFamilyCategory();
+  cleanupRecurringBeforeAug();
+  applyManualAdditions();
   route();
 }
 
@@ -964,12 +965,42 @@ function migrateFamilyCategory(){
   }
 }
 
+/* 2026년 1~7월은 이미 실데이터에 고정 지출이 들어있으므로,
+   테스트 중 자동 생성된 정기 자동이체(recurringKey 있는 것)를 제거해 중복을 없앱니다. */
+function cleanupRecurringBeforeAug(){
+  const dupes = DB.list().filter(t => t.recurringKey && t.date < '2026-08-01');
+  dupes.forEach(t => DB.remove(t.id));
+}
+
+/* 개발 중 수동으로 추가 요청받은 거래를 1회만 넣어줍니다(중복 방지용 마커 포함). */
+const MANUAL_ADDITIONS = [
+  { key:'m_20260723_1', date:'2026-07-23', scope:'보라', type:'지출', main:'건강',   category:'실비보험', note:'삼성화재',   amount:22210,   user:'', payment:'' },
+  { key:'m_20260723_2', date:'2026-07-23', scope:'보라', type:'지출', main:'생활비', category:'식비',     note:'베라커피',   amount:3800,    user:'', payment:'' },
+  { key:'m_20260723_3', date:'2026-07-23', scope:'공동', type:'지출', main:'자동차', category:'주차비',   note:'모두의주차장', amount:3500,  user:'', payment:'' },
+  { key:'m_20260723_4', date:'2026-07-23', scope:'공동', type:'지출', main:'생활비', category:'외식',     note:'우야든동',   amount:5000,    user:'', payment:'' },
+  { key:'m_20260724_1', date:'2026-07-24', scope:'관',   type:'수입', main:'급여',   category:'월급',     note:'월급',       amount:2000000, user:'', payment:'' },
+  { key:'m_20260724_2', date:'2026-07-24', scope:'관',   type:'지출', main:'생활비', category:'식비',     note:'점심',       amount:11000,   user:'', payment:'' },
+];
+function applyManualAdditions(){
+  const existingKeys = new Set(DB.list().filter(t=>t.manualKey).map(t=>t.manualKey));
+  MANUAL_ADDITIONS.forEach(m=>{
+    if(existingKeys.has(m.key)) return;
+    DB.add({
+      date:m.date, scope:m.scope, type:m.type, main:m.main, category:m.category,
+      note:m.note, amount:m.amount, user:m.user, payment:m.payment, manualKey:m.key
+    });
+  });
+}
+
 function todayStr(){
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 function ensureRecurringForMonth(ym){
+  // 2026년 1~7월은 실제 원본 데이터에 이미 고정 지출이 포함돼 있어 자동 생성 시 중복됩니다.
+  // 정기 자동이체 자동 반영은 2026년 8월부터 시작합니다.
+  if(ym < '2026-08') return;
   const [y,m] = ym.split('-').map(Number);
   const dim = daysInMonth(y,m);
   const templates = DB.getRecurringTemplates() || [];
@@ -1012,8 +1043,8 @@ function render(){
   app.innerHTML = `
     <div class="topbar">
       <div class="brand">
-        <span class="mark">家</span>
         <div>
+          <a href="./index.html" class="home-btn">← 홈</a>
           <h1>우리집 가계부</h1>
           <div class="sub">구조 설계 단계 · 로컬 저장 (Supabase 연동 예정)</div>
         </div>
@@ -1708,9 +1739,10 @@ function renderTxTable(ym){
 }
 
 function displayRowHtml(t){
+  const fixedTag = t.recurringKey ? `<span class="fixed-tag">(고정)</span>` : '';
   const scopeBadge = t.scope
-    ? `<span class="filter-link" onclick="event.stopPropagation();setScopeFilter('${t.scope}')">${t.scope}</span>`
-    : `<span class="filter-link" style="color:var(--expense);" onclick="event.stopPropagation();setScopeFilter('미지정')">미지정</span>`;
+    ? `<span class="filter-link" onclick="event.stopPropagation();setScopeFilter('${t.scope}')">${t.scope}</span>${fixedTag}`
+    : `<span class="filter-link" style="color:var(--expense);" onclick="event.stopPropagation();setScopeFilter('미지정')">미지정</span>${fixedTag}`;
   const mainLabel = t.main
     ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${t.type}','${t.main}')">${t.main}</span>`
     : `<span style="color:var(--expense);">미지정</span>`;
