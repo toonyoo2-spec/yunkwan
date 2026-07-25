@@ -422,6 +422,15 @@ const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, 
   auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
 });
 
+   <script>
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    window.location.href = './index.html';
+  }
+})();
+</script>
+
 /* =================================================================================
    0. 데이터 모델 & 카테고리 체계  (TAXONOMY)
    ---------------------------------------------------------------------------------
