@@ -219,7 +219,7 @@ button{font-family:inherit;}
 .chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 
 .tx-form{
-  display:grid;grid-template-columns: 88px 118px 68px 104px 104px 1fr 96px 44px;
+  display:grid;grid-template-columns: 80px 112px 60px 92px 92px 1fr 112px 136px 40px;
   gap:8px;padding:14px 18px;background:var(--paper);border-bottom:1px solid var(--line);
   align-items:center;
 }
@@ -1418,7 +1418,7 @@ function renderMonth(ym){
       <div class="section-head"><h2>거래 내역</h2><span class="hint">총 ${tx.length}건 · 행을 클릭하면 수정할 수 있어요</span></div>
       <div class="card table-card">
         <div class="table-toolbar" id="txToolbar" style="flex-direction:column;align-items:stretch;gap:8px;"></div>
-        <div class="tx-form">
+        <div class="tx-form" id="txAddForm">
           <select id="f_scope" onchange="onFormScopeChange()">${SCOPES.map(s=>`<option>${s}</option>`).join('')}</select>
           <input type="date" id="f_date" value="${todayStr()}">
           <select id="f_type" onchange="onFormTypeChange()"></select>
@@ -1426,11 +1426,11 @@ function renderMonth(ym){
           <select id="f_category"></select>
           <input type="text" id="f_note" placeholder="내용 (예: 스타벅스)">
           <input type="number" id="f_amount" placeholder="금액">
+          <select id="f_payment" class="pay-quick-select">
+            <option value="">미지정</option>
+            ${PAYMENT_METHODS.map(p=>`<option value="${escapeAttr(p)}">${p}</option>`).join('')}
+          </select>
           <button class="add-btn" onclick="submitTx('${ym}')" title="추가">+</button>
-        </div>
-        <div class="payment-toggle" id="paymentToggleAdd" data-selected="">
-          <span class="payment-toggle-label">결제수단</span>
-          ${PAYMENT_METHODS.map(p=>`<button type="button" class="chip pay-chip" data-val="${escapeAttr(p)}" onclick="selectPaymentToggle('paymentToggleAdd','${escapeAttr(p)}')">${p}</button>`).join('')}
         </div>
         <div style="overflow-x:auto;">
         <table class="tx-table tx-table-main">
@@ -1893,7 +1893,7 @@ function submitTx(ym){
   const date = document.getElementById('f_date').value;
   const amount = Number(document.getElementById('f_amount').value);
   if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
-  const payment = document.getElementById('paymentToggleAdd')?.dataset.selected || '';
+  const payment = document.getElementById('f_payment').value;
   DB.add({
     date, scope: document.getElementById('f_scope').value,
     type: document.getElementById('f_type').value,
@@ -1905,7 +1905,7 @@ function submitTx(ym){
   });
   document.getElementById('f_note').value='';
   document.getElementById('f_amount').value='';
-  selectPaymentToggle('paymentToggleAdd', '');
+  document.getElementById('f_payment').value='';
   renderMonth(ymOf(date));
   if(ymOf(date) !== ym) location.hash = '#/' + ymOf(date);
 }
