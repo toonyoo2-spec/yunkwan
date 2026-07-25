@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>우리집 가계부</title>
-<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
 /* =========================================================
    토큰 (Design tokens)
    ========================================================= */
 :root{
-  --font: "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --paper:#F7F6F1;
   --paper-line: rgba(32,36,31,0.05);
   --surface:#FFFFFF;
@@ -41,19 +41,22 @@
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
-  background:var(--paper);
+  background: var(--paper);
+  ...
+},
+    var(--paper);
   color:var(--ink);
-  font-family:var(--font);
+  font-family:'Inter',system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;
   min-height:100vh;
 }
 h1,h2,h3,.display{
-  font-family:var(--font);
-  font-weight:700;
-  letter-spacing:-0.02em;
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  letter-spacing:-0.01em;
   margin:0;
 }
-.mono{ font-family:var(--font); font-variant-numeric:tabular-nums; }
+.mono{ font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
 a{color:inherit;}
 button{font-family:inherit;}
 
@@ -70,7 +73,7 @@ button{font-family:inherit;}
 .topbar .brand .mark{
   width:34px;height:34px;border-radius:9px;background:var(--ink);
   display:inline-flex;align-items:center;justify-content:center;
-  color:var(--paper);font-family:var(--font);font-size:17px;font-weight:700;
+  color:var(--paper);font-family:'Fraunces',serif;font-size:17px;font-weight:700;
   transform:translateY(4px);
 }
 .topbar h1{font-size:26px;}
@@ -108,7 +111,7 @@ button{font-family:inherit;}
   top:2px;
   white-space:nowrap;
 }
-.tab.summary-tab{font-family:var(--font);font-size:14px;}
+.tab.summary-tab{font-family:'Fraunces',serif;font-size:14px;}
 .tab:hover{color:var(--ink-soft);}
 .tab.active{
   color:var(--ink);
@@ -138,7 +141,7 @@ button{font-family:inherit;}
 
 .kpi{padding:18px 18px 16px;}
 .kpi .label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em;}
-.kpi .value{font-family:var(--font);font-size:25px;font-weight:600;margin-top:6px;}
+.kpi .value{font-family:'Fraunces',serif;font-size:25px;font-weight:600;margin-top:6px;}
 .kpi .delta{font-size:12px;margin-top:6px;font-weight:600;}
 .kpi .delta.up{color:var(--expense);}
 .kpi .delta.down{color:var(--income);}
@@ -195,7 +198,7 @@ button{font-family:inherit;}
 .cat-row .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;}
 .cat-row .top .name{font-weight:600;}
 .cat-row .top .name .sub{color:var(--muted);font-weight:400;margin-left:4px;}
-.cat-row .top .amt{font-family:var(--font);}
+.cat-row .top .amt{font-family:'IBM Plex Mono',monospace;}
 .bar-track{height:7px;border-radius:100px;background:var(--line);overflow:hidden;}
 .bar-fill{height:100%;border-radius:100px;}
 
@@ -237,7 +240,7 @@ table.tx-table th{
 }
 table.tx-table td{padding:9px 10px;border-bottom:1px solid var(--paper-line);vertical-align:middle;}
 table.tx-table tbody tr:hover{background:var(--paper);}
-table.tx-table td.amt{font-family:var(--font);text-align:right;white-space:nowrap;}
+table.tx-table td.amt{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap;}
 table.tx-table td.amt.expense{color:var(--expense);}
 table.tx-table td.amt.income{color:var(--income);}
 table.tx-table td.amt.saving{color:var(--saving);}
@@ -261,7 +264,7 @@ table.tx-table td.amt.invest{color:var(--invest);}
 }
 .review-stats{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap;}
 .review-stats .item{font-size:12px;color:var(--ink-soft);}
-.review-stats .item b{display:block;font-family:var(--font);font-size:17px;color:var(--ink);}
+.review-stats .item b{display:block;font-family:'Fraunces',serif;font-size:17px;color:var(--ink);}
 .save-note{font-size:11px;color:var(--muted);margin-top:8px;}
 
 /* =========================================================
@@ -274,7 +277,7 @@ table.tx-table td.amt.invest{color:var(--invest);}
   border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;
   width:26px;height:26px;cursor:pointer;color:var(--ink-soft);
 }
-.year-switch .y{font-family:var(--font);font-weight:700;font-size:16px;min-width:44px;text-align:center;}
+.year-switch .y{font-family:'Fraunces',serif;font-weight:700;font-size:16px;min-width:44px;text-align:center;}
 
 .month-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
 .month-nav .move{
@@ -298,7 +301,7 @@ footer.foot{
 .year-btn{
   display:flex;align-items:center;gap:5px;
   border:2px solid var(--ink);border-bottom:none;background:var(--surface);color:var(--ink);
-  border-radius:10px 10px 0 0;padding:9px 14px;font-family:var(--font);font-weight:700;font-size:14px;
+  border-radius:10px 10px 0 0;padding:9px 14px;font-family:'Fraunces',serif;font-weight:700;font-size:14px;
   cursor:pointer;
 }
 .year-btn .caret{font-size:10px;color:var(--muted);}
@@ -310,7 +313,7 @@ footer.foot{
 .year-menu.open{display:flex;}
 .year-item{
   border:none;background:transparent;text-align:left;padding:7px 10px;border-radius:6px;
-  font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;font-family:var(--font);
+  font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;font-family:'IBM Plex Mono',monospace;
 }
 .year-item:hover{background:var(--paper);}
 .year-item.active{background:var(--ink);color:var(--paper);}
@@ -335,7 +338,7 @@ tr.edit-row td{padding:12px 10px;}
 /* ---- 예산 ---- */
 .budget-input{
   width:100%;margin-top:5px;border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px;
-  font-size:12.5px;font-family:var(--font);background:var(--paper);color:var(--ink);
+  font-size:12.5px;font-family:'IBM Plex Mono',monospace;background:var(--paper);color:var(--ink);
 }
 .compare-select{
   border:1px solid var(--line-strong);border-radius:8px;padding:5px 8px;font-size:12px;
@@ -393,7 +396,7 @@ tr.edit-row td{padding:12px 10px;}
 }
 .modal-tx-list li:last-child{border-bottom:none;}
 .modal-tx-list .n{flex:1;color:var(--ink-soft);}
-.modal-tx-list .a{font-family:var(--font);font-weight:600;white-space:nowrap;}
+.modal-tx-list .a{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -406,7 +409,13 @@ tr.edit-row td{padding:12px 10px;}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
 <script>
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+
 /* =================================================================================
    0. 데이터 모델 & 카테고리 체계  (TAXONOMY)
    ---------------------------------------------------------------------------------
@@ -437,83 +446,109 @@ const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9�
 const DOW = ["월","화","수","목","금","토","일"];
 
 /* =================================================================================
-   1. DB 레이어
+   1. DB 레이어 (Supabase 연동)
    ---------------------------------------------------------------------------------
-   지금은 localStorage 로만 저장됩니다. 나중에 Supabase 로 옮길 때는
-   아래 DB 객체의 메서드 내부만 supabase-js 호출로 교체하면 되도록
-   (화면 코드는 DB.* 메서드만 호출) 설계했습니다.
+   부팅 시 DB.init()으로 transactions/monthly_reviews/budgets를 한 번에 불러와
+   메모리 캐시에 저장합니다. 화면 코드는 기존과 동일하게 DB.list()/getReview()/
+   getBudgets()를 "동기"로 호출하고(캐시를 읽는 것뿐이라 즉시 반환됩니다),
+   add/update/remove/saveReview/saveBudgets는 캐시를 먼저 바꿔 화면에 즉시
+   반영한 뒤, Supabase에는 결과를 기다리지 않고 던져놓습니다(optimistic update).
 
-   예상 Supabase 테이블 스키마 (참고용):
-     transactions (
-       id uuid primary key default gen_random_uuid(),
-       date date not null,
-       type text not null,          -- 수입/지출/저축/투자
-       main text not null,          -- 대분류
-       category text not null,      -- 중분류
-       note text,                   -- 세부내용
-       amount integer not null,
-       user_name text,              -- 사용자
-       payment text,                -- 결제수단
-       created_at timestamptz default now()
-     )
-     monthly_reviews (
-       month text primary key,      -- 'YYYY-MM'
-       memo text,
-       updated_at timestamptz default now()
-     )
+   Supabase 테이블 (가이드 문서의 스키마와 동일):
+     transactions(id, date, type, main, category, note, amount, user_name, payment)
+     monthly_reviews(month, memo)
+     budgets(year, category, amount)  -- category = '대분류|카테고리'
    ================================================================================= */
 const DB = {
-  TX_KEY: "gagyebu_v1_transactions",
-  REVIEW_KEY_PREFIX: "gagyebu_v1_review_",
+  _cache: [],        // transactions
+  _reviewCache: {},  // { 'YYYY-MM': memo }
+  _budgetCache: {},  // { year: { '대분류|카테고리': amount } }
 
-  // TODO[Supabase]: `return (await supabase.from('transactions').select('*')).data`
-  list(){
-    const raw = localStorage.getItem(this.TX_KEY);
-    return raw ? JSON.parse(raw) : [];
+  async init(){
+    const [txRes, reviewRes, budgetRes] = await Promise.all([
+      sb.from('transactions').select('*').order('date'),
+      sb.from('monthly_reviews').select('*'),
+      sb.from('budgets').select('*')
+    ]);
+
+    if(!txRes.error && txRes.data){
+      this._cache = txRes.data.map(r => ({
+        id: r.id, date: r.date, type: r.type, main: r.main,
+        category: r.category, note: r.note, amount: r.amount,
+        user: r.user_name, payment: r.payment
+      }));
+    } else if(txRes.error){ console.error('거래내역 로드 실패:', txRes.error); }
+
+    if(!reviewRes.error && reviewRes.data){
+      reviewRes.data.forEach(r => { this._reviewCache[r.month] = r.memo || ""; });
+    } else if(reviewRes.error){ console.error('지출 리뷰 로드 실패:', reviewRes.error); }
+
+    if(!budgetRes.error && budgetRes.data){
+      budgetRes.data.forEach(r => {
+        if(!this._budgetCache[r.year]) this._budgetCache[r.year] = {};
+        this._budgetCache[r.year][r.category] = r.amount;
+      });
+    } else if(budgetRes.error){ console.error('예산 로드 실패:', budgetRes.error); }
   },
-  _save(list){
-    localStorage.setItem(this.TX_KEY, JSON.stringify(list));
-  },
-  // TODO[Supabase]: `await supabase.from('transactions').insert(tx)`
+
+  list(){ return this._cache; },
+
   add(tx){
-    const list = this.list();
-    tx.id = tx.id || (Date.now().toString(36) + Math.random().toString(36).slice(2,7));
-    list.push(tx);
-    this._save(list);
-    return tx;
-  },
-  // TODO[Supabase]: `await supabase.from('transactions').update(patch).eq('id', id)`
-  update(id, patch){
-    const list = this.list();
-    const idx = list.findIndex(t => t.id === id);
-    if(idx > -1){ list[idx] = {...list[idx], ...patch}; this._save(list); }
-  },
-  // TODO[Supabase]: `await supabase.from('transactions').delete().eq('id', id)`
-  remove(id){
-    this._save(this.list().filter(t => t.id !== id));
-  },
-  // TODO[Supabase]: `await supabase.from('monthly_reviews').select('memo').eq('month', ym)`
-  getReview(ym){
-    return localStorage.getItem(this.REVIEW_KEY_PREFIX + ym) || "";
-  },
-  // TODO[Supabase]: `await supabase.from('monthly_reviews').upsert({month: ym, memo})`
-  saveReview(ym, memo){
-    localStorage.setItem(this.REVIEW_KEY_PREFIX + ym, memo);
+    const optimisticId = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    const localTx = { ...tx, id: optimisticId };
+    this._cache.push(localTx);
+    sb.from('transactions').insert({
+      date: tx.date, type: tx.type, main: tx.main, category: tx.category,
+      note: tx.note, amount: tx.amount, user_name: tx.user, payment: tx.payment
+    }).select().single().then(({data, error})=>{
+      if(error){ console.error('거래 추가 실패:', error); return; }
+      const row = this._cache.find(t=>t.id===optimisticId);
+      if(row) row.id = data.id;
+    });
+    return localTx;
   },
 
-  BUDGET_KEY_PREFIX: "gagyebu_v1_budget_",
-  // TODO[Supabase]: `await supabase.from('budgets').select('category,amount').eq('year', year)` → map으로 변환
+  update(id, patch){
+    const row = this._cache.find(t=>t.id===id);
+    if(row) Object.assign(row, patch);
+    sb.from('transactions').update({
+      date: patch.date, type: patch.type, main: patch.main, category: patch.category,
+      note: patch.note, amount: patch.amount, user_name: patch.user
+    }).eq('id', id).then(({error})=>{ if(error) console.error('거래 수정 실패:', error); });
+  },
+
+  remove(id){
+    this._cache = this._cache.filter(t=>t.id!==id);
+    sb.from('transactions').delete().eq('id', id).then(({error})=>{ if(error) console.error('거래 삭제 실패:', error); });
+  },
+
+  getReview(ym){
+    return this._reviewCache[ym] || "";
+  },
+  saveReview(ym, memo){
+    this._reviewCache[ym] = memo;
+    sb.from('monthly_reviews').upsert({ month: ym, memo }).then(({error})=>{
+      if(error) console.error('리뷰 저장 실패:', error);
+    });
+  },
+
   getBudgets(year){
-    const raw = localStorage.getItem(this.BUDGET_KEY_PREFIX + year);
-    return raw ? JSON.parse(raw) : {};
+    return this._budgetCache[year] || {};
   },
-  // TODO[Supabase]: 카테고리별로 `await supabase.from('budgets').upsert({year, category, amount})`
   saveBudgets(year, map){
-    localStorage.setItem(this.BUDGET_KEY_PREFIX + year, JSON.stringify(map));
+    this._budgetCache[year] = map;
+    sb.from('budgets').delete().eq('year', year).then(({error})=>{
+      if(error){ console.error('예산 저장 실패(삭제 단계):', error); return; }
+      const rows = Object.entries(map).map(([category, amount]) => ({ year, category, amount }));
+      if(rows.length){
+        sb.from('budgets').insert(rows).then(({error})=>{ if(error) console.error('예산 저장 실패:', error); });
+      }
+    });
   },
+
   reset(){
-    localStorage.removeItem(this.TX_KEY);
-    Object.keys(localStorage).filter(k=>k.startsWith(this.REVIEW_KEY_PREFIX)||k.startsWith(this.BUDGET_KEY_PREFIX)).forEach(k=>localStorage.removeItem(k));
+    // 화면 캐시만 비웁니다. 실제 Supabase 데이터를 지우려면 대시보드에서 직접 삭제하세요.
+    this._cache = [];
   }
 };
 
@@ -681,7 +716,7 @@ function render(){
       </div>
     </div>
     <div id="view"></div>
-    <footer class="foot">yunkwan.cloud · 가계부.html — 현재 데이터는 브라우저(localStorage)에 저장됩니다. Supabase 연동 시 자동으로 클라우드 동기화됩니다.</footer>
+    <footer class="foot">yunkwan.cloud · 가계부.html — Supabase에 저장되어 기기 간 자동으로 동기화됩니다.</footer>
   `;
 
   if(state.view === 'summary') renderSummary();
@@ -1138,7 +1173,7 @@ function openInsightDetail(i){
 
   const itemsHtml = curItems.length ? `<ul class="modal-tx-list">${curItems.map(t=>`
     <li>
-      <span style="color:var(--muted);font-family:var(--font);font-size:11.5px;min-width:38px;">${t.date.slice(8)}일</span>
+      <span style="color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11.5px;min-width:38px;">${t.date.slice(8)}일</span>
       <span class="n">${t.note||'(내용 없음)'}${t.user?` · ${t.user}`:''}</span>
       <span class="a amt expense">${Number(t.amount).toLocaleString('ko-KR')}원</span>
     </li>
@@ -1427,8 +1462,12 @@ function submitTx(ym){
 /* =================================================================================
    8. 부팅
    ================================================================================= */
-seedIfEmpty();
-route();
+(async () => {
+  document.getElementById('app').innerHTML = '<div style="padding:60px 0;text-align:center;color:var(--muted);">불러오는 중...</div>';
+  await DB.init();
+  seedIfEmpty();
+  route();
+})();
 </script>
 </body>
 </html>
