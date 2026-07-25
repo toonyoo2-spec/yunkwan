@@ -747,11 +747,7 @@ function render(){
   const yearMenuHtml = yearRange().map(y=>`<button class="year-item ${y===state.year?'active':''}" onclick="selectYear(${y})">${y}</button>`).join('');
 
   app.innerHTML = `
-    <div class="topbar">
-      <div class="brand">
-        <div>
-app.innerHTML = `
-    <style>
+      <style>
       .home-btn {
         display: inline-block;
         font-size: 12.5px;
@@ -766,6 +762,10 @@ app.innerHTML = `
         font-size: 13.5px;
       }
     </style>
+    <div class="topbar">
+      <div class="brand">
+        <div>
+
     <div class="topbar">
       ...
           <h1>우리집 가계부</h1>
