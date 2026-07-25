@@ -540,6 +540,7 @@ function bootApp(){
   if(_appBooted) return;
   _appBooted = true;
   seedIfEmpty();
+  initRecurringTemplatesIfEmpty();
   route();
 }
 
@@ -613,7 +614,7 @@ const PAYMENT_META = {
    0-2. 정기 자동이체 (매월 반복) — 연도·월과 무관하게 매월 자동으로 채워집니다.
    해당 월에 아직 만들어지지 않았으면 그 달을 처음 열 때 자동으로 거래로 추가됩니다.
    ================================================================================= */
-const RECURRING_TEMPLATES = [
+const DEFAULT_RECURRING_TEMPLATES = [
   { key:"r_loan1",     day:3,  scope:"공동", main:"주거비", category:"집대출",   note:"신용대출",                     amount:108665, payment:"하나[보라]" },
   { key:"r_google_b",  day:9,  scope:"보라", main:"구독",   category:"기타",     note:"보라 구글",                     amount:2400,   payment:"현대카드[보라]" },
   { key:"r_carloan",   day:10, scope:"공동", main:"자동차", category:"할부금",   note:"자동차할부",                   amount:456520, payment:"하나[보라]" },
@@ -708,6 +709,30 @@ const DB = {
   saveBudgets(year, map){
     localStorage.setItem(this.BUDGET_KEY_PREFIX + year, JSON.stringify(map));
   },
+
+  RECURRING_KEY: "gagyebu_v1_recurring_templates",
+  RECURRING_SKIP_KEY: "gagyebu_v1_recurring_skips",
+  // TODO[Supabase]: `await supabase.from('recurring_templates').select('*')`
+  getRecurringTemplates(){
+    const raw = localStorage.getItem(this.RECURRING_KEY);
+    return raw ? JSON.parse(raw) : null; // null = 아직 초기화 안 됨
+  },
+  // TODO[Supabase]: 통째로 upsert 하거나 diff 계산해서 반영
+  saveRecurringTemplates(list){
+    localStorage.setItem(this.RECURRING_KEY, JSON.stringify(list));
+  },
+  // TODO[Supabase]: `await supabase.from('recurring_skips').select('token')`
+  getRecurringSkips(){
+    const raw = localStorage.getItem(this.RECURRING_SKIP_KEY);
+    return raw ? JSON.parse(raw) : [];
+  },
+  // TODO[Supabase]: `await supabase.from('recurring_skips').insert({token})`
+  addRecurringSkip(key, ym){
+    const skips = this.getRecurringSkips();
+    const token = key + '|' + ym;
+    if(!skips.includes(token)){ skips.push(token); localStorage.setItem(this.RECURRING_SKIP_KEY, JSON.stringify(skips)); }
+  },
+
   reset(){
     localStorage.removeItem(this.TX_KEY);
     Object.keys(localStorage).filter(k=>k.startsWith(this.REVIEW_KEY_PREFIX)||k.startsWith(this.BUDGET_KEY_PREFIX)).forEach(k=>localStorage.removeItem(k));
@@ -811,6 +836,7 @@ const state = {
   catScope: '전체',
   catDrillMain: null,
   editingTxId: null,
+  editingRecurKey: null,
   currentYm: null,
   compareYm: null,
   compareTarget: null,
@@ -869,14 +895,23 @@ function seedIfEmpty(){
 /* 정기 자동이체 템플릿을 해당 월(ym)에 아직 없으면 자동으로 채워넣습니다.
    연도·월과 무관하게 항상 동작하므로, 어느 달을 처음 열어도 자동으로 반영됩니다.
    주의: 자동으로 생성된 거래를 지우면, 그 달을 다시 열 때 같은 항목이 다시 채워질 수 있어요. */
+function initRecurringTemplatesIfEmpty(){
+  if(DB.getRecurringTemplates() === null){
+    DB.saveRecurringTemplates(DEFAULT_RECURRING_TEMPLATES);
+  }
+}
+
 function ensureRecurringForMonth(ym){
   const [y,m] = ym.split('-').map(Number);
   const dim = daysInMonth(y,m);
+  const templates = DB.getRecurringTemplates() || [];
   const existingKeys = new Set(
     DB.list().filter(t=>t.recurringKey && t.date.startsWith(ym)).map(t=>t.recurringKey)
   );
-  RECURRING_TEMPLATES.forEach(tpl=>{
+  const skips = new Set(DB.getRecurringSkips());
+  templates.forEach(tpl=>{
     if(existingKeys.has(tpl.key)) return;
+    if(skips.has(tpl.key + '|' + ym)) return;
     const day = Math.min(tpl.day, dim);
     DB.add({
       date: ym + '-' + String(day).padStart(2,'0'),
@@ -982,9 +1017,38 @@ function renderSummary(){
         </table>
       </div>
     </div>
+
+    <div class="section">
+      <div class="section-head"><h2>정기 자동이체</h2><span class="hint">연도·월과 무관하게 매월 자동으로 채워져요 · 수정하면 다음 달부터 반영돼요</span></div>
+      <div class="card table-card">
+        <div class="tx-form" style="grid-template-columns:56px 84px 1fr 1fr 1fr 90px 40px;">
+          <input type="number" id="rc_day" placeholder="일" min="1" max="31">
+          <select id="rc_scope" onchange="onRcScopeChange()">${SCOPES.map(s=>`<option>${s}</option>`).join('')}</select>
+          <select id="rc_main" onchange="onRcMainChange()"></select>
+          <select id="rc_category"></select>
+          <input type="text" id="rc_note" placeholder="내용 (예: 관리비)">
+          <input type="number" id="rc_amount" placeholder="금액">
+          <button class="add-btn" onclick="submitRecurring()" title="추가">＋</button>
+        </div>
+        <div class="payment-toggle" id="paymentToggleRc" data-selected="">
+          <span class="payment-toggle-label">결제수단</span>
+          ${PAYMENT_METHODS.map(p=>`<button type="button" class="chip pay-chip" data-val="${escapeAttr(p)}" onclick="selectPaymentToggle('paymentToggleRc','${escapeAttr(p)}')">${p}</button>`).join('')}
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="tx-table">
+          <thead><tr>
+            <th>일</th><th>구분</th><th>중분류</th><th>소분류</th><th>내용</th><th>결제수단</th><th style="text-align:right">금액</th>
+          </tr></thead>
+          <tbody id="recurringBody"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
   `;
 
   renderIncomeExpenseChart();
+  onRcScopeChange();
+  renderRecurringTable();
 }
 
 function setSummaryScope(s){
@@ -1057,6 +1121,120 @@ function buildCategoryMatrixRows(list, monthYms){
   return html;
 }
 
+/* ---- 정기 자동이체 관리 (Summary 페이지) ---- */
+function onRcScopeChange(){
+  const scope = document.getElementById('rc_scope').value;
+  document.getElementById('rc_main').innerHTML = mainOptions(scope, '지출', null);
+  onRcMainChange();
+}
+function onRcMainChange(){
+  const scope = document.getElementById('rc_scope').value;
+  const main = document.getElementById('rc_main').value;
+  document.getElementById('rc_category').innerHTML = catOptions(scope, '지출', main, null);
+}
+function submitRecurring(){
+  const day = Number(document.getElementById('rc_day').value);
+  const amount = Number(document.getElementById('rc_amount').value);
+  if(!day || day<1 || day>31 || !amount){ alert('일자(1~31)와 금액을 입력해주세요.'); return; }
+  const payment = document.getElementById('paymentToggleRc')?.dataset.selected || '';
+  const templates = DB.getRecurringTemplates() || [];
+  templates.push({
+    key: 'r_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    day, scope: document.getElementById('rc_scope').value,
+    main: document.getElementById('rc_main').value,
+    category: document.getElementById('rc_category').value,
+    note: document.getElementById('rc_note').value,
+    amount, payment
+  });
+  DB.saveRecurringTemplates(templates);
+  document.getElementById('rc_day').value = '';
+  document.getElementById('rc_note').value = '';
+  document.getElementById('rc_amount').value = '';
+  selectPaymentToggle('paymentToggleRc', '');
+  renderRecurringTable();
+}
+
+function renderRecurringTable(){
+  const templates = (DB.getRecurringTemplates() || []).slice().sort((a,b)=>a.day-b.day);
+  document.getElementById('recurringBody').innerHTML = templates.length
+    ? templates.map(t => t.key===state.editingRecurKey ? recurEditRowHtml(t) : recurDisplayRowHtml(t)).join('')
+    : `<tr class="empty-row"><td colspan="7">등록된 정기 자동이체가 없습니다.</td></tr>`;
+}
+function recurDisplayRowHtml(t){
+  return `<tr class="tx-row" onclick="startEditRecur('${t.key}')">
+    <td class="mono" data-label="일">${t.day}일</td>
+    <td data-label="구분">${t.scope}</td>
+    <td data-label="중분류" style="color:var(--muted)">${t.main}</td>
+    <td data-label="소분류" style="font-weight:600">${t.category}</td>
+    <td data-label="내용">${escapeAttr(t.note)}</td>
+    <td data-label="결제수단" style="color:var(--muted)">${escapeAttr(t.payment)}</td>
+    <td class="amt expense" data-label="금액">${Number(t.amount).toLocaleString('ko-KR')}</td>
+  </tr>`;
+}
+function recurEditRowHtml(t){
+  return `<tr class="edit-row">
+    <td colspan="7">
+      <div class="tx-edit-form" style="grid-template-columns:56px 84px 1fr 1fr 1fr 90px auto;">
+        <input type="number" id="rce_day_${t.key}" value="${t.day}" min="1" max="31">
+        <select id="rce_scope_${t.key}" onchange="onRceScopeChange('${t.key}')">${SCOPES.map(s=>`<option ${s===t.scope?'selected':''}>${s}</option>`).join('')}</select>
+        <select id="rce_main_${t.key}" onchange="onRceMainChange('${t.key}')">${mainOptions(t.scope, '지출', t.main)}</select>
+        <select id="rce_category_${t.key}">${catOptions(t.scope, '지출', t.main, t.category)}</select>
+        <input type="text" id="rce_note_${t.key}" value="${escapeAttr(t.note)}">
+        <input type="number" id="rce_amount_${t.key}" value="${t.amount}">
+        <div class="edit-actions">
+          <button class="ghost-btn primary" onclick="saveRecurEdit('${t.key}')">저장</button>
+          <button class="ghost-btn danger" onclick="deleteRecur('${t.key}')">삭제</button>
+          <button class="ghost-btn" onclick="cancelRecurEdit()">취소</button>
+        </div>
+      </div>
+      <div class="payment-toggle" id="paymentToggleRce_${t.key}" data-selected="${escapeAttr(t.payment)}" style="border-bottom:none;padding:10px 0 0;">
+        <span class="payment-toggle-label">결제수단</span>
+        ${PAYMENT_METHODS.map(p=>`<button type="button" class="chip pay-chip ${p===t.payment?'active':''}" data-val="${escapeAttr(p)}" onclick="selectPaymentToggle('paymentToggleRce_${t.key}','${escapeAttr(p)}')">${p}</button>`).join('')}
+      </div>
+    </td>
+  </tr>`;
+}
+function startEditRecur(key){ state.editingRecurKey = key; renderRecurringTable(); }
+function cancelRecurEdit(){ state.editingRecurKey = null; renderRecurringTable(); }
+function onRceScopeChange(key){
+  const scope = document.getElementById('rce_scope_'+key).value;
+  document.getElementById('rce_main_'+key).innerHTML = mainOptions(scope, '지출', null);
+  onRceMainChange(key);
+}
+function onRceMainChange(key){
+  const scope = document.getElementById('rce_scope_'+key).value;
+  const main = document.getElementById('rce_main_'+key).value;
+  document.getElementById('rce_category_'+key).innerHTML = catOptions(scope, '지출', main, null);
+}
+function saveRecurEdit(key){
+  const day = Number(document.getElementById('rce_day_'+key).value);
+  const amount = Number(document.getElementById('rce_amount_'+key).value);
+  if(!day || day<1 || day>31 || !amount){ alert('일자(1~31)와 금액을 확인해주세요.'); return; }
+  const payment = document.getElementById('paymentToggleRce_'+key)?.dataset.selected || '';
+  const templates = DB.getRecurringTemplates() || [];
+  const idx = templates.findIndex(t=>t.key===key);
+  if(idx > -1){
+    templates[idx] = {
+      ...templates[idx],
+      day, scope: document.getElementById('rce_scope_'+key).value,
+      main: document.getElementById('rce_main_'+key).value,
+      category: document.getElementById('rce_category_'+key).value,
+      note: document.getElementById('rce_note_'+key).value,
+      amount, payment
+    };
+    DB.saveRecurringTemplates(templates);
+  }
+  state.editingRecurKey = null;
+  renderRecurringTable();
+}
+function deleteRecur(key){
+  if(!confirm('이 정기 자동이체를 삭제할까요? 이미 채워진 달의 거래는 그대로 남고, 앞으로만 생성되지 않아요.')) return;
+  const templates = (DB.getRecurringTemplates() || []).filter(t=>t.key!==key);
+  DB.saveRecurringTemplates(templates);
+  state.editingRecurKey = null;
+  renderRecurringTable();
+}
+
 /* =================================================================================
    7. Month 페이지
    ================================================================================= */
@@ -1117,7 +1295,7 @@ function renderMonth(ym){
         <canvas id="chartCompare"></canvas>
       </div>
       <div class="card review-card">
-        <div class="section-head"><h2>지출 리뷰</h2><button class="ghost-btn" onclick="renderScopeReviews('${ym}')" style="font-size:11px;">↻ 다시 분석</button></div>
+        <div class="section-head"><h2>지출 리뷰</h2><button class="ghost-btn" onclick="reanalyzeScopeReview('${ym}')" style="font-size:11px;">↻ 다시 분석</button></div>
         <div class="pill-note">⚙︎ 규칙 기반 자동 분석 · 추후 실제 AI 요약으로 교체 예정</div>
         <div id="scopeReviewWrap"></div>
       </div>
@@ -1211,6 +1389,20 @@ function renderCompareChart(ym){
    TODO[AI]: 아래 계산을 서버(Supabase Edge Function 등)에서
    거래내역을 Claude API로 보내 자연어 요약을 받아오는 방식으로 교체 예정.
 */
+function reanalyzeScopeReview(ym){
+  try{
+    const wrap = document.getElementById('scopeReviewWrap');
+    if(wrap){
+      wrap.style.transition = 'opacity .12s ease';
+      wrap.style.opacity = '0.25';
+    }
+    renderScopeReviews(ym);
+    if(wrap){ requestAnimationFrame(()=>{ wrap.style.opacity = '1'; }); }
+  }catch(err){
+    console.error('지출 리뷰 재분석 중 오류:', err);
+    alert('다시 분석하는 중 오류가 발생했어요: ' + err.message);
+  }
+}
 function renderScopeReviews(ym){
   const all = DB.list();
   const wrap = document.getElementById('scopeReviewWrap');
@@ -1544,7 +1736,13 @@ function saveEditTx(id){
   else renderMonth(targetYm);
 }
 function deleteEditTx(id){
-  if(!confirm('이 거래를 삭제할까요?')) return;
+  const t = DB.list().find(x=>x.id===id);
+  const isRecurring = t && t.recurringKey;
+  const msg = isRecurring
+    ? '이 거래는 정기 자동이체로 생성된 항목이에요. 이번 달만 삭제할까요? (다음 달부터는 다시 생성돼요)'
+    : '이 거래를 삭제할까요?';
+  if(!confirm(msg)) return;
+  if(isRecurring) DB.addRecurringSkip(t.recurringKey, ymOf(t.date));
   DB.remove(id);
   state.editingTxId = null;
   renderMonth(state.currentYm);
