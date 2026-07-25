@@ -486,12 +486,23 @@
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
 <script>
 /* ===========================================================
-   Apps Script 연동 설정
+   Supabase 연동 설정 (campaigns 테이블)
    =========================================================== */
-const API_URL = "https://script.google.com/macros/s/AKfycbzMSBUZ5hBbLR2T-lx7m0G2ODIcXKu7oUqvXbA9iiSL_QtJNcevO_aws-Jb1DhhOImX/exec";
-const SITE_KEY = "130702";
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    sb.auth.startAutoRefresh();
+  } else {
+    sb.auth.stopAutoRefresh();
+  }
+});
 
 let items = [];
 let filter = "all";
@@ -523,17 +534,6 @@ function normalizeDate(v){
   return `${y}-${m}-${day}`;
 }
 
-async function callApi(action, payload) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(Object.assign({ action, key: SITE_KEY }, payload))
-  });
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "요청 실패");
-  return data.items;
-}
-
 async function addItem(){
   const region = document.getElementById('in-region').value;
   const name = document.getElementById('in-name').value.trim();
@@ -552,12 +552,12 @@ async function addItem(){
     resvDate: "", resvTime: ""
   };
 
-  try {
-    items = await callApi("add", { item: newItem });
-  } catch (err) {
-    alert("저장 실패: " + err.message);
+  const { error } = await sb.from('campaigns').insert(newItem);
+  if (error) {
+    alert("저장 실패: " + error.message);
     return;
   }
+  await loadInitialData();
 
   document.getElementById('in-name').value = "";
   document.getElementById('in-provide').value = "";
@@ -572,52 +572,39 @@ async function addItem(){
 
 async function deleteItem(id){
   if(!confirm('이 체험단을 삭제할까요?')) return;
-  try {
-    items = await callApi("delete", { id });
-  } catch (err) {
-    alert("삭제 실패: " + err.message);
+  const { error } = await sb.from('campaigns').delete().eq('id', id);
+  if (error) {
+    alert("삭제 실패: " + error.message);
     return;
   }
-  render();
+  await loadInitialData();
 }
 
 async function updateStatus(id, value){
-  const it = items.find(i => i.id === id);
-  if (!it) return;
-  const updated = Object.assign({}, it, { status: value });
-  try {
-    items = await callApi("update", { item: updated });
-  } catch (err) {
-    alert("업데이트 실패: " + err.message);
+  const { error } = await sb.from('campaigns').update({ status: value }).eq('id', id);
+  if (error) {
+    alert("업데이트 실패: " + error.message);
     return;
   }
-  render();
+  await loadInitialData();
 }
 
 async function updateResv(id, field, value){
-  const it = items.find(i => i.id === id);
-  if (!it) return;
-  const updated = Object.assign({}, it, { [field]: value });
-  try {
-    items = await callApi("update", { item: updated });
-  } catch (err) {
-    alert("업데이트 실패: " + err.message);
+  const { error } = await sb.from('campaigns').update({ [field]: value }).eq('id', id);
+  if (error) {
+    alert("업데이트 실패: " + error.message);
     return;
   }
-  render();
+  await loadInitialData();
 }
 
 async function updatePlatform(id, value){
-  const it = items.find(i => i.id === id);
-  if (!it) return;
-  const updated = Object.assign({}, it, { platform: value });
-  try {
-    items = await callApi("update", { item: updated });
-  } catch (err) {
-    alert("업데이트 실패: " + err.message);
+  const { error } = await sb.from('campaigns').update({ platform: value }).eq('id', id);
+  if (error) {
+    alert("업데이트 실패: " + error.message);
     return;
   }
-  render();
+  await loadInitialData();
 }
 
 function startInlineEditSpan(span, id, field) {
@@ -643,13 +630,11 @@ async function saveInlineEdit(id, field, value) {
     render();
     return;
   }
-  const updated = Object.assign({}, it, { [field]: value });
-  try {
-    items = await callApi("update", { item: updated });
-  } catch (err) {
-    alert("업데이트 실패: " + err.message);
+  const { error } = await sb.from('campaigns').update({ [field]: value }).eq('id', id);
+  if (error) {
+    alert("업데이트 실패: " + error.message);
   }
-  render();
+  await loadInitialData();
 }
 
 function setFilter(f){
@@ -780,27 +765,25 @@ function escapeHtml(str){
 }
 
 async function loadInitialData(){
-  try{
-    const res = await fetch(`${API_URL}?key=${encodeURIComponent(SITE_KEY)}`, { cache: "no-store" });
-    const data = await res.json();
-    if (data.ok && Array.isArray(data.items)) items = data.items;
-  }catch(e){
-    console.error("데이터 로드 실패:", e);
+  const { data, error } = await sb.from('campaigns').select('*').order('id');
+  if (error) {
+    console.error("데이터 로드 실패:", error);
+  } else {
+    items = data || [];
   }
   render();
-
-  setInterval(async () => {
-    try {
-      const res = await fetch(`${API_URL}?key=${encodeURIComponent(SITE_KEY)}`, { cache: "no-store" });
-    const data = await res.json();
-      if (data.ok && Array.isArray(data.items)) {
-        items = data.items;
-        render();
-      }
-    } catch (e) { /* 조용히 무시 */ }
-  }, 10000);
 }
 loadInitialData();
+
+// 다른 사람이 같은 테이블을 수정하면(다른 탭/기기 포함) 실시간으로 반영
+sb.channel('campaigns-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => {
+    loadInitialData();
+  })
+  .subscribe();
+
+// 실시간 이벤트를 놓치는 경우를 대비한 보조 폴링(30초)
+setInterval(loadInitialData, 30000);
 </script>
 <script src="./auth-gate.js"></script>
 </body>
