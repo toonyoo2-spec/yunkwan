@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>우리집 가계부</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
 /* =========================================================
    토큰 (Design tokens)
    ========================================================= */
 :root{
+  --font: "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --paper:#F7F6F1;
   --paper-line: rgba(32,36,31,0.05);
   --surface:#FFFFFF;
@@ -41,27 +41,19 @@
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      transparent,
-      transparent 35px,
-      var(--paper-line) 35px,
-      var(--paper-line) 36px
-    ),
-    var(--paper);
+  background:var(--paper);
   color:var(--ink);
-  font-family:'Inter',system-ui,sans-serif;
+  font-family:var(--font);
   -webkit-font-smoothing:antialiased;
   min-height:100vh;
 }
 h1,h2,h3,.display{
-  font-family:'Fraunces',serif;
-  font-weight:600;
-  letter-spacing:-0.01em;
+  font-family:var(--font);
+  font-weight:700;
+  letter-spacing:-0.02em;
   margin:0;
 }
-.mono{ font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
+.mono{ font-family:var(--font); font-variant-numeric:tabular-nums; }
 a{color:inherit;}
 button{font-family:inherit;}
 
@@ -78,7 +70,7 @@ button{font-family:inherit;}
 .topbar .brand .mark{
   width:34px;height:34px;border-radius:9px;background:var(--ink);
   display:inline-flex;align-items:center;justify-content:center;
-  color:var(--paper);font-family:'Fraunces',serif;font-size:17px;font-weight:700;
+  color:var(--paper);font-family:var(--font);font-size:17px;font-weight:700;
   transform:translateY(4px);
 }
 .topbar h1{font-size:26px;}
@@ -116,7 +108,7 @@ button{font-family:inherit;}
   top:2px;
   white-space:nowrap;
 }
-.tab.summary-tab{font-family:'Fraunces',serif;font-size:14px;}
+.tab.summary-tab{font-family:var(--font);font-size:14px;}
 .tab:hover{color:var(--ink-soft);}
 .tab.active{
   color:var(--ink);
@@ -146,7 +138,7 @@ button{font-family:inherit;}
 
 .kpi{padding:18px 18px 16px;}
 .kpi .label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em;}
-.kpi .value{font-family:'Fraunces',serif;font-size:25px;font-weight:600;margin-top:6px;}
+.kpi .value{font-family:var(--font);font-size:25px;font-weight:600;margin-top:6px;}
 .kpi .delta{font-size:12px;margin-top:6px;font-weight:600;}
 .kpi .delta.up{color:var(--expense);}
 .kpi .delta.down{color:var(--income);}
@@ -203,7 +195,7 @@ button{font-family:inherit;}
 .cat-row .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;}
 .cat-row .top .name{font-weight:600;}
 .cat-row .top .name .sub{color:var(--muted);font-weight:400;margin-left:4px;}
-.cat-row .top .amt{font-family:'IBM Plex Mono',monospace;}
+.cat-row .top .amt{font-family:var(--font);}
 .bar-track{height:7px;border-radius:100px;background:var(--line);overflow:hidden;}
 .bar-fill{height:100%;border-radius:100px;}
 
@@ -245,7 +237,7 @@ table.tx-table th{
 }
 table.tx-table td{padding:9px 10px;border-bottom:1px solid var(--paper-line);vertical-align:middle;}
 table.tx-table tbody tr:hover{background:var(--paper);}
-table.tx-table td.amt{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap;}
+table.tx-table td.amt{font-family:var(--font);text-align:right;white-space:nowrap;}
 table.tx-table td.amt.expense{color:var(--expense);}
 table.tx-table td.amt.income{color:var(--income);}
 table.tx-table td.amt.saving{color:var(--saving);}
@@ -269,7 +261,7 @@ table.tx-table td.amt.invest{color:var(--invest);}
 }
 .review-stats{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap;}
 .review-stats .item{font-size:12px;color:var(--ink-soft);}
-.review-stats .item b{display:block;font-family:'Fraunces',serif;font-size:17px;color:var(--ink);}
+.review-stats .item b{display:block;font-family:var(--font);font-size:17px;color:var(--ink);}
 .save-note{font-size:11px;color:var(--muted);margin-top:8px;}
 
 /* =========================================================
@@ -282,7 +274,7 @@ table.tx-table td.amt.invest{color:var(--invest);}
   border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;
   width:26px;height:26px;cursor:pointer;color:var(--ink-soft);
 }
-.year-switch .y{font-family:'Fraunces',serif;font-weight:700;font-size:16px;min-width:44px;text-align:center;}
+.year-switch .y{font-family:var(--font);font-weight:700;font-size:16px;min-width:44px;text-align:center;}
 
 .month-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
 .month-nav .move{
@@ -306,7 +298,7 @@ footer.foot{
 .year-btn{
   display:flex;align-items:center;gap:5px;
   border:2px solid var(--ink);border-bottom:none;background:var(--surface);color:var(--ink);
-  border-radius:10px 10px 0 0;padding:9px 14px;font-family:'Fraunces',serif;font-weight:700;font-size:14px;
+  border-radius:10px 10px 0 0;padding:9px 14px;font-family:var(--font);font-weight:700;font-size:14px;
   cursor:pointer;
 }
 .year-btn .caret{font-size:10px;color:var(--muted);}
@@ -318,7 +310,7 @@ footer.foot{
 .year-menu.open{display:flex;}
 .year-item{
   border:none;background:transparent;text-align:left;padding:7px 10px;border-radius:6px;
-  font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;font-family:'IBM Plex Mono',monospace;
+  font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;font-family:var(--font);
 }
 .year-item:hover{background:var(--paper);}
 .year-item.active{background:var(--ink);color:var(--paper);}
@@ -343,7 +335,7 @@ tr.edit-row td{padding:12px 10px;}
 /* ---- 예산 ---- */
 .budget-input{
   width:100%;margin-top:5px;border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px;
-  font-size:12.5px;font-family:'IBM Plex Mono',monospace;background:var(--paper);color:var(--ink);
+  font-size:12.5px;font-family:var(--font);background:var(--paper);color:var(--ink);
 }
 .compare-select{
   border:1px solid var(--line-strong);border-radius:8px;padding:5px 8px;font-size:12px;
@@ -401,7 +393,7 @@ tr.edit-row td{padding:12px 10px;}
 }
 .modal-tx-list li:last-child{border-bottom:none;}
 .modal-tx-list .n{flex:1;color:var(--ink-soft);}
-.modal-tx-list .a{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap;}
+.modal-tx-list .a{font-family:var(--font);font-weight:600;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -1146,7 +1138,7 @@ function openInsightDetail(i){
 
   const itemsHtml = curItems.length ? `<ul class="modal-tx-list">${curItems.map(t=>`
     <li>
-      <span style="color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11.5px;min-width:38px;">${t.date.slice(8)}일</span>
+      <span style="color:var(--muted);font-family:var(--font);font-size:11.5px;min-width:38px;">${t.date.slice(8)}일</span>
       <span class="n">${t.note||'(내용 없음)'}${t.user?` · ${t.user}`:''}</span>
       <span class="a amt expense">${Number(t.amount).toLocaleString('ko-KR')}원</span>
     </li>
