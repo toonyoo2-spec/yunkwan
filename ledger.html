@@ -747,28 +747,12 @@ function render(){
   const yearMenuHtml = yearRange().map(y=>`<button class="year-item ${y===state.year?'active':''}" onclick="selectYear(${y})">${y}</button>`).join('');
 
   app.innerHTML = `
-      <style>
-      .home-btn {
-        display: inline-block;
-        font-size: 12.5px;
-        color: var(--sub);
-        text-decoration: none;
-        margin-bottom: 8px;
-      }
-      .home-btn:hover { color: var(--accent); }
-      header p {
-        margin: 0;
-        color: var(--sub);
-        font-size: 13.5px;
-      }
-    </style>
     <div class="topbar">
       <div class="brand">
+        <span class="mark">家</span>
         <div>
-
-    <div class="topbar">
-      ...
           <h1>우리집 가계부</h1>
+          <div class="sub">구조 설계 단계 · 로컬 저장 (Supabase 연동 예정)</div>
         </div>
       </div>
     </div>
