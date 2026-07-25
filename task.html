@@ -3,522 +3,1440 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Task</title>
+<title>우리집 가계부</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
-  :root{
-    --bg:#f6f5f1;
-    --ink:#22221f;
-    --sub:#6b6a63;
-    --line:#e1dfd6;
-    --card:#ffffff;
-    --accent:#3a5a52;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
-    background:var(--bg);
-    color:var(--ink);
-    padding:32px 20px 80px;
-  }
-  .wrap{max-width:1180px;margin:0 auto;}
+/* =========================================================
+   토큰 (Design tokens)
+   ========================================================= */
+:root{
+  --paper:#F7F6F1;
+  --paper-line: rgba(32,36,31,0.05);
+  --surface:#FFFFFF;
+  --ink:#20241F;
+  --ink-soft:#4B4F45;
+  --muted:#8A8D80;
+  --line:#E4E1D5;
+  --line-strong:#D3CFBF;
 
-  header{margin-bottom:20px;}
-  .home-btn{
-    display:inline-block;
-    font-size:12.5px;
-    color:var(--sub);
-    text-decoration:none;
-    margin-bottom:8px;
-  }
-  .home-btn:hover{color:var(--accent);}
-  h1{
-    font-size:26px;
-    letter-spacing:-0.02em;
-    margin:0 0 4px;
-  }
-  header p{
-    margin:0;
-    color:var(--sub);
-    font-size:13.5px;
-  }
+  --income:#2F6F4E;      /* 수입 - 짙은 숲색 */
+  --income-soft:#E4EFE7;
+  --expense:#B5495B;     /* 지출 - 와인 로즈 */
+  --expense-soft:#F5E6E8;
+  --saving:#3C6E9E;      /* 저축 - 스틸 블루 */
+  --saving-soft:#E5EDF3;
+  --invest:#B9862E;      /* 투자 - 머스타드 골드 */
+  --invest-soft:#F5EDDC;
 
-  .panel{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:20px;
-    margin-bottom:24px;
-  }
-  .panel h2{
-    font-size:15px;
-    margin:0 0 14px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-  .panel h2::before{
-    content:"";
-    width:6px;height:6px;border-radius:50%;
-    background:var(--accent);
-    display:inline-block;
-  }
+  --radius-s:8px;
+  --radius-m:14px;
+  --radius-l:20px;
 
-  .section-title{
-    font-size:13px;
-    font-weight:600;
-    color:var(--sub);
-    margin:28px 0 12px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-  .section-title::before{
-    content:"";
-    width:6px;height:6px;border-radius:50%;
-    background:var(--accent);
-    display:inline-block;
-  }
-  .notion-section-title{justify-content:space-between;}
-  .refresh-btn{
-    border:1px solid var(--line);
-    background:#fff;
-    color:var(--sub);
-    padding:5px 10px;
-    border-radius:20px;
-    font-size:11.5px;
-    cursor:pointer;
-  }
-  .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+  --shadow-tab: 0 -2px 0 rgba(32,36,31,0.06) inset;
+  --shadow-card: 0 1px 2px rgba(32,36,31,0.04), 0 8px 24px -16px rgba(32,36,31,0.18);
+}
 
-  .form-grid{
-    display:grid;
-    grid-template-columns:1fr 1.4fr;
-    gap:16px;
-  }
-  .field{margin-bottom:12px;}
-  .field label{
-    display:block;
-    font-size:12px;
-    color:var(--sub);
-    margin-bottom:5px;
-  }
-  input[type=text], input[type=url], textarea{
-    width:100%;
-    padding:9px 10px;
-    border:1px solid var(--line);
-    border-radius:7px;
-    font-size:13.5px;
-    background:#fff;
-    color:var(--ink);
-    font-family:inherit;
-  }
-  textarea{resize:vertical;min-height:80px;}
-  input:focus, textarea:focus{
-    outline:none;
-    border-color:var(--accent);
-  }
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent 35px,
+      var(--paper-line) 35px,
+      var(--paper-line) 36px
+    ),
+    var(--paper);
+  color:var(--ink);
+  font-family:'Inter',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+h1,h2,h3,.display{
+  font-family:'Fraunces',serif;
+  font-weight:600;
+  letter-spacing:-0.01em;
+  margin:0;
+}
+.mono{ font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
+a{color:inherit;}
+button{font-family:inherit;}
 
-  .image-drop{
-    border:1.5px dashed var(--line);
-    border-radius:10px;
-    padding:14px;
-    text-align:center;
-    cursor:pointer;
-    color:var(--sub);
-    font-size:12.5px;
-    position:relative;
-    min-height:160px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    overflow:hidden;
-    background:#fafaf8;
-  }
-  .image-drop img{
-    max-width:100%;
-    max-height:220px;
-    border-radius:6px;
-    object-fit:cover;
-  }
-  .image-drop input[type=file]{
-    position:absolute;
-    inset:0;
-    opacity:0;
-    cursor:pointer;
-  }
-  .upload-status{
-    font-size:11.5px;
-    color:var(--sub);
-    margin-top:6px;
-  }
+/* =========================================================
+   레이아웃
+   ========================================================= */
+#app{max-width:1180px;margin:0 auto;padding:28px 20px 80px;}
 
-  .save-btn{
-    margin-top:6px;
-    background:var(--accent);
-    color:#fff;
-    border:none;
-    padding:10px 22px;
-    border-radius:7px;
-    font-size:13.5px;
-    font-weight:600;
-    cursor:pointer;
-  }
-  .save-btn:hover{opacity:0.9;}
-  .save-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.topbar{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin-bottom:22px;flex-wrap:wrap;gap:10px;
+}
+.topbar .brand{display:flex;align-items:baseline;gap:10px;}
+.topbar .brand .mark{
+  width:34px;height:34px;border-radius:9px;background:var(--ink);
+  display:inline-flex;align-items:center;justify-content:center;
+  color:var(--paper);font-family:'Fraunces',serif;font-size:17px;font-weight:700;
+  transform:translateY(4px);
+}
+.topbar h1{font-size:26px;}
+.topbar .sub{color:var(--muted);font-size:13px;}
+.topbar .actions{display:flex;gap:8px;align-items:center;}
+.ghost-btn{
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);
+  border-radius:100px;padding:7px 14px;font-size:12.5px;cursor:pointer;
+  transition:.15s ease;
+}
+.ghost-btn:hover{border-color:var(--ink);color:var(--ink);}
 
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
-    gap:16px;
-  }
-  .project-card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:12px;
-    overflow:hidden;
-    display:flex;
-    flex-direction:column;
-  }
-  .project-card .thumb{
-    width:100%;
-    aspect-ratio:16/10;
-    background:#eef0ec;
-    overflow:hidden;
-  }
-  .project-card .thumb img{
-    width:100%;height:100%;object-fit:cover;display:block;
-  }
-  .project-card .body{
-    padding:16px;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-    flex:1;
-  }
-  .project-card .title{font-size:15.5px;font-weight:700;}
-  .project-card .desc{
-    font-size:12.5px;
-    color:var(--sub);
-    line-height:1.5;
-    white-space:pre-wrap;
-    flex:1;
-  }
-  .card-actions{
-    display:flex;
-    gap:8px;
-    margin-top:8px;
-  }
-  .notion-link{
-    flex:1;
-    text-align:center;
-    background:#eef0ec;
-    color:var(--ink);
-    text-decoration:none;
-    font-size:12.5px;
-    font-weight:600;
-    padding:8px 10px;
-    border-radius:7px;
-  }
-  .notion-link:hover{background:#e2e6de;}
-  .del-btn{
-    background:none;
-    border:1px solid var(--line);
-    color:var(--sub);
-    cursor:pointer;
-    font-size:13px;
-    padding:8px 12px;
-    border-radius:7px;
-  }
-  .del-btn:hover{border-color:#b3452f;color:#b3452f;}
+/* ---- 탭(폴더 인덱스탭) 네비게이션 ---- */
+.tabs-wrap{
+  border-bottom:2px solid var(--ink);
+  margin-bottom:26px;
+}
+.tabs{
+  display:flex;gap:4px;overflow-x:auto;padding-bottom:0;
+  scrollbar-width:thin;
+}
+.tabs::-webkit-scrollbar{height:5px;}
+.tabs::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:10px;}
+.tab{
+  flex:0 0 auto;
+  padding:9px 16px;
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--muted);
+  background:transparent;
+  border:none;
+  border-radius:10px 10px 0 0;
+  cursor:pointer;
+  position:relative;
+  top:2px;
+  white-space:nowrap;
+}
+.tab.summary-tab{font-family:'Fraunces',serif;font-size:14px;}
+.tab:hover{color:var(--ink-soft);}
+.tab.active{
+  color:var(--ink);
+  background:var(--surface);
+  border:2px solid var(--ink);
+  border-bottom:2px solid var(--surface);
+}
+.tab .dot{
+  display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--expense);margin-right:5px;vertical-align:middle;
+  opacity:0;
+}
+.tab.has-data .dot{opacity:1;}
 
-  .empty{
-    text-align:center;
-    padding:50px 0;
-    color:var(--sub);
-    font-size:13.5px;
-  }
+/* =========================================================
+   카드 / 공용 컴포넌트
+   ========================================================= */
+.card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius-m);
+  box-shadow:var(--shadow-card);
+}
+.grid{display:grid;gap:16px;}
+.kpis{grid-template-columns:repeat(4,1fr);margin-bottom:18px;}
+@media (max-width:800px){.kpis{grid-template-columns:repeat(2,1fr);}}
 
-  #appContent{display:none;}
+.kpi{padding:18px 18px 16px;}
+.kpi .label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em;}
+.kpi .value{font-family:'Fraunces',serif;font-size:25px;font-weight:600;margin-top:6px;}
+.kpi .delta{font-size:12px;margin-top:6px;font-weight:600;}
+.kpi .delta.up{color:var(--expense);}
+.kpi .delta.down{color:var(--income);}
+.kpi.income .value{color:var(--income);}
+.kpi.expense .value{color:var(--expense);}
+.kpi.saving .value{color:var(--saving);}
 
-  @media (max-width:720px){
-    .form-grid{grid-template-columns:1fr;}
-  }
+.section{margin-bottom:26px;}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+.section-head h2{font-size:18px;}
+.section-head .hint{font-size:12px;color:var(--muted);}
+
+.two-col{grid-template-columns:1.3fr 1fr;}
+@media (max-width:900px){.two-col{grid-template-columns:1fr;}}
+
+/* ---- 뱃지 ---- */
+.badge{
+  display:inline-block;padding:2px 9px;border-radius:100px;font-size:11px;font-weight:700;
+}
+.badge.income{background:var(--income-soft);color:var(--income);}
+.badge.expense{background:var(--expense-soft);color:var(--expense);}
+.badge.saving{background:var(--saving-soft);color:var(--saving);}
+.badge.invest{background:var(--invest-soft);color:var(--invest);}
+
+/* =========================================================
+   달력 (지출 히트맵)
+   ========================================================= */
+.cal-card{padding:18px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px;}
+.cal-dow{font-size:11px;color:var(--muted);text-align:center;font-weight:700;padding-bottom:4px;}
+.cal-cell{
+  aspect-ratio:1/0.82;border-radius:8px;border:1px solid var(--line);
+  padding:6px 7px;position:relative;background:var(--paper);
+  display:flex;flex-direction:column;justify-content:space-between;
+}
+.cal-cell.empty{border:none;background:transparent;}
+.cal-cell .d{font-size:11px;color:var(--muted);font-weight:600;}
+.cal-cell .amt{font-size:10.5px;font-weight:700;color:var(--expense);word-break:keep-all;}
+.cal-cell.today{border:1.5px solid var(--ink);}
+.cal-legend{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:var(--muted);}
+.cal-legend .sw{width:12px;height:12px;border-radius:3px;}
+
+/* =========================================================
+   카테고리 리스트업 (바 형태)
+   ========================================================= */
+.cat-list-card{padding:18px;}
+.cat-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.cat-tab{
+  border:1px solid var(--line-strong);background:var(--surface);border-radius:100px;
+  padding:5px 12px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;
+}
+.cat-tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+.cat-row{margin-bottom:10px;}
+.cat-row .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;}
+.cat-row .top .name{font-weight:600;}
+.cat-row .top .name .sub{color:var(--muted);font-weight:400;margin-left:4px;}
+.cat-row .top .amt{font-family:'IBM Plex Mono',monospace;}
+.bar-track{height:7px;border-radius:100px;background:var(--line);overflow:hidden;}
+.bar-fill{height:100%;border-radius:100px;}
+
+/* =========================================================
+   테이블 (거래 내역)
+   ========================================================= */
+.table-card{padding:0;overflow:hidden;}
+.table-toolbar{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+  padding:16px 18px;border-bottom:1px solid var(--line);
+}
+.table-toolbar .filters{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{
+  border:1px solid var(--line-strong);background:var(--surface);border-radius:100px;
+  padding:5px 11px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;
+}
+.chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+
+.tx-form{
+  display:grid;grid-template-columns: 118px 84px 96px 1fr 1.3fr 110px 84px 40px;
+  gap:8px;padding:14px 18px;background:var(--paper);border-bottom:1px solid var(--line);
+  align-items:center;
+}
+@media (max-width:900px){.tx-form{grid-template-columns:repeat(2,1fr);}}
+.tx-form input, .tx-form select{
+  width:100%;border:1px solid var(--line-strong);border-radius:8px;padding:7px 8px;
+  font-size:12.5px;font-family:inherit;background:var(--surface);color:var(--ink);
+}
+.tx-form .add-btn{
+  background:var(--ink);color:var(--paper);border:none;border-radius:8px;
+  height:32px;font-weight:700;cursor:pointer;font-size:16px;line-height:1;
+}
+.tx-form .add-btn:hover{opacity:.85;}
+
+table.tx-table{width:100%;border-collapse:collapse;font-size:13px;}
+table.tx-table th{
+  text-align:left;font-size:11px;color:var(--muted);font-weight:700;
+  padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+table.tx-table td{padding:9px 10px;border-bottom:1px solid var(--paper-line);vertical-align:middle;}
+table.tx-table tbody tr:hover{background:var(--paper);}
+table.tx-table td.amt{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap;}
+table.tx-table td.amt.expense{color:var(--expense);}
+table.tx-table td.amt.income{color:var(--income);}
+table.tx-table td.amt.saving{color:var(--saving);}
+table.tx-table td.amt.invest{color:var(--invest);}
+.row-actions{display:flex;gap:4px;}
+.icon-btn{
+  border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;
+  padding:2px 5px;border-radius:5px;
+}
+.icon-btn:hover{background:var(--line);color:var(--ink);}
+.empty-row td{text-align:center;color:var(--muted);padding:30px;font-size:13px;}
+
+/* =========================================================
+   리뷰 메모
+   ========================================================= */
+.review-card{padding:18px;}
+.review-card textarea{
+  width:100%;min-height:110px;border:1px solid var(--line);border-radius:10px;
+  padding:12px;font-family:'Inter',sans-serif;font-size:13px;resize:vertical;
+  background:var(--paper);color:var(--ink);
+}
+.review-stats{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap;}
+.review-stats .item{font-size:12px;color:var(--ink-soft);}
+.review-stats .item b{display:block;font-family:'Fraunces',serif;font-size:17px;color:var(--ink);}
+.save-note{font-size:11px;color:var(--muted);margin-top:8px;}
+
+/* =========================================================
+   Summary 전용
+   ========================================================= */
+.chart-card{padding:18px;}
+.chart-card canvas{max-height:280px;}
+.year-switch{display:flex;align-items:center;gap:8px;}
+.year-switch button{
+  border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;
+  width:26px;height:26px;cursor:pointer;color:var(--ink-soft);
+}
+.year-switch .y{font-family:'Fraunces',serif;font-weight:700;font-size:16px;min-width:44px;text-align:center;}
+
+.month-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.month-nav .move{
+  border:1px solid var(--line-strong);background:var(--surface);border-radius:100px;
+  padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink-soft);
+}
+.month-nav h1{font-size:24px;}
+
+footer.foot{
+  margin-top:40px;text-align:center;color:var(--muted);font-size:11.5px;
+  border-top:1px solid var(--line);padding-top:16px;
+}
+.pill-note{
+  display:inline-flex;align-items:center;gap:6px;background:var(--invest-soft);color:var(--invest);
+  border-radius:100px;padding:4px 12px;font-size:11.5px;font-weight:700;margin-bottom:14px;
+}
+
+/* ---- 연도 선택 드롭다운 ---- */
+.tabs-row{display:flex;align-items:flex-end;gap:10px;}
+.year-select{position:relative;flex:0 0 auto;top:2px;}
+.year-btn{
+  display:flex;align-items:center;gap:5px;
+  border:2px solid var(--ink);border-bottom:none;background:var(--surface);color:var(--ink);
+  border-radius:10px 10px 0 0;padding:9px 14px;font-family:'Fraunces',serif;font-weight:700;font-size:14px;
+  cursor:pointer;
+}
+.year-btn .caret{font-size:10px;color:var(--muted);}
+.year-menu{
+  display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:30;
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;
+  box-shadow:var(--shadow-card);padding:6px;min-width:96px;flex-direction:column;gap:1px;
+}
+.year-menu.open{display:flex;}
+.year-item{
+  border:none;background:transparent;text-align:left;padding:7px 10px;border-radius:6px;
+  font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;font-family:'IBM Plex Mono',monospace;
+}
+.year-item:hover{background:var(--paper);}
+.year-item.active{background:var(--ink);color:var(--paper);}
+
+/* ---- 거래 내역: 클릭해서 수정 ---- */
+table.tx-table tbody tr.tx-row{cursor:pointer;}
+table.tx-table tbody tr.tx-row:hover{background:var(--paper);}
+tr.edit-row{background:var(--paper);}
+tr.edit-row td{padding:12px 10px;}
+.tx-edit-form{
+  display:grid;grid-template-columns:118px 84px 96px 1fr 1fr 100px 90px auto;gap:8px;align-items:center;
+}
+@media (max-width:900px){.tx-edit-form{grid-template-columns:repeat(2,1fr);}}
+.tx-edit-form input, .tx-edit-form select{
+  width:100%;border:1px solid var(--line-strong);border-radius:8px;padding:7px 8px;
+  font-size:12.5px;font-family:inherit;background:var(--surface);color:var(--ink);
+}
+.edit-actions{display:flex;gap:6px;}
+.ghost-btn.danger{color:var(--expense);border-color:var(--expense);}
+.ghost-btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+
+/* ---- 예산 ---- */
+.budget-input{
+  width:100%;margin-top:5px;border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px;
+  font-size:12.5px;font-family:'IBM Plex Mono',monospace;background:var(--paper);color:var(--ink);
+}
+.compare-select{
+  border:1px solid var(--line-strong);border-radius:8px;padding:5px 8px;font-size:12px;
+  background:var(--surface);color:var(--ink-soft);font-family:inherit;
+}
+.auto-review-list{margin:0 0 14px;padding-left:0;list-style:none;}
+.auto-review-list li{
+  font-size:12.5px;line-height:1.6;color:var(--ink-soft);padding:7px 0;border-bottom:1px dashed var(--line);
+}
+.auto-review-list li:last-child{border-bottom:none;}
+.auto-review-list b{color:var(--ink);}
+.auto-review-list li{cursor:pointer;}
+.auto-review-list li:hover{background:var(--paper);border-radius:6px;padding-left:6px;}
+
+/* ---- 클릭으로 필터링 ---- */
+.filter-link{cursor:pointer;border-bottom:1px dotted var(--line-strong);}
+.filter-link:hover{color:var(--ink);border-bottom-color:var(--ink);}
+.chip.sub{font-size:11.5px;padding:4px 10px;}
+.note-search{
+  border:1px solid var(--line-strong);border-radius:100px;padding:6px 12px;font-size:12px;
+  background:var(--surface);color:var(--ink);width:160px;
+}
+
+/* ---- 캘린더 셀 클릭 ---- */
+.cal-cell{cursor:pointer;transition:.12s ease;}
+.cal-cell:hover{border-color:var(--ink);}
+.cal-cell.empty{cursor:default;}
+.cal-cell.empty:hover{border-color:transparent;}
+
+/* ---- 모달 ---- */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(32,36,31,0.45);z-index:100;
+  align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal-card{
+  background:var(--surface);border-radius:var(--radius-l);max-width:560px;width:100%;
+  max-height:85vh;overflow-y:auto;padding:28px;position:relative;box-shadow:var(--shadow-card);
+}
+.modal-close{
+  position:absolute;top:16px;right:16px;border:none;background:var(--paper);width:28px;height:28px;
+  border-radius:50%;cursor:pointer;color:var(--ink-soft);font-size:13px;line-height:1;
+}
+.modal-close:hover{background:var(--line);}
+.modal-card h3{font-size:19px;padding-right:30px;}
+.modal-sub{color:var(--muted);font-size:12.5px;margin:4px 0 16px;}
+.modal-narrative{
+  font-size:13px;line-height:1.75;color:var(--ink-soft);background:var(--paper);
+  border-radius:10px;padding:14px 16px;margin-bottom:18px;
+}
+.modal-section-label{font-size:11.5px;font-weight:700;color:var(--muted);margin:16px 0 8px;}
+.modal-tx-list{list-style:none;padding:0;margin:0;}
+.modal-tx-list li{
+  display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:12.5px;
+}
+.modal-tx-list li:last-child{border-bottom:none;}
+.modal-tx-list .n{flex:1;color:var(--ink-soft);}
+.modal-tx-list .a{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap;}
 </style>
 </head>
 <body>
-<div class="wrap" id="appContent">
+<div id="app"></div>
 
-  <header>
-    <a href="./index.html" class="home-btn">← 홈</a>
-    <h1>Task</h1>
-    <p>진행한 프로젝트를 카드로 정리하고, 노션 상세 페이지로 연결합니다.</p>
-  </header>
-
-  <div class="panel">
-    <h2>새 프로젝트 추가</h2>
-    <div class="form-grid">
-      <div>
-        <div class="field">
-          <label>썸네일 이미지</label>
-          <div class="image-drop" id="dropZone">
-            <span id="dropLabel">클릭해서 이미지 선택</span>
-            <input type="file" accept="image/*" id="in-image">
-          </div>
-          <div class="upload-status" id="uploadStatus"></div>
-        </div>
-      </div>
-      <div>
-        <div class="field">
-          <label>프로젝트 제목</label>
-          <input type="text" id="in-title" placeholder="예: 위베베 시즌3 캠페인">
-        </div>
-        <div class="field">
-          <label>설명</label>
-          <textarea id="in-description" placeholder="어떤 일을 했는지 간단히 적어주세요"></textarea>
-        </div>
-        <div class="field">
-          <label>노션 링크</label>
-          <input type="url" id="in-notion" placeholder="https://notion.so/...">
-        </div>
-        <button class="save-btn" id="saveBtn" onclick="addProject()">+ 추가하기</button>
-      </div>
-    </div>
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalBody"></div>
   </div>
-
-  <div class="section-title">직접 추가한 프로젝트</div>
-  <div class="grid" id="grid"></div>
-  <div class="empty" id="emptyMsg" style="display:none;">아직 등록된 프로젝트가 없어요.</div>
-
-  <div class="section-title notion-section-title">
-    노션에서 가져온 프로젝트
-    <button class="refresh-btn" onclick="loadNotionProjects()">↻ 새로고침</button>
-  </div>
-  <div class="grid" id="notionGrid"></div>
-  <div class="empty" id="notionEmptyMsg" style="display:none;">아직 연결된 노션 항목이 없어요.</div>
-  <div class="empty" id="notionErrorMsg" style="display:none;color:#b3452f;"></div>
-
 </div>
 
 <script>
-/* ===========================================================
-   Apps Script 연동 설정 (review.html과 같은 Apps Script 주소 사용)
-   =========================================================== */
-const API_URL = "여기에_Apps_Script_웹앱_URL_입력";
-const SITE_KEY = "130702"; // ⚠️ Code.gs의 SECRET_KEY와 동일해야 함
-const RESOURCE = "tasks";
+/* =================================================================================
+   0. 데이터 모델 & 카테고리 체계  (TAXONOMY)
+   ---------------------------------------------------------------------------------
+   기존 스프레드시트의 4단계(구분→대분류→중분류→소분류) 구조를
+   3단계(구분→대분류→카테고리)로 단순화하고, 마지막 항목명은 자유 입력(내용)으로 둠.
+   ================================================================================= */
+const TAXONOMY = {
+  "수입": {
+    "고정수입": ["급여"],
+    "변동수입": ["급여", "기타소득", "투자소득"]
+  },
+  "지출": {
+    "고정지출": ["교통비", "유류비", "구독", "보험", "주거비", "렌탈", "통신비", "회비"],
+    "변동지출": ["건강", "경조사", "공동", "교통비", "기타", "문화", "생활비"]
+  },
+  "저축": {
+    "단기저축": ["비상금", "적금"],
+    "장기저축": ["장기적금", "퇴직연금"]
+  },
+  "투자": {
+    "단기투자": ["주식", "해외주식"],
+    "장기투자": ["국내주식"]
+  }
+};
+const TYPES = ["수입", "지출", "저축", "투자"];
+const TYPE_KEY = { "수입":"income", "지출":"expense", "저축":"saving", "투자":"invest" };
+const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+const DOW = ["월","화","수","목","금","토","일"];
 
-let projects = [];
-let pendingImageUrl = "";
+/* =================================================================================
+   1. DB 레이어
+   ---------------------------------------------------------------------------------
+   지금은 localStorage 로만 저장됩니다. 나중에 Supabase 로 옮길 때는
+   아래 DB 객체의 메서드 내부만 supabase-js 호출로 교체하면 되도록
+   (화면 코드는 DB.* 메서드만 호출) 설계했습니다.
 
-function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+   예상 Supabase 테이블 스키마 (참고용):
+     transactions (
+       id uuid primary key default gen_random_uuid(),
+       date date not null,
+       type text not null,          -- 수입/지출/저축/투자
+       main text not null,          -- 대분류
+       category text not null,      -- 중분류
+       note text,                   -- 세부내용
+       amount integer not null,
+       user_name text,              -- 사용자
+       payment text,                -- 결제수단
+       created_at timestamptz default now()
+     )
+     monthly_reviews (
+       month text primary key,      -- 'YYYY-MM'
+       memo text,
+       updated_at timestamptz default now()
+     )
+   ================================================================================= */
+const DB = {
+  TX_KEY: "gagyebu_v1_transactions",
+  REVIEW_KEY_PREFIX: "gagyebu_v1_review_",
 
-async function callApi(action, payload){
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(Object.assign({ action, key: SITE_KEY, resource: RESOURCE }, payload))
-  });
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "요청 실패");
-  return data;
+  // TODO[Supabase]: `return (await supabase.from('transactions').select('*')).data`
+  list(){
+    const raw = localStorage.getItem(this.TX_KEY);
+    return raw ? JSON.parse(raw) : [];
+  },
+  _save(list){
+    localStorage.setItem(this.TX_KEY, JSON.stringify(list));
+  },
+  // TODO[Supabase]: `await supabase.from('transactions').insert(tx)`
+  add(tx){
+    const list = this.list();
+    tx.id = tx.id || (Date.now().toString(36) + Math.random().toString(36).slice(2,7));
+    list.push(tx);
+    this._save(list);
+    return tx;
+  },
+  // TODO[Supabase]: `await supabase.from('transactions').update(patch).eq('id', id)`
+  update(id, patch){
+    const list = this.list();
+    const idx = list.findIndex(t => t.id === id);
+    if(idx > -1){ list[idx] = {...list[idx], ...patch}; this._save(list); }
+  },
+  // TODO[Supabase]: `await supabase.from('transactions').delete().eq('id', id)`
+  remove(id){
+    this._save(this.list().filter(t => t.id !== id));
+  },
+  // TODO[Supabase]: `await supabase.from('monthly_reviews').select('memo').eq('month', ym)`
+  getReview(ym){
+    return localStorage.getItem(this.REVIEW_KEY_PREFIX + ym) || "";
+  },
+  // TODO[Supabase]: `await supabase.from('monthly_reviews').upsert({month: ym, memo})`
+  saveReview(ym, memo){
+    localStorage.setItem(this.REVIEW_KEY_PREFIX + ym, memo);
+  },
+
+  BUDGET_KEY_PREFIX: "gagyebu_v1_budget_",
+  // TODO[Supabase]: `await supabase.from('budgets').select('category,amount').eq('year', year)` → map으로 변환
+  getBudgets(year){
+    const raw = localStorage.getItem(this.BUDGET_KEY_PREFIX + year);
+    return raw ? JSON.parse(raw) : {};
+  },
+  // TODO[Supabase]: 카테고리별로 `await supabase.from('budgets').upsert({year, category, amount})`
+  saveBudgets(year, map){
+    localStorage.setItem(this.BUDGET_KEY_PREFIX + year, JSON.stringify(map));
+  },
+  reset(){
+    localStorage.removeItem(this.TX_KEY);
+    Object.keys(localStorage).filter(k=>k.startsWith(this.REVIEW_KEY_PREFIX)||k.startsWith(this.BUDGET_KEY_PREFIX)).forEach(k=>localStorage.removeItem(k));
+  }
+};
+
+/* =================================================================================
+   2. 유틸
+   ================================================================================= */
+const won = n => (Math.round(n||0)).toLocaleString('ko-KR') + '원';
+const wonShort = n => {
+  n = Math.round(n||0);
+  if(Math.abs(n) >= 10000) return (n/10000).toFixed(n%10000===0?0:1) + '만';
+  return n.toLocaleString('ko-KR');
+};
+const pct = n => (isFinite(n) ? n.toFixed(1) : '0.0') + '%';
+const ymOf = d => d.slice(0,7);
+const daysInMonth = (y,m) => new Date(y, m, 0).getDate();
+const mondayIndex = jsDay => (jsDay + 6) % 7; // JS: 0=일..6=토 -> 0=월..6=일
+
+function monthTx(list, ym){ return list.filter(t => ymOf(t.date) === ym); }
+function sumBy(list, type){ return list.filter(t=>t.type===type).reduce((s,t)=>s+Number(t.amount||0),0); }
+
+function prevYm(ym){
+  let [y,m] = ym.split('-').map(Number);
+  m -= 1; if(m===0){ m=12; y-=1; }
+  return y + '-' + String(m).padStart(2,'0');
+}
+function shiftYm(ym, n){
+  let [y,m] = ym.split('-').map(Number);
+  m += n;
+  while(m<1){ m+=12; y-=1; }
+  while(m>12){ m-=12; y+=1; }
+  return y + '-' + String(m).padStart(2,'0');
+}
+function escapeAttr(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+/* ---- 공용 모달 ---- */
+function chartFallbackNode(){
+  const d = document.createElement('div');
+  d.style.cssText = 'color:var(--muted);font-size:12.5px;padding:30px 4px;text-align:center;';
+  d.textContent = '차트 라이브러리(Chart.js)를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해보세요.';
+  return d;
+}
+function openModal(html){
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+function flatExpenseCategories(){
+  const arr = [];
+  Object.entries(TAXONOMY['지출']).forEach(([main,cats])=>cats.forEach(cat=>arr.push({main,cat})));
+  return arr;
+}
+function mainOptions(type, selected){
+  return Object.keys(TAXONOMY[type]).map(m=>`<option ${m===selected?'selected':''}>${m}</option>`).join('');
+}
+function catOptions(type, main, selected){
+  return (TAXONOMY[type][main]||[]).map(c=>`<option ${c===selected?'selected':''}>${c}</option>`).join('');
 }
 
-async function loadProjects(){
-  try{
-    const res = await fetch(`${API_URL}?key=${encodeURIComponent(SITE_KEY)}&resource=${RESOURCE}`, { cache:"no-store" });
-    const data = await res.json();
-    if (data.ok && Array.isArray(data.items)) projects = data.items;
-  }catch(e){
-    console.error("불러오기 실패:", e);
-  }
+/* =================================================================================
+   3. 상태 & 라우터
+   ================================================================================= */
+const state = {
+  year: 2026,
+  view: 'summary',      // 'summary' | 'YYYY-MM'
+  monthTxFilter: '전체',
+  mainFilter: '전체',
+  catFilter: '전체',
+  noteFilter: '',
+  catTabType: '지출',
+  editingTxId: null,
+  currentYm: null,
+  compareYm: null,
+  compareTarget: null,
+};
+
+function route(){
+  const hash = location.hash.replace('#/','') || 'summary';
+  if(hash === 'summary'){ state.view = 'summary'; }
+  else { state.view = hash; state.year = Number(hash.split('-')[0]); state.monthTxFilter='전체'; state.mainFilter='전체'; state.catFilter='전체'; state.noteFilter=''; state.editingTxId=null; }
   render();
 }
+window.addEventListener('hashchange', route);
 
-function escapeHtml(str){
-  return (str||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+/* ---- 연도 선택 드롭다운 ---- */
+function yearRange(){
+  const dataYears = DB.list().map(t=>Number(t.date.slice(0,4)));
+  const now = new Date().getFullYear();
+  const candidates = dataYears.length ? dataYears : [now];
+  const min = Math.min(now-1, ...candidates);
+  const max = Math.max(now+3, ...candidates);
+  const arr = [];
+  for(let y=min;y<=max;y++) arr.push(y);
+  return arr;
+}
+function toggleYearMenu(){
+  document.getElementById('yearMenu').classList.toggle('open');
+}
+function selectYear(y){
+  state.year = y;
+  document.getElementById('yearMenu').classList.remove('open');
+  if(state.view === 'summary'){ render(); }
+  else { location.hash = '#/' + y + '-' + state.view.split('-')[1]; }
+}
+document.addEventListener('click', (e)=>{
+  const wrap = document.getElementById('yearSelect');
+  const menu = document.getElementById('yearMenu');
+  if(!wrap || !menu) return;
+  if(!wrap.contains(e.target)) menu.classList.remove('open');
+});
+
+/* =================================================================================
+   4. 시드 데이터 (첫 실행 시 1회만 로드 — 실제 사용자의 26년 1~7월 가계부 원본)
+   ================================================================================= */
+const SEED_DATA = [{"date": "2026-01-01", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "교통비", "amount": 86550, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-01", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 40000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "콜롬보식당", "amount": 37000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "커피", "amount": 8600, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-01", "type": "수입", "main": "변동수입", "mid": "급여", "detail": "관 12월 정산", "amount": 790000, "user": "", "payment": "카카오공동"}, {"date": "2026-01-02", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "올리브영 (화장품)", "amount": 60000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "노브랜드+편의점", "amount": 15820, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "고씨네 정육점", "amount": 12000, "user": "소비", "payment": "카카오공동"}, {"date": "2026-01-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "원당시장", "amount": 31500, "user": "소비", "payment": "카카오공동"}, {"date": "2026-01-04", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "등산화", "amount": 113400, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "팜스마트", "amount": 34590, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "와플대학", "amount": 6800, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-05", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "하나은행", "amount": 133499, "user": "소비", "payment": "하나은행"}, {"date": "2026-01-05", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컬리", "amount": 52332, "user": "소비", "payment": "하나은행"}, {"date": "2026-01-05", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 15060, "user": "소비", "payment": "카카오공동"}, {"date": "2026-01-05", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "오브미 예약", "amount": 20000, "user": "소비", "payment": "카카오공동"}, {"date": "2026-01-05", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "홈플러스", "amount": 2000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-06", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "매머드", "amount": 1600, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-06", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 1500, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-06", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 20000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "맥모닝", "amount": 9800, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-07", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "실비보험", "amount": 46338, "user": "소비", "payment": "카카오공동"}, {"date": "2026-01-07", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "택시", "amount": 11700, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡이츠", "amount": 25800, "user": "소비", "payment": "카카오공동"}, {"date": "2026-01-08", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "헤어뷰올라 예약", "amount": 5000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-08", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "맥도날드", "amount": 8000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-09", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "구글", "amount": 2400, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-09", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "연회비 환불", "amount": 113000, "user": "", "payment": "하나은행"}, {"date": "2026-01-09", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "물티슈 휴지 세제", "amount": 41840, "user": "소비", "payment": "카카오공동"}, {"date": "2026-01-10", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "맥미니", "amount": 620000, "user": "", "payment": "카카오공동"}, {"date": "2026-01-11", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "헤어뷰올라", "amount": 103000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "닭강정", "amount": 9500, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "유리선물", "amount": 36350, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "김밥", "amount": 15000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "라구소스", "amount": 15510, "user": "소비", "payment": "카카오공동"}, {"date": "2026-01-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "설빙", "amount": 14500, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-12", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "핸드폰", "amount": 73268, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-12", "type": "지출", "main": "고정지출", "mid": "렌탈", "detail": "코웨이", "amount": 14780, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 3800, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "하늘보리", "amount": 15000, "user": "소비", "payment": "카카오공동"}, {"date": "2026-01-13", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "낙곱새 저녁", "amount": 34000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "김포롯데몰", "amount": 13180, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-14", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 3300, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-15", "type": "지출", "main": "고정지출", "mid": "회비", "detail": "회비", "amount": 200000, "user": "소비", "payment": "하나은행"}, {"date": "2026-01-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "두쫀쿠", "amount": 14000, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-16", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 3600, "user": "소비", "payment": "현대카드"}, {"date": "2026-01-16", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "헤어뷰올라", "amount": 14000, "user": "", "payment": "현대카드"}, {"date": "2026-01-16", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "엽떡", "amount": 17500, "user": "", "payment": "현대카드"}, {"date": "2026-01-16", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "편의점", "amount": 2500, "user": "", "payment": "현대카드"}, {"date": "2026-01-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "김밥", "amount": 12000, "user": "", "payment": "현대카드"}, {"date": "2026-01-17", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "한의원", "amount": 38400, "user": "", "payment": "현대카드"}, {"date": "2026-01-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "우지커피", "amount": 6800, "user": "", "payment": "현대카드"}, {"date": "2026-01-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "야채", "amount": 11000, "user": "", "payment": "카카오공동"}, {"date": "2026-01-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "고씨네 고기", "amount": 12700, "user": "", "payment": "카카오공동"}, {"date": "2026-01-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "감자탕", "amount": 20000, "user": "", "payment": "현대카드"}, {"date": "2026-01-18", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유소", "amount": 35000, "user": "", "payment": "현대카드"}, {"date": "2026-01-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "롯데마트", "amount": 39500, "user": "", "payment": "현대카드"}, {"date": "2026-01-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "방어회", "amount": 46000, "user": "", "payment": "카카오공동"}, {"date": "2026-01-19", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 5200, "user": "", "payment": "현대카드"}, {"date": "2026-01-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "생선구이", "amount": 33000, "user": "", "payment": "현대카드"}, {"date": "2026-01-20", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 1600, "user": "", "payment": "현대카드"}, {"date": "2026-01-20", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "택시비", "amount": 16500, "user": "", "payment": "현대카드"}, {"date": "2026-01-20", "type": "수입", "main": "고정수입", "mid": "급여", "detail": "월급", "amount": 3223937, "user": "", "payment": "하나은행"}, {"date": "2026-01-20", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "보라생일", "amount": 650000, "user": "", "payment": "하나은행"}, {"date": "2026-01-20", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "찜질방", "amount": 29500, "user": "", "payment": "현대카드"}, {"date": "2026-01-21", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "편의점", "amount": 4200, "user": "", "payment": "현대카드"}, {"date": "2026-01-21", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "바게티", "amount": 108378, "user": "", "payment": "현대카드"}, {"date": "2026-01-22", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "관리비", "amount": 351070, "user": "", "payment": "하나은행"}, {"date": "2026-01-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡이츠", "amount": 32500, "user": "", "payment": "카카오공동"}, {"date": "2026-01-23", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "삼성화재", "amount": 22210, "user": "", "payment": "하나은행"}, {"date": "2026-01-23", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": "현대카드"}, {"date": "2026-01-23", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "택시", "amount": 26500, "user": "", "payment": "현대카드"}, {"date": "2026-01-23", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "회식", "amount": 24000, "user": "", "payment": "하나은행"}, {"date": "2026-01-24", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "서브웨이", "amount": 19300, "user": "", "payment": "현대카드"}, {"date": "2026-01-26", "type": "수입", "main": "변동수입", "mid": "급여", "detail": "25년 인센티브", "amount": 14438493, "user": "", "payment": "하나은행"}, {"date": "2026-01-26", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "보금자리", "amount": 665744, "user": "", "payment": "하나은행"}, {"date": "2026-01-26", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "더자인병원", "amount": 171700, "user": "", "payment": "현대카드"}, {"date": "2026-01-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "애플", "amount": 1100, "user": "", "payment": "현대카드"}, {"date": "2026-01-26", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "생리대", "amount": 17550, "user": "", "payment": "현대카드"}, {"date": "2026-01-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "쿠팡 정기결제", "amount": 7890, "user": "", "payment": "카카오공동"}, {"date": "2026-01-26", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 식재료", "amount": 42740, "user": "", "payment": "카카오공동"}, {"date": "2026-01-27", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "컬리", "amount": 1900, "user": "", "payment": "현대카드"}, {"date": "2026-01-27", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 3300, "user": "", "payment": "현대카드"}, {"date": "2026-01-28", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1300, "user": "", "payment": "현대카드"}, {"date": "2026-01-28", "type": "수입", "main": "변동수입", "mid": "급여", "detail": "유제품", "amount": 1000000, "user": "", "payment": "카카오공동"}, {"date": "2026-01-28", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "김밥", "amount": 9000, "user": "", "payment": "현대카드"}, {"date": "2026-01-28", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "오브미", "amount": 85000, "user": "", "payment": "카카오공동"}, {"date": "2026-01-29", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "맥모닝", "amount": 9700, "user": "", "payment": "현대카드"}, {"date": "2026-01-29", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "바지, 카드지갑", "amount": 146115, "user": "", "payment": "현대카드"}, {"date": "2026-01-29", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "서브웨이", "amount": 10700, "user": "", "payment": "현대카드"}, {"date": "2026-01-29", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "육대장", "amount": 23000, "user": "", "payment": "현대카드"}, {"date": "2026-01-29", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "붕어빵", "amount": 4000, "user": "", "payment": "카카오공동"}, {"date": "2026-01-29", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "바스", "amount": 7800, "user": "", "payment": "카카오공동"}, {"date": "2026-01-30", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컴포즈", "amount": 1800, "user": "", "payment": "현대카드"}, {"date": "2026-01-30", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "김밥", "amount": 8500, "user": "", "payment": "카카오공동"}, {"date": "2026-01-30", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "아웃백", "amount": 94010, "user": "", "payment": "현대카드"}, {"date": "2026-01-31", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "온누리 마포시장", "amount": 20000, "user": "", "payment": "카카오공동"}, {"date": "2026-02-01", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "라비에벨", "amount": 300000, "user": "", "payment": "하나은행"}, {"date": "2026-02-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "보풀제거기", "amount": 13900, "user": "", "payment": "카카오공동"}, {"date": "2026-02-01", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "교통비", "amount": 52250, "user": "", "payment": "현대카드"}, {"date": "2026-02-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "커피", "amount": 5600, "user": "", "payment": "현대카드"}, {"date": "2026-02-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "팜스 식자재", "amount": 21390, "user": "", "payment": "현대카드"}, {"date": "2026-02-02", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "밀향칼국수", "amount": 25000, "user": "", "payment": "현대카드"}, {"date": "2026-02-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컬리", "amount": 60950, "user": "", "payment": "현대카드"}, {"date": "2026-02-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "매실 쿠팡", "amount": 11780, "user": "", "payment": "카카오공동"}, {"date": "2026-02-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "데스크 매트", "amount": 15800, "user": "", "payment": "카카오공동"}, {"date": "2026-02-04", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "하나신용", "amount": 133499, "user": "", "payment": "하나은행"}, {"date": "2026-02-05", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 4000, "user": "", "payment": "현대카드"}, {"date": "2026-02-06", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "보라병원비", "amount": 11400, "user": "", "payment": "현대카드"}, {"date": "2026-02-06", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "점심 죽", "amount": 25000, "user": "", "payment": "카카오공동"}, {"date": "2026-02-06", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "회사 축의금", "amount": 70000, "user": "", "payment": "하나은행"}, {"date": "2026-02-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "편의점 간식", "amount": 16000, "user": "", "payment": "카카오공동"}, {"date": "2026-02-08", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "엄마생일", "amount": 1000000, "user": "", "payment": "하나은행"}, {"date": "2026-02-09", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "단호박죽", "amount": 4500, "user": "", "payment": "현대카드"}, {"date": "2026-02-09", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "구글", "amount": 2400, "user": "", "payment": "현대카드"}, {"date": "2026-02-09", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "독감 수액", "amount": 45000, "user": "", "payment": "현대카드"}, {"date": "2026-02-09", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "약국", "amount": 5200, "user": "", "payment": "현대카드"}, {"date": "2026-02-09", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "택시", "amount": 17300, "user": "", "payment": "현대카드"}, {"date": "2026-02-10", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "설렁탕", "amount": 16100, "user": "", "payment": "카카오공동"}, {"date": "2026-02-10", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "햄버거", "amount": 20800, "user": "", "payment": "카카오공동"}, {"date": "2026-02-10", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "k패스", "amount": 35600, "user": "", "payment": "카카오공동"}, {"date": "2026-02-10", "type": "수입", "main": "변동수입", "mid": "급여", "detail": "명절살여", "amount": 500000, "user": "", "payment": "하나은행"}, {"date": "2026-02-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 2900, "user": "", "payment": "현대카드"}, {"date": "2026-02-11", "type": "지출", "main": "고정지출", "mid": "렌탈", "detail": "코웨이", "amount": 14900, "user": "", "payment": "현대카드"}, {"date": "2026-02-11", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "희돈애락", "amount": 48000, "user": "", "payment": "현대카드"}, {"date": "2026-02-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "맥모닝", "amount": 9900, "user": "", "payment": "현대카드"}, {"date": "2026-02-12", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "보라핸드폰", "amount": 73900, "user": "", "payment": "현대카드"}, {"date": "2026-02-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 5400, "user": "", "payment": "현대카드"}, {"date": "2026-02-13", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "택시", "amount": 21000, "user": "", "payment": "현대카드"}, {"date": "2026-02-14", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "내과 병원", "amount": 18500, "user": "", "payment": "현대카드"}, {"date": "2026-02-14", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 4300, "user": "", "payment": "현대카드"}, {"date": "2026-02-14", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "노브랜드", "amount": 6620, "user": "", "payment": "현대카드"}, {"date": "2026-02-14", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컬리", "amount": 85778, "user": "", "payment": "현대카드"}, {"date": "2026-02-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "더벤티", "amount": 7000, "user": "", "payment": "현대카드"}, {"date": "2026-02-15", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "편의점", "amount": 2000, "user": "", "payment": "현대카드"}, {"date": "2026-02-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "김밥", "amount": 12200, "user": "", "payment": "현대카드"}, {"date": "2026-02-16", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "더벤티", "amount": 6500, "user": "", "payment": "현대카드"}, {"date": "2026-02-16", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "아비꼬", "amount": 20800, "user": "", "payment": "카카오공동"}, {"date": "2026-02-16", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "배민", "amount": 12500, "user": "", "payment": "현대카드"}, {"date": "2026-02-17", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "비마트", "amount": 14050, "user": "", "payment": "현대카드"}, {"date": "2026-02-18", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "택시", "amount": 5000, "user": "", "payment": "현대카드"}, {"date": "2026-02-18", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "관 무릎 수술비", "amount": 406370, "user": "", "payment": "현대카드"}, {"date": "2026-02-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 27730, "user": "", "payment": "카카오공동"}, {"date": "2026-02-19", "type": "지출", "main": "고정지출", "mid": "회비", "detail": "가족회비", "amount": 200000, "user": "", "payment": "하나은행"}, {"date": "2026-02-20", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "관리비", "amount": 413940, "user": "", "payment": "하나은행"}, {"date": "2026-02-20", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "k패스 환급", "amount": 10680, "user": "", "payment": "카카오공동"}, {"date": "2026-02-20", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "쿠팡 방수팩", "amount": 6290, "user": "", "payment": "카카오공동"}, {"date": "2026-02-20", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "보라병원", "amount": 16800, "user": "", "payment": "현대카드"}, {"date": "2026-02-20", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "관병원", "amount": 19800, "user": "", "payment": "현대카드"}, {"date": "2026-02-20", "type": "수입", "main": "고정수입", "mid": "급여", "detail": "2월 급여", "amount": 3400823, "user": "", "payment": "하나은행"}, {"date": "2026-02-20", "type": "수입", "main": "변동수입", "mid": "급여", "detail": "김밥 정산", "amount": 1000000, "user": "", "payment": "카카오공동"}, {"date": "2026-02-20", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "신세계상품권", "amount": 100000, "user": "", "payment": "하나은행"}, {"date": "2026-02-20", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "ssg 장보기", "amount": 100000, "user": "", "payment": "하나은행"}, {"date": "2026-02-20", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "삼계탕 쿠팡이츠", "amount": 32000, "user": "", "payment": "카카오공동"}, {"date": "2026-02-20", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "매머드", "amount": 2500, "user": "", "payment": "현대카드"}, {"date": "2026-02-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "바지", "amount": 53210, "user": "", "payment": "현대카드"}, {"date": "2026-02-23", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "매머드", "amount": 3000, "user": "", "payment": "현대카드"}, {"date": "2026-02-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "바이칸", "amount": 54400, "user": "", "payment": "현대카드"}, {"date": "2026-02-23", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "삼성화재", "amount": 22210, "user": "", "payment": "하나은행"}, {"date": "2026-02-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 47790, "user": "", "payment": "현대카드"}, {"date": "2026-02-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "와플대학", "amount": 13400, "user": "", "payment": "카카오공동"}, {"date": "2026-02-24", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "탄산수", "amount": 8490, "user": "", "payment": "카카오공동"}, {"date": "2026-02-24", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "투썸", "amount": 2900, "user": "", "payment": "현대카드"}, {"date": "2026-02-24", "type": "지출", "main": "변동지출", "mid": "문화", "detail": "청풍 813", "amount": 60000, "user": "", "payment": "현대카드"}, {"date": "2026-02-24", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "팜스마트", "amount": 23690, "user": "", "payment": "현대카드"}, {"date": "2026-02-25", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "매머드", "amount": 6000, "user": "", "payment": "현대카드"}, {"date": "2026-02-25", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "보금자리", "amount": 668241, "user": "", "payment": "하나은행"}, {"date": "2026-02-25", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 22920, "user": "", "payment": "카카오공동"}, {"date": "2026-02-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "쿠팡와우", "amount": 7890, "user": "", "payment": "카카오공동"}, {"date": "2026-02-26", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "매머드", "amount": 1600, "user": "", "payment": "현대카드"}, {"date": "2026-02-26", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 쌀", "amount": 19900, "user": "", "payment": "카카오공동"}, {"date": "2026-02-26", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "김밥", "amount": 15099, "user": "", "payment": "카카오공동"}, {"date": "2026-02-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "아이클라우드", "amount": 1100, "user": "", "payment": "현대카드"}, {"date": "2026-02-27", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "컬리", "amount": 1900, "user": "", "payment": "현대카드"}, {"date": "2026-02-27", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피,샌드위치", "amount": 6800, "user": "", "payment": "현대카드"}, {"date": "2026-02-27", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "칭다오 항공, 호텔", "amount": 400000, "user": "", "payment": "하나은행"}, {"date": "2026-02-27", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "모임회비", "amount": 30000, "user": "", "payment": "하나은행"}, {"date": "2026-02-27", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "트레이더스", "amount": 36600, "user": "", "payment": "현대카드"}, {"date": "2026-02-28", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "주현대리님 축의금", "amount": 100000, "user": "", "payment": "하나은행"}, {"date": "2026-02-28", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "편의점", "amount": 1200, "user": "", "payment": "현대카드"}, {"date": "2026-02-28", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "새뱃돈 (어머님)", "amount": 100000, "user": "", "payment": "카카오공동"}, {"date": "2026-02-28", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 ", "amount": 29830, "user": "", "payment": "카카오공동"}, {"date": "2026-03-01", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "교통비", "amount": 6900, "user": "", "payment": "현대카드"}, {"date": "2026-03-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "치킨", "amount": 22500, "user": "", "payment": "카카오공동"}, {"date": "2026-03-03", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 2200, "user": "", "payment": "현대카드"}, {"date": "2026-03-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡, 토레타", "amount": 32090, "user": "", "payment": "카카오공동"}, {"date": "2026-03-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "공차", "amount": 9400, "user": "", "payment": "카카오공동"}, {"date": "2026-03-04", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "하나은행", "amount": 118324, "user": "", "payment": "하나은행"}, {"date": "2026-03-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 물병", "amount": 8610, "user": "", "payment": "카카오공동"}, {"date": "2026-03-05", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "병원", "amount": 20870, "user": "", "payment": "현대카드"}, {"date": "2026-03-06", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "타조메롱", "amount": 4000, "user": "", "payment": "현대카드"}, {"date": "2026-03-06", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 휴지통", "amount": 6990, "user": "", "payment": "카카오공동"}, {"date": "2026-03-06", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "서울대 정수기", "amount": 40900, "user": "", "payment": "카카오공동"}, {"date": "2026-03-06", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": "현대카드"}, {"date": "2026-03-06", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "우동", "amount": 18000, "user": "", "payment": "현대카드"}, {"date": "2026-03-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 조명, 스파게티면", "amount": 8210, "user": "", "payment": "카카오공동"}, {"date": "2026-03-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "원당시장", "amount": 15000, "user": "", "payment": "카카오공동"}, {"date": "2026-03-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "팜스마트", "amount": 37820, "user": "", "payment": "현대카드"}, {"date": "2026-03-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "이케아 트롤리", "amount": 34900, "user": "", "payment": "현대카드"}, {"date": "2026-03-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "노브랜드 버거", "amount": 12800, "user": "", "payment": "현대카드"}, {"date": "2026-03-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "트레이더스 고기", "amount": 47780, "user": "", "payment": "현대카드"}, {"date": "2026-03-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "항아리 ", "amount": 12870, "user": "", "payment": "현대카드"}, {"date": "2026-03-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 김치", "amount": 27900, "user": "", "payment": "카카오공동"}, {"date": "2026-03-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "생필품 조리도구", "amount": 23000, "user": "", "payment": "카카오공동"}, {"date": "2026-03-09", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "구글", "amount": 2400, "user": "", "payment": "현대카드"}, {"date": "2026-03-09", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "루트비커피", "amount": 4000, "user": "", "payment": "현대카드"}, {"date": "2026-03-10", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "빵의시간", "amount": 11300, "user": "", "payment": "현대카드"}, {"date": "2026-03-10", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "비비큐", "amount": 17500, "user": "", "payment": "현대카드"}, {"date": "2026-03-11", "type": "지출", "main": "고정지출", "mid": "렌탈", "detail": "코웨이", "amount": 14900, "user": "", "payment": "현대카드"}, {"date": "2026-03-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "서정김밥", "amount": 5000, "user": "", "payment": "현대카드"}, {"date": "2026-03-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "주차비", "amount": 9450, "user": "", "payment": "현대카드"}, {"date": "2026-03-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "젤라또", "amount": 17100, "user": "", "payment": "현대카드"}, {"date": "2026-03-12", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "마리짱", "amount": 1800, "user": "", "payment": "현대카드"}, {"date": "2026-03-12", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "kt 핸드폰", "amount": 73268, "user": "", "payment": "현대카드"}, {"date": "2026-03-12", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "k패스 교통비", "amount": 67100, "user": "", "payment": "카카오공동"}, {"date": "2026-03-12", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "더자인병원", "amount": 18400, "user": "", "payment": "현대카드"}, {"date": "2026-03-12", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "맥도날드", "amount": 8200, "user": "", "payment": "현대카드"}, {"date": "2026-03-12", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "플럭스커피", "amount": 4000, "user": "", "payment": "현대카드"}, {"date": "2026-03-12", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 20000, "user": "", "payment": "현대카드"}, {"date": "2026-03-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "뚜레쥬르", "amount": 3200, "user": "", "payment": "현대카드"}, {"date": "2026-03-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "메가커피", "amount": 1800, "user": "", "payment": "현대카드"}, {"date": "2026-03-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "뚜레쥬르", "amount": 6000, "user": "", "payment": "현대카드"}, {"date": "2026-03-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "황소곱창", "amount": 56000, "user": "", "payment": "현대카드"}, {"date": "2026-03-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "마사지볼", "amount": 53070, "user": "", "payment": "카카오공동"}, {"date": "2026-03-14", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 식재료", "amount": 45270, "user": "", "payment": "카카오공동"}, {"date": "2026-03-14", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "모드니", "amount": 33900, "user": "", "payment": "현대카드"}, {"date": "2026-03-14", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "한알 에그타르트", "amount": 13000, "user": "", "payment": "현대카드"}, {"date": "2026-03-14", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "영화 왕사남", "amount": 30000, "user": "", "payment": "현대카드"}, {"date": "2026-03-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "다이소", "amount": 8400, "user": "", "payment": "현대카드"}, {"date": "2026-03-15", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": "현대카드"}, {"date": "2026-03-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "롯데아울렛 쇼핑", "amount": 44400, "user": "", "payment": "현대카드"}, {"date": "2026-03-16", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "마리짱", "amount": 1800, "user": "", "payment": "현대카드"}, {"date": "2026-03-16", "type": "지출", "main": "고정지출", "mid": "회비", "detail": "가족회비", "amount": 200000, "user": "", "payment": "하나은행"}, {"date": "2026-03-16", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "바퀜", "amount": 61400, "user": "", "payment": "현대카드"}, {"date": "2026-03-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "넥가드", "amount": 35900, "user": "", "payment": "현대카드"}, {"date": "2026-03-17", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 6200, "user": "", "payment": "현대카드"}, {"date": "2026-03-17", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "주차", "amount": 1500, "user": "", "payment": "현대카드"}, {"date": "2026-03-18", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "샌드위치 커피", "amount": 5700, "user": "", "payment": "현대카드"}, {"date": "2026-03-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "노브랜드", "amount": 26200, "user": "", "payment": "현대카드"}, {"date": "2026-03-19", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "빵의시간", "amount": 8300, "user": "", "payment": "현대카드"}, {"date": "2026-03-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "트레이더스 켈리", "amount": 18480, "user": "", "payment": "현대카드"}, {"date": "2026-03-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 키친타올, 간장", "amount": 14060, "user": "", "payment": "카카오공동"}, {"date": "2026-03-20", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "맥모닝", "amount": 10400, "user": "", "payment": "현대카드"}, {"date": "2026-03-20", "type": "수입", "main": "고정수입", "mid": "급여", "detail": "3월 월급", "amount": 3350180, "user": "", "payment": "하나은행"}, {"date": "2026-03-20", "type": "수입", "main": "변동수입", "mid": "급여", "detail": "연말정산", "amount": 2743680, "user": "", "payment": "하나은행"}, {"date": "2026-03-20", "type": "수입", "main": "변동수입", "mid": "투자소득", "detail": "토스 주식", "amount": 1682633, "user": "", "payment": "카카오보라"}, {"date": "2026-03-20", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "k패스 환급", "amount": 20130, "user": "", "payment": "카카오공동"}, {"date": "2026-03-20", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "공차", "amount": 4140, "user": "", "payment": "현대카드"}, {"date": "2026-03-20", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "엽떡", "amount": 17500, "user": "", "payment": "현대카드"}, {"date": "2026-03-21", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "택시", "amount": 13800, "user": "", "payment": "현대카드"}, {"date": "2026-03-21", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "쑥뜸", "amount": 35000, "user": "", "payment": "하나은행"}, {"date": "2026-03-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컴포즈", "amount": 7500, "user": "", "payment": "현대카드"}, {"date": "2026-03-22", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": "현대카드"}, {"date": "2026-03-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차, 발렛", "amount": 11000, "user": "", "payment": "현대카드"}, {"date": "2026-03-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "닭갈비", "amount": 44000, "user": "", "payment": "현대카드"}, {"date": "2026-03-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "편의점", "amount": 10480, "user": "", "payment": "현대카드"}, {"date": "2026-03-23", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 2800, "user": "", "payment": "현대카드"}, {"date": "2026-03-23", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "관리비", "amount": 295690, "user": "", "payment": "하나은행"}, {"date": "2026-03-23", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "보라 삼성화재", "amount": 22210, "user": "", "payment": "하나은행"}, {"date": "2026-03-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "순대국", "amount": 19000, "user": "", "payment": "현대카드"}, {"date": "2026-03-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "팜스마트", "amount": 35520, "user": "", "payment": "현대카드"}, {"date": "2026-03-24", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": "현대카드"}, {"date": "2026-03-24", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "다이소", "amount": 3000, "user": "", "payment": "현대카드"}, {"date": "2026-03-25", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": "현대카드"}, {"date": "2026-03-25", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "bmw 차 할부", "amount": 509000, "user": "", "payment": "카카오공동"}, {"date": "2026-03-25", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "관 kt", "amount": 65539, "user": "", "payment": "카카오공동"}, {"date": "2026-03-25", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "관 skt", "amount": 25740, "user": "", "payment": "카카오공동"}, {"date": "2026-03-25", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "관 삼성화재", "amount": 16647, "user": "", "payment": "카카오공동"}, {"date": "2026-03-25", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "sk 브로드밴드", "amount": 93126, "user": "", "payment": "카카오공동"}, {"date": "2026-03-25", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 4000, "user": "", "payment": "하나은행"}, {"date": "2026-03-25", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "보금자리", "amount": 670738, "user": "", "payment": "하나은행"}, {"date": "2026-03-25", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "햄버거", "amount": 4200, "user": "", "payment": "현대카드"}, {"date": "2026-03-25", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "택시", "amount": 15600, "user": "", "payment": "현대카드"}, {"date": "2026-03-26", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "샌드위치", "amount": 7800, "user": "", "payment": "현대카드"}, {"date": "2026-03-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "apple", "amount": 1100, "user": "", "payment": "현대카드"}, {"date": "2026-03-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "쿠팡", "amount": 7890, "user": "", "payment": "카카오공동"}, {"date": "2026-03-27", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "커피, 뚜레쥬르", "amount": 9060, "user": "", "payment": "현대카드"}, {"date": "2026-03-27", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "컬리", "amount": 1900, "user": "", "payment": "현대카드"}, {"date": "2026-03-27", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "모임통장", "amount": 30000, "user": "", "payment": "하나은행"}, {"date": "2026-03-27", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "명가부대찌개", "amount": 23500, "user": "", "payment": "현대카드"}, {"date": "2026-03-27", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "노브랜드", "amount": 1480, "user": "", "payment": "현대카드"}, {"date": "2026-03-28", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "메디킹덤 약국", "amount": 54400, "user": "", "payment": "현대카드"}, {"date": "2026-03-28", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": "현대카드"}, {"date": "2026-03-28", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "다이소 봉구", "amount": 3000, "user": "", "payment": "현대카드"}, {"date": "2026-03-28", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 3800, "user": "", "payment": "현대카드"}, {"date": "2026-03-28", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "화연이 생일", "amount": 50000, "user": "", "payment": "하나은행"}, {"date": "2026-03-29", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "카페", "amount": 20000, "user": "", "payment": "현대카드"}, {"date": "2026-03-30", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 1800, "user": "", "payment": "현대카드"}, {"date": "2026-03-30", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 ", "amount": 46850, "user": "", "payment": "카카오공동"}, {"date": "2026-03-30", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "면세쇼핑", "amount": 99705, "user": "", "payment": "현대카드"}, {"date": "2026-03-31", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "맥날", "amount": 11200, "user": "", "payment": "현대카드"}, {"date": "2026-03-31", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 3000, "user": "", "payment": "현대카드"}, {"date": "2026-03-31", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "베라", "amount": 6600, "user": "", "payment": "현대카드"}, {"date": "2026-03-31", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "칭다오 이심", "amount": 13500, "user": "", "payment": "현대카드"}, {"date": "2026-03-31", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 20450, "user": "", "payment": "현대카드"}, {"date": "2026-04-01", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피, 샌드위치", "amount": 5700, "user": "", "payment": "현대카드"}, {"date": "2026-04-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "롯데마트", "amount": 11430, "user": "", "payment": "현대카드"}, {"date": "2026-04-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "바퀜", "amount": 61400, "user": "", "payment": "현대카드"}, {"date": "2026-04-02", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "스타벅스", "amount": 10000, "user": "", "payment": "현대카드"}, {"date": "2026-04-02", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": "현대카드"}, {"date": "2026-04-02", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "스타필드 탑텐바지", "amount": 35000, "user": "", "payment": "현대카드"}, {"date": "2026-04-03", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "매머드", "amount": 1600, "user": "", "payment": "현대카드"}, {"date": "2026-04-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "만차이", "amount": 33000, "user": "", "payment": "현대카드"}, {"date": "2026-04-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "영화 롯데시네마", "amount": 19500, "user": "", "payment": "현대카드"}, {"date": "2026-04-03", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "햄버거", "amount": 11000, "user": "", "payment": "카카오공동"}, {"date": "2026-04-03", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "현금입금", "amount": 120000, "user": "", "payment": "카카오공동"}, {"date": "2026-04-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "팜스마트", "amount": 26800, "user": "", "payment": "현대카드"}, {"date": "2026-04-05", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "치킨", "amount": 25000, "user": "", "payment": "카카오공동"}, {"date": "2026-04-05", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "여행용 파우치", "amount": 5412, "user": "", "payment": "현대카드"}, {"date": "2026-04-06", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "하나은행", "amount": 131002, "user": "", "payment": "하나은행"}, {"date": "2026-04-07", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": "현대카드"}, {"date": "2026-04-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 20000, "user": "", "payment": "카카오공동"}, {"date": "2026-04-08", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "약국", "amount": 6200, "user": "", "payment": "현대카드"}, {"date": "2026-04-09", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "커피, 빵", "amount": 13300, "user": "", "payment": "현대카드"}, {"date": "2026-04-09", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "칭다오여행경비", "amount": 320000, "user": "", "payment": "하나은행"}, {"date": "2026-04-09", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "너구리", "amount": 54500, "user": "", "payment": "하나은행"}, {"date": "2026-04-09", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "구글", "amount": 2400, "user": "", "payment": "현대카드"}, {"date": "2026-04-10", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 3600, "user": "", "payment": "현대카드"}, {"date": "2026-04-10", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "교통비", "amount": 86550, "user": "", "payment": "카카오공동"}, {"date": "2026-04-11", "type": "지출", "main": "고정지출", "mid": "렌탈", "detail": "코웨이", "amount": 14900, "user": "", "payment": "현대카드"}, {"date": "2026-04-11", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컴포즈", "amount": 6800, "user": "", "payment": "현대카드"}, {"date": "2026-04-11", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": "현대카드"}, {"date": "2026-04-11", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "노량진 회", "amount": 33500, "user": "", "payment": "카카오공동"}, {"date": "2026-04-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "원당시장", "amount": 21600, "user": "", "payment": "카카오공동"}, {"date": "2026-04-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "피자", "amount": 29390, "user": "", "payment": "현대카드"}, {"date": "2026-04-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "빙수", "amount": 12900, "user": "", "payment": "카카오공동"}, {"date": "2026-04-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피 샌드위치", "amount": 3900, "user": "", "payment": "현대카드"}, {"date": "2026-04-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "메이그라운드", "amount": 30000, "user": "", "payment": "현대카드"}, {"date": "2026-04-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "네소프레소 캡슐", "amount": 32900, "user": "", "payment": "현대카드"}, {"date": "2026-04-14", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 1150, "user": "", "payment": "현대카드"}, {"date": "2026-04-14", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 41830, "user": "", "payment": "카카오공동"}, {"date": "2026-04-14", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "박하스튜디오", "amount": 20000, "user": "", "payment": "현대카드"}, {"date": "2026-04-14", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "휴대폰요금", "amount": 78900, "user": "", "payment": "현대카드"}, {"date": "2026-04-15", "type": "지출", "main": "고정지출", "mid": "회비", "detail": "가족회비", "amount": 200000, "user": "", "payment": "하나은행"}, {"date": "2026-04-15", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "5월 뮤지컬", "amount": 40000, "user": "", "payment": "하나은행"}, {"date": "2026-04-15", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "택시", "amount": 17300, "user": "", "payment": "현대카드"}, {"date": "2026-04-15", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "닭강정", "amount": 14600, "user": "", "payment": "카카오공동"}, {"date": "2026-04-16", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피 아누브", "amount": 5700, "user": "", "payment": "현대카드"}, {"date": "2026-04-16", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 60000, "user": "", "payment": "현대카드"}, {"date": "2026-04-16", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "차서호 모친 부조금", "amount": 100000, "user": "", "payment": "카카오공동"}, {"date": "2026-04-16", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "왁스", "amount": 2000, "user": "", "payment": "현대카드"}, {"date": "2026-04-17", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "헤이티", "amount": 6400, "user": "", "payment": "현대카드"}, {"date": "2026-04-17", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 3500, "user": "", "payment": "현대카드"}, {"date": "2026-04-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "롯데프리미엄 아울렛", "amount": 25000, "user": "", "payment": "현대카드"}, {"date": "2026-04-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "와플대학", "amount": 9800, "user": "", "payment": "현대카드"}, {"date": "2026-04-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컴포즈", "amount": 6300, "user": "", "payment": "현대카드"}, {"date": "2026-04-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "하나로마트", "amount": 15180, "user": "", "payment": "현대카드"}, {"date": "2026-04-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쉐즈롤", "amount": 18500, "user": "", "payment": "현대카드"}, {"date": "2026-04-19", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": "현대카드"}, {"date": "2026-04-20", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "미용실", "amount": 22000, "user": "", "payment": "현대카드"}, {"date": "2026-04-20", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컴포즈", "amount": 4600, "user": "", "payment": "현대카드"}, {"date": "2026-04-20", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "원당시장", "amount": 10480, "user": "", "payment": "카카오공동"}, {"date": "2026-04-20", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "k패스", "amount": 24060, "user": "", "payment": "카카오공동"}, {"date": "2026-04-20", "type": "수입", "main": "변동수입", "mid": "급여", "detail": "사각 정산", "amount": 2417500, "user": "", "payment": "하나은행"}, {"date": "2026-04-20", "type": "수입", "main": "고정수입", "mid": "급여", "detail": "4월 월급", "amount": 3222940, "user": "", "payment": "하나은행"}, {"date": "2026-04-20", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "윤관 친구 축의금", "amount": 100000, "user": "", "payment": "하나은행"}, {"date": "2026-04-20", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "면접비", "amount": 60000, "user": "", "payment": "카카오공동"}, {"date": "2026-04-22", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "관리비", "amount": 345040, "user": "", "payment": "하나은행"}, {"date": "2026-04-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "곡물도감", "amount": 37800, "user": "", "payment": "현대카드"}, {"date": "2026-04-22", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 3300, "user": "", "payment": "현대카드"}, {"date": "2026-04-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "공차", "amount": 9800, "user": "", "payment": "현대카드"}, {"date": "2026-04-22", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "다이소 식물", "amount": 10000, "user": "", "payment": "현대카드"}, {"date": "2026-04-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "맥날, 컴포즈", "amount": 10800, "user": "", "payment": "현대카드"}, {"date": "2026-04-23", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "bmw", "amount": 524877, "user": "", "payment": "하나은행"}, {"date": "2026-04-23", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "삼성화재 보라", "amount": 22210, "user": "", "payment": "하나은행"}, {"date": "2026-04-23", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "음료수", "amount": 1480, "user": "", "payment": "현대카드"}, {"date": "2026-04-24", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "매머드", "amount": 1400, "user": "", "payment": "현대카드"}, {"date": "2026-04-25", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "버거킹", "amount": 13900, "user": "", "payment": "현대카드"}, {"date": "2026-04-25", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "커피사피엔스", "amount": 11600, "user": "", "payment": "현대카드"}, {"date": "2026-04-25", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "한강버스", "amount": 6000, "user": "", "payment": "카카오공동"}, {"date": "2026-04-25", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "호화반점", "amount": 20000, "user": "", "payment": "현대카드"}, {"date": "2026-04-25", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "브로스", "amount": 10000, "user": "", "payment": "현대카드"}, {"date": "2026-04-25", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "다이소", "amount": 7000, "user": "", "payment": "현대카드"}, {"date": "2026-04-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "애플", "amount": 1100, "user": "", "payment": "현대카드"}, {"date": "2026-04-26", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "세차비", "amount": 5000, "user": "", "payment": "현대카드"}, {"date": "2026-04-26", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "와플대학", "amount": 8600, "user": "", "payment": "현대카드"}, {"date": "2026-04-26", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "다이소", "amount": 7000, "user": "", "payment": "현대카드"}, {"date": "2026-04-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "쿠팡와우", "amount": 7800, "user": "", "payment": "카카오공동"}, {"date": "2026-04-26", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 33870, "user": "", "payment": "카카오공동"}, {"date": "2026-04-27", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "모임회비", "amount": 30000, "user": "", "payment": "카카오공동"}, {"date": "2026-04-27", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": "현대카드"}, {"date": "2026-04-27", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "구글 관", "amount": 2400, "user": "", "payment": "카카오공동"}, {"date": "2026-04-27", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "관 핸드폰kt", "amount": 47000, "user": "", "payment": "카카오공동"}, {"date": "2026-04-27", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "관 핸드폰 skt", "amount": 59990, "user": "", "payment": "카카오공동"}, {"date": "2026-04-27", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "삼성화재 관", "amount": 16647, "user": "", "payment": "카카오공동"}, {"date": "2026-04-27", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "tv,인터넷", "amount": 46563, "user": "", "payment": "카카오공동"}, {"date": "2026-04-27", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "보금자리", "amount": 673235, "user": "", "payment": "하나은행"}, {"date": "2026-04-27", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 20000, "user": "", "payment": "현대카드"}, {"date": "2026-04-27", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "트레이더스", "amount": 24920, "user": "", "payment": "현대카드"}, {"date": "2026-04-29", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": "현대카드"}, {"date": "2026-04-29", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "망원시장", "amount": 19250, "user": "", "payment": "현대카드"}, {"date": "2026-04-29", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "다이소", "amount": 2000, "user": "", "payment": "현대카드"}, {"date": "2026-04-30", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컴포즈", "amount": 5100, "user": "", "payment": "현대카드"}, {"date": "2026-04-30", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "회식 택시", "amount": 17000, "user": "", "payment": "현대카드"}, {"date": "2026-05-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "현대백화점 판교", "amount": 24000, "user": "", "payment": ""}, {"date": "2026-05-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "버터앤쉘", "amount": 18000, "user": "", "payment": ""}, {"date": "2026-05-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "서부청기와", "amount": 20000, "user": "", "payment": ""}, {"date": "2026-05-01", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "쿠팡 식물", "amount": 16050, "user": "", "payment": ""}, {"date": "2026-05-01", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "토스페이 (알리)", "amount": 31152, "user": "", "payment": ""}, {"date": "2026-05-02", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 50000, "user": "", "payment": ""}, {"date": "2026-05-02", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "행주산성", "amount": 9350, "user": "", "payment": ""}, {"date": "2026-05-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "바지락칼국수", "amount": 30000, "user": "", "payment": ""}, {"date": "2026-05-03", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "키보드", "amount": 78500, "user": "", "payment": ""}, {"date": "2026-05-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠폴로서울", "amount": 26300, "user": "", "payment": ""}, {"date": "2026-05-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "서강껍데기", "amount": 47000, "user": "", "payment": ""}, {"date": "2026-05-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 19000, "user": "", "payment": ""}, {"date": "2026-05-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 식재료", "amount": 35410, "user": "", "payment": ""}, {"date": "2026-05-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "바퀜", "amount": 61400, "user": "", "payment": ""}, {"date": "2026-05-04", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "하나은행", "amount": 110175, "user": "", "payment": ""}, {"date": "2026-05-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "하나카드 연회비", "amount": 19900, "user": "", "payment": ""}, {"date": "2026-05-04", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "디자인팀 회식", "amount": 40000, "user": "", "payment": ""}, {"date": "2026-05-04", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "매머드", "amount": 3000, "user": "", "payment": ""}, {"date": "2026-05-05", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "엄마선물", "amount": 49000, "user": "", "payment": ""}, {"date": "2026-05-05", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "아빠선물", "amount": 118000, "user": "", "payment": ""}, {"date": "2026-05-05", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "이케아", "amount": 23000, "user": "", "payment": ""}, {"date": "2026-05-05", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 3000, "user": "", "payment": ""}, {"date": "2026-05-06", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": ""}, {"date": "2026-05-06", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "편의점", "amount": 2300, "user": "", "payment": ""}, {"date": "2026-05-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "엽떡", "amount": 16100, "user": "", "payment": ""}, {"date": "2026-05-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "편의점", "amount": 2200, "user": "", "payment": ""}, {"date": "2026-05-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "닥터피엘", "amount": 20430, "user": "", "payment": ""}, {"date": "2026-05-08", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 3300, "user": "", "payment": ""}, {"date": "2026-05-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 33040, "user": "", "payment": ""}, {"date": "2026-05-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "하이오카페", "amount": 8000, "user": "", "payment": ""}, {"date": "2026-05-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "아이파크 용산", "amount": 62170, "user": "", "payment": ""}, {"date": "2026-05-09", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "구글", "amount": 2400, "user": "", "payment": ""}, {"date": "2026-05-09", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컴포즈", "amount": 8000, "user": "", "payment": ""}, {"date": "2026-05-10", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": ""}, {"date": "2026-05-10", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "다이소 청소용품", "amount": 12700, "user": "", "payment": ""}, {"date": "2026-05-10", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "빽다방", "amount": 5880, "user": "", "payment": ""}, {"date": "2026-05-10", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 64500, "user": "", "payment": ""}, {"date": "2026-05-10", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 19000, "user": "", "payment": ""}, {"date": "2026-05-11", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "k패스", "amount": 71650, "user": "", "payment": ""}, {"date": "2026-05-11", "type": "수입", "main": "변동수입", "mid": "급여", "detail": "듀먼 정산", "amount": 2150000, "user": "", "payment": ""}, {"date": "2026-05-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": ""}, {"date": "2026-05-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "다이소", "amount": 11000, "user": "", "payment": ""}, {"date": "2026-05-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 베란다 페인트", "amount": 21000, "user": "", "payment": ""}, {"date": "2026-05-12", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "타조메롱", "amount": 5800, "user": "", "payment": ""}, {"date": "2026-05-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "롯데몰", "amount": 40700, "user": "", "payment": ""}, {"date": "2026-05-12", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "핸드폰", "amount": 78900, "user": "", "payment": ""}, {"date": "2026-05-12", "type": "지출", "main": "고정지출", "mid": "렌탈", "detail": "코웨이", "amount": 14900, "user": "", "payment": ""}, {"date": "2026-05-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 3300, "user": "", "payment": ""}, {"date": "2026-05-13", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "마우스", "amount": 65750, "user": "", "payment": ""}, {"date": "2026-05-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "우체국", "amount": 12000, "user": "", "payment": ""}, {"date": "2026-05-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "맥날", "amount": 6900, "user": "", "payment": ""}, {"date": "2026-05-13", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": " das 당근", "amount": 210000, "user": "", "payment": ""}, {"date": "2026-05-14", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "맥모닝", "amount": 9600, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "결이 돌선물", "amount": 195470, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 330000, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 200000, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "점심외식", "amount": 17500, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "수수료", "amount": 3300, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "지출", "main": "고정지출", "mid": "회비", "detail": "가족회비", "amount": 200000, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "민쿡앞바당", "amount": 41000, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "서래마을 주차비", "amount": 4900, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 섬유유연제, 필터", "amount": 32340, "user": "", "payment": ""}, {"date": "2026-05-15", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "식물 흙", "amount": 4860, "user": "", "payment": ""}, {"date": "2026-05-16", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 495000, "user": "", "payment": ""}, {"date": "2026-05-16", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": ""}, {"date": "2026-05-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "커피", "amount": 10000, "user": "", "payment": ""}, {"date": "2026-05-17", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "써큘레이터", "amount": 40000, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "관 삼성화재", "amount": 16647, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "kt 핸드폰", "amount": 49198, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "알리 테무", "amount": 54505, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "당근 택배", "amount": 38000, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "저녁외식 돈가스클럽", "amount": 41500, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "세차충전", "amount": 10000, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 220000, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 150000, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쓰봉, 다이소", "amount": 10000, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "뚜레쥬르", "amount": 10000, "user": "", "payment": ""}, {"date": "2026-05-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "올리브영", "amount": 16800, "user": "", "payment": ""}, {"date": "2026-05-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 12900, "user": "", "payment": ""}, {"date": "2026-05-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컴포즈", "amount": 3600, "user": "", "payment": ""}, {"date": "2026-05-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "광평", "amount": 138000, "user": "", "payment": ""}, {"date": "2026-05-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "편의점", "amount": 2200, "user": "", "payment": ""}, {"date": "2026-05-19", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 100000, "user": "", "payment": ""}, {"date": "2026-05-19", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "마사지", "amount": 50000, "user": "", "payment": ""}, {"date": "2026-05-19", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "마사지", "amount": 50000, "user": "", "payment": ""}, {"date": "2026-05-20", "type": "수입", "main": "고정수입", "mid": "급여", "detail": "월급", "amount": 3269090, "user": "", "payment": ""}, {"date": "2026-05-20", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "바나나", "amount": 3830, "user": "", "payment": ""}, {"date": "2026-05-20", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "모자", "amount": 14900, "user": "", "payment": ""}, {"date": "2026-05-20", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "구찌가방", "amount": 780000, "user": "", "payment": ""}, {"date": "2026-05-21", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "매머드", "amount": 3200, "user": "", "payment": ""}, {"date": "2026-05-21", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "운동화 그외", "amount": 100000, "user": "", "payment": ""}, {"date": "2026-05-21", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": ""}, {"date": "2026-05-21", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "서브웨이", "amount": 7900, "user": "", "payment": ""}, {"date": "2026-05-21", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "타임스퀘어 쇼핑", "amount": 193160, "user": "", "payment": ""}, {"date": "2026-05-21", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "공차", "amount": 17000, "user": "", "payment": ""}, {"date": "2026-05-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 4800, "user": "", "payment": ""}, {"date": "2026-05-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "맥모닝", "amount": 9700, "user": "", "payment": ""}, {"date": "2026-05-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 ", "amount": 15900, "user": "", "payment": ""}, {"date": "2026-05-22", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 623700, "user": "", "payment": ""}, {"date": "2026-05-22", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "관리비", "amount": 251775, "user": "", "payment": ""}, {"date": "2026-05-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "올리브영", "amount": 22610, "user": "", "payment": ""}, {"date": "2026-05-22", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "k패스 환급", "amount": 35660, "user": "", "payment": ""}, {"date": "2026-05-22", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "베라", "amount": 4300, "user": "", "payment": ""}, {"date": "2026-05-22", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "키노야", "amount": 12500, "user": "", "payment": ""}, {"date": "2026-05-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "빽다방", "amount": 4500, "user": "", "payment": ""}, {"date": "2026-05-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "파타코니아", "amount": 180000, "user": "", "payment": ""}, {"date": "2026-05-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "파타고니아", "amount": 62000, "user": "", "payment": ""}, {"date": "2026-05-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "팜스마트", "amount": 13570, "user": "", "payment": ""}, {"date": "2026-05-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 43050, "user": "", "payment": ""}, {"date": "2026-05-24", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "처갓집", "amount": 37000, "user": "", "payment": ""}, {"date": "2026-05-24", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "소고기", "amount": 50000, "user": "", "payment": ""}, {"date": "2026-05-24", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "투썸", "amount": 8100, "user": "", "payment": ""}, {"date": "2026-05-24", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 2750, "user": "", "payment": ""}, {"date": "2026-05-25", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 옷걸이", "amount": 17990, "user": "", "payment": ""}, {"date": "2026-05-25", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 30000, "user": "", "payment": ""}, {"date": "2026-05-25", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "버거리", "amount": 12700, "user": "", "payment": ""}, {"date": "2026-05-25", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "루은이선물", "amount": 55000, "user": "", "payment": ""}, {"date": "2026-05-25", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "찜닭", "amount": 31000, "user": "", "payment": ""}, {"date": "2026-05-25", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "가방", "amount": 121700, "user": "", "payment": ""}, {"date": "2026-05-26", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "삼성화재", "amount": 22210, "user": "", "payment": ""}, {"date": "2026-05-26", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "속옷", "amount": 51700, "user": "", "payment": ""}, {"date": "2026-05-26", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 2600, "user": "", "payment": ""}, {"date": "2026-05-26", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "브로드밴드", "amount": 46563, "user": "", "payment": ""}, {"date": "2026-05-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "쿠팡와우", "amount": 7890, "user": "", "payment": ""}, {"date": "2026-05-26", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "김밥,커피", "amount": 6800, "user": "", "payment": ""}, {"date": "2026-05-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "애플", "amount": 1100, "user": "", "payment": ""}, {"date": "2026-05-26", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "보금자리", "amount": 675732, "user": "", "payment": ""}, {"date": "2026-05-27", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": ""}, {"date": "2026-05-27", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "룰루레몬", "amount": 54000, "user": "", "payment": ""}, {"date": "2026-05-27", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "모임회비", "amount": 30000, "user": "", "payment": ""}, {"date": "2026-05-27", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "이마트", "amount": 20420, "user": "", "payment": ""}, {"date": "2026-05-27", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "현선이네", "amount": 24000, "user": "", "payment": ""}, {"date": "2026-05-28", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "뚜쥬, 커피", "amount": 9300, "user": "", "payment": ""}, {"date": "2026-05-28", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "영업팀 회식", "amount": 51700, "user": "", "payment": ""}, {"date": "2026-05-29", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "무신사 킨", "amount": 118990, "user": "", "payment": ""}, {"date": "2026-05-29", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "서오릉 돼지집", "amount": 26000, "user": "", "payment": ""}, {"date": "2026-05-29", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "편의점", "amount": 5800, "user": "", "payment": ""}, {"date": "2026-05-30", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "역전할맥", "amount": 25500, "user": "", "payment": ""}, {"date": "2026-05-30", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 18000, "user": "", "payment": ""}, {"date": "2026-05-30", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "택시", "amount": 9800, "user": "", "payment": ""}, {"date": "2026-05-31", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "더벤티", "amount": 6840, "user": "", "payment": ""}, {"date": "2026-05-31", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 ", "amount": 36990, "user": "", "payment": ""}, {"date": "2026-05-31", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 50000, "user": "", "payment": ""}, {"date": "2026-06-01", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "관 대중교통", "amount": 17650, "user": "관", "payment": ""}, {"date": "2026-06-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "김밥, 커피", "amount": 12500, "user": "", "payment": ""}, {"date": "2026-06-01", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 20000, "user": "", "payment": ""}, {"date": "2026-06-01", "type": "지출", "main": "변동지출", "mid": "경조사", "detail": "결이선물", "amount": 195470, "user": "", "payment": ""}, {"date": "2026-06-01", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 4500, "user": "", "payment": ""}, {"date": "2026-06-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "명가부찌", "amount": 23500, "user": "", "payment": ""}, {"date": "2026-06-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "팜스", "amount": 11910, "user": "", "payment": ""}, {"date": "2026-06-02", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컴포즈", "amount": 3600, "user": "", "payment": ""}, {"date": "2026-06-02", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "서울식물원 주차장", "amount": 1500, "user": "", "payment": ""}, {"date": "2026-06-02", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "닭강정", "amount": 14200, "user": "", "payment": ""}, {"date": "2026-06-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "파크프리베 카페", "amount": 33100, "user": "", "payment": ""}, {"date": "2026-06-03", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 10000, "user": "", "payment": ""}, {"date": "2026-06-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "탑텐", "amount": 110400, "user": "", "payment": ""}, {"date": "2026-06-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "닭갈비", "amount": 32300, "user": "", "payment": ""}, {"date": "2026-06-04", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": ""}, {"date": "2026-06-04", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "하나신용", "amount": 112287, "user": "", "payment": ""}, {"date": "2026-06-04", "type": "지출", "main": "변동지출", "mid": "문화", "detail": "제주도 비행기", "amount": 174980, "user": "", "payment": ""}, {"date": "2026-06-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "엽떡", "amount": 16300, "user": "", "payment": ""}, {"date": "2026-06-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 토레타", "amount": 21190, "user": "", "payment": ""}, {"date": "2026-06-05", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "김밥, 커피", "amount": 3600, "user": "", "payment": ""}, {"date": "2026-06-05", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "맘스터치", "amount": 7700, "user": "", "payment": ""}, {"date": "2026-06-05", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "우든박스", "amount": 10260, "user": "", "payment": ""}, {"date": "2026-06-05", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "우체국", "amount": 5400, "user": "", "payment": ""}, {"date": "2026-06-05", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "하우명품대패", "amount": 42300, "user": "", "payment": ""}, {"date": "2026-06-05", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 53000, "user": "", "payment": ""}, {"date": "2026-06-05", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 54000, "user": "", "payment": ""}, {"date": "2026-06-06", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "우체국", "amount": 3900, "user": "", "payment": ""}, {"date": "2026-06-06", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "코스트코", "amount": 64000, "user": "", "payment": ""}, {"date": "2026-06-07", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 58000, "user": "", "payment": ""}, {"date": "2026-06-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "아식스신발", "amount": 95000, "user": "", "payment": ""}, {"date": "2026-06-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "메가커피", "amount": 9600, "user": "", "payment": ""}, {"date": "2026-06-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "꽈배기", "amount": 5600, "user": "", "payment": ""}, {"date": "2026-06-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "닭가슴살", "amount": 22350, "user": "", "payment": ""}, {"date": "2026-06-08", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 5800, "user": "", "payment": ""}, {"date": "2026-06-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "홍콩반점", "amount": 28800, "user": "", "payment": ""}, {"date": "2026-06-08", "type": "지출", "main": "변동지출", "mid": "문화", "detail": "제주도 비행기", "amount": 178000, "user": "", "payment": ""}, {"date": "2026-06-08", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 70000, "user": "", "payment": ""}, {"date": "2026-06-09", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "구글", "amount": 2400, "user": "", "payment": ""}, {"date": "2026-06-09", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "일산백병원", "amount": 13900, "user": "", "payment": ""}, {"date": "2026-06-09", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "팜스마트", "amount": 30380, "user": "", "payment": ""}, {"date": "2026-06-10", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "교통비", "amount": 40650, "user": "", "payment": ""}, {"date": "2026-06-10", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 1500, "user": "", "payment": ""}, {"date": "2026-06-10", "type": "지출", "main": "고정지출", "mid": "렌탈", "detail": "코웨이", "amount": 14900, "user": "", "payment": ""}, {"date": "2026-06-10", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "운전자보험", "amount": 6510, "user": "", "payment": ""}, {"date": "2026-06-10", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "자동차보험", "amount": 508123, "user": "", "payment": ""}, {"date": "2026-06-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피", "amount": 1600, "user": "", "payment": ""}, {"date": "2026-06-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "힐링성형외과", "amount": 5600, "user": "", "payment": ""}, {"date": "2026-06-11", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "맥날", "amount": 7300, "user": "", "payment": ""}, {"date": "2026-06-11", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "보라핸드폰", "amount": 78900, "user": "", "payment": ""}, {"date": "2026-06-11", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "은행골", "amount": 34000, "user": "", "payment": ""}, {"date": "2026-06-11", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 50000, "user": "", "payment": ""}, {"date": "2026-06-11", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 11700, "user": "", "payment": ""}, {"date": "2026-06-11", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "공차", "amount": 9090, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 차관련 워셔액", "amount": 18140, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "맥날", "amount": 10000, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2680, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "카페", "amount": 4500, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "올리브영", "amount": 25000, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "차고", "amount": 33000, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡", "amount": 14900, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "우체국", "amount": 3920, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "성형외과", "amount": 62980, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "약국", "amount": 5400, "user": "", "payment": ""}, {"date": "2026-06-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "파파존스", "amount": 33100, "user": "", "payment": ""}, {"date": "2026-06-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "우동이요이요", "amount": 22000, "user": "", "payment": ""}, {"date": "2026-06-13", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 587, "user": "", "payment": ""}, {"date": "2026-06-13", "type": "지출", "main": "변동지출", "mid": "건강", "detail": "힐링성형외과", "amount": 7000, "user": "", "payment": ""}, {"date": "2026-06-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컴포즈", "amount": 3600, "user": "", "payment": ""}, {"date": "2026-06-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "세차용품", "amount": 87780, "user": "", "payment": ""}, {"date": "2026-06-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "커피캡슐", "amount": 46500, "user": "", "payment": ""}, {"date": "2026-06-13", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "세차", "amount": 10000, "user": "", "payment": ""}, {"date": "2026-06-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "메디폼", "amount": 14620, "user": "", "payment": ""}, {"date": "2026-06-13", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "당근", "amount": 255000, "user": "", "payment": ""}, {"date": "2026-06-14", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "솥밥", "amount": 22600, "user": "", "payment": ""}, {"date": "2026-06-14", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3267, "user": "", "payment": ""}, {"date": "2026-06-14", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 1174, "user": "", "payment": ""}, {"date": "2026-06-14", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "아이스크림", "amount": 1200, "user": "", "payment": ""}, {"date": "2026-06-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "평안도식당", "amount": 22000, "user": "", "payment": ""}, {"date": "2026-06-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡이츠 설빙", "amount": 12400, "user": "", "payment": ""}, {"date": "2026-06-15", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3263, "user": "", "payment": ""}, {"date": "2026-06-16", "type": "지출", "main": "변동지출", "mid": "문화", "detail": "제주숙소, 렌트", "amount": 237000, "user": "", "payment": ""}, {"date": "2026-06-16", "type": "지출", "main": "변동지출", "mid": "문화", "detail": "제주도 경비", "amount": 500000, "user": "", "payment": ""}, {"date": "2026-06-16", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 1962, "user": "", "payment": ""}, {"date": "2026-06-16", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "빽다방", "amount": 3700, "user": "", "payment": ""}, {"date": "2026-06-16", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 6000, "user": "", "payment": ""}, {"date": "2026-06-16", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "등촌칼국수", "amount": 29000, "user": "", "payment": ""}, {"date": "2026-06-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "서정김밥", "amount": 8500, "user": "", "payment": ""}, {"date": "2026-06-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 주차스티커", "amount": 8010, "user": "", "payment": ""}, {"date": "2026-06-17", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "타조메롱", "amount": 4000, "user": "", "payment": ""}, {"date": "2026-06-17", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 6138, "user": "", "payment": ""}, {"date": "2026-06-18", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 50000, "user": "", "payment": ""}, {"date": "2026-06-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "맥날", "amount": 9900, "user": "", "payment": ""}, {"date": "2026-06-18", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "힐링성형외과", "amount": 9600, "user": "", "payment": ""}, {"date": "2026-06-18", "type": "지출", "main": "변동지출", "mid": "문화", "detail": "김포공항", "amount": 29900, "user": "", "payment": ""}, {"date": "2026-06-19", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "편의점 (생리대)", "amount": 8900, "user": "", "payment": ""}, {"date": "2026-06-19", "type": "수입", "main": "고정수입", "mid": "급여", "detail": "월급", "amount": 3173890, "user": "", "payment": ""}, {"date": "2026-06-20", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "사이다", "amount": 2100, "user": "", "payment": ""}, {"date": "2026-06-21", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "순대국", "amount": 22000, "user": "", "payment": ""}, {"date": "2026-06-21", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "더벤티", "amount": 6480, "user": "", "payment": ""}, {"date": "2026-06-21", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2866, "user": "", "payment": ""}, {"date": "2026-06-21", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "옥루몽", "amount": 20500, "user": "", "payment": ""}, {"date": "2026-06-22", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3257, "user": "", "payment": ""}, {"date": "2026-06-22", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "맥날", "amount": 5200, "user": "", "payment": ""}, {"date": "2026-06-22", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "관리비", "amount": 228850, "user": "", "payment": ""}, {"date": "2026-06-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 생필품", "amount": 45750, "user": "", "payment": ""}, {"date": "2026-06-22", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "매머드", "amount": 3000, "user": "", "payment": ""}, {"date": "2026-06-22", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2393, "user": "", "payment": ""}, {"date": "2026-06-23", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "삼성화재", "amount": 22210, "user": "", "payment": ""}, {"date": "2026-06-23", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "어썸어스 헬스", "amount": 231000, "user": "", "payment": ""}, {"date": "2026-06-23", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": ""}, {"date": "2026-06-23", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "", "payment": ""}, {"date": "2026-06-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "미소야", "amount": 19500, "user": "", "payment": ""}, {"date": "2026-06-23", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2625, "user": "", "payment": ""}, {"date": "2026-06-23", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 계란", "amount": 16560, "user": "", "payment": ""}, {"date": "2026-06-24", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "구글", "amount": 2400, "user": "", "payment": ""}, {"date": "2026-06-24", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "tv 인터넷", "amount": 46563, "user": "", "payment": ""}, {"date": "2026-06-24", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "삼성화재 ", "amount": 16647, "user": "", "payment": ""}, {"date": "2026-06-24", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "관 핸드폰 skt", "amount": 28000, "user": "", "payment": ""}, {"date": "2026-06-24", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "관 핸드폰 kt", "amount": 47000, "user": "", "payment": ""}, {"date": "2026-06-24", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "관 충전", "amount": 10000, "user": "", "payment": ""}, {"date": "2026-06-24", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "커피, 빵", "amount": 7300, "user": "", "payment": ""}, {"date": "2026-06-24", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "팜스마트", "amount": 16590, "user": "", "payment": ""}, {"date": "2026-06-24", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2453, "user": "", "payment": ""}, {"date": "2026-06-25", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "보금자리", "amount": 678229, "user": "", "payment": ""}, {"date": "2026-06-25", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 목배게", "amount": 24890, "user": "", "payment": ""}, {"date": "2026-06-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "쿠팡 와우", "amount": 7890, "user": "", "payment": ""}, {"date": "2026-06-26", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "서브웨이", "amount": 12600, "user": "", "payment": ""}, {"date": "2026-06-26", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "애플", "amount": 1100, "user": "", "payment": ""}, {"date": "2026-06-26", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "모임회비", "amount": 30000, "user": "", "payment": ""}, {"date": "2026-06-26", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 1882, "user": "", "payment": ""}, {"date": "2026-06-26", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 2200, "user": "", "payment": ""}, {"date": "2026-06-27", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2434, "user": "", "payment": ""}, {"date": "2026-06-27", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "스벅", "amount": 13900, "user": "", "payment": ""}, {"date": "2026-06-27", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "탑텐", "amount": 155500, "user": "", "payment": ""}, {"date": "2026-06-27", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "부산식당", "amount": 46200, "user": "", "payment": ""}, {"date": "2026-06-27", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2708, "user": "", "payment": ""}, {"date": "2026-06-28", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 4992, "user": "", "payment": ""}, {"date": "2026-06-28", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "올리브영", "amount": 25800, "user": "", "payment": ""}, {"date": "2026-06-28", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "청기와", "amount": 20000, "user": "", "payment": ""}, {"date": "2026-06-28", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "다이소", "amount": 21200, "user": "", "payment": ""}, {"date": "2026-06-29", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3731, "user": "", "payment": ""}, {"date": "2026-06-29", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "편의점", "amount": 5000, "user": "", "payment": ""}, {"date": "2026-06-30", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "편의점", "amount": 6300, "user": "", "payment": ""}, {"date": "2026-06-30", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "쿠팡 쉐이크, 아침용", "amount": 71380, "user": "", "payment": ""}, {"date": "2026-06-30", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2421, "user": "", "payment": ""}, {"date": "2026-06-30", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "타조메롱", "amount": 4000, "user": "", "payment": ""}, {"date": "2026-07-01", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "컬리", "amount": 35595, "user": "공동", "payment": ""}, {"date": "2026-07-01", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "대중교통", "amount": 17400, "user": "보라", "payment": ""}, {"date": "2026-07-01", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2249, "user": "자동차", "payment": ""}, {"date": "2026-07-01", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "점심", "amount": 11000, "user": "관", "payment": ""}, {"date": "2026-07-02", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "뚜레쥬르", "amount": 5100, "user": "공동", "payment": ""}, {"date": "2026-07-02", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "닭칼국수", "amount": 22000, "user": "공동", "payment": ""}, {"date": "2026-07-02", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "트러스트커피", "amount": 7600, "user": "관", "payment": ""}, {"date": "2026-07-03", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "오가네", "amount": 21000, "user": "공동", "payment": ""}, {"date": "2026-07-03", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3228, "user": "자동차", "payment": ""}, {"date": "2026-07-03", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "플럭스커피", "amount": 4000, "user": "관", "payment": ""}, {"date": "2026-07-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "유니클로", "amount": 59900, "user": "공동", "payment": ""}, {"date": "2026-07-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "영등포 주차비", "amount": 2870, "user": "공동", "payment": ""}, {"date": "2026-07-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "뉴코아 주차비", "amount": 8800, "user": "공동", "payment": ""}, {"date": "2026-07-04", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "뽑기", "amount": 7000, "user": "공동", "payment": ""}, {"date": "2026-07-04", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 1059, "user": "자동차", "payment": ""}, {"date": "2026-07-04", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2597, "user": "자동차", "payment": ""}, {"date": "2026-07-05", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "코지하우스", "amount": 43200, "user": "공동", "payment": ""}, {"date": "2026-07-05", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 8682, "user": "자동차", "payment": ""}, {"date": "2026-07-06", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 4500, "user": "보라", "payment": ""}, {"date": "2026-07-06", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3318, "user": "자동차", "payment": ""}, {"date": "2026-07-06", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "블로그", "amount": 10000, "user": "관", "payment": ""}, {"date": "2026-07-06", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "퀵", "amount": 11400, "user": "관", "payment": ""}, {"date": "2026-07-06", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "그릭요거트", "amount": 7800, "user": "보라", "payment": ""}, {"date": "2026-07-06", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "하나은행", "amount": 108665, "user": "공동", "payment": ""}, {"date": "2026-07-07", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "도바우", "amount": 7000, "user": "공동", "payment": ""}, {"date": "2026-07-07", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3346, "user": "자동차", "payment": ""}, {"date": "2026-07-07", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "스벅", "amount": 6000, "user": "보라", "payment": ""}, {"date": "2026-07-07", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "오호라", "amount": 25120, "user": "보라", "payment": ""}, {"date": "2026-07-08", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "주차비", "amount": 4750, "user": "공동", "payment": ""}, {"date": "2026-07-08", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "샤넬 화장품", "amount": 178000, "user": "보라", "payment": ""}, {"date": "2026-07-08", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "심가네 칼국수", "amount": 20000, "user": "관", "payment": ""}, {"date": "2026-07-08", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "베라", "amount": 10500, "user": "보라", "payment": ""}, {"date": "2026-07-09", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "스벅", "amount": 1200, "user": "공동", "payment": ""}, {"date": "2026-07-09", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3263, "user": "자동차", "payment": ""}, {"date": "2026-07-09", "type": "지출", "main": "변동지출", "mid": "교통비", "detail": "굽네몰 회식 택시", "amount": 26500, "user": "보라", "payment": ""}, {"date": "2026-07-09", "type": "지출", "main": "고정지출", "mid": "구독", "detail": "구글", "amount": 2400, "user": "공동", "payment": ""}, {"date": "2026-07-09", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "죠샌드위치", "amount": 8500, "user": "관", "payment": ""}, {"date": "2026-07-09", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "서정김밥", "amount": 5000, "user": "관", "payment": ""}, {"date": "2026-07-10", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "탑텐", "amount": 20000, "user": "공동", "payment": ""}, {"date": "2026-07-10", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "자동차보험", "amount": 508123, "user": "공동", "payment": ""}, {"date": "2026-07-10", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "할부금", "amount": 456520, "user": "공동", "payment": ""}, {"date": "2026-07-10", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "후불교통카드", "amount": 72410, "user": "관", "payment": ""}, {"date": "2026-07-10", "type": "지출", "main": "고정지출", "mid": "보험", "detail": "운전자보험", "amount": 6510, "user": "공동", "payment": ""}, {"date": "2026-07-10", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "회식", "amount": 49416, "user": "보라", "payment": ""}, {"date": "2026-07-10", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "플로어칠", "amount": 11500, "user": "관", "payment": ""}, {"date": "2026-07-10", "type": "지출", "main": "고정지출", "mid": "렌탈", "detail": "코웨이", "amount": 14900, "user": "공동", "payment": ""}, {"date": "2026-07-11", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "김포롯데몰 주차", "amount": 2000, "user": "공동", "payment": ""}, {"date": "2026-07-11", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "어나더사이드", "amount": 18300, "user": "공동", "payment": ""}, {"date": "2026-07-11", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "영화", "amount": 4000, "user": "공동", "payment": ""}, {"date": "2026-07-11", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "닭강정", "amount": 17000, "user": "공동", "payment": ""}, {"date": "2026-07-11", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 8439, "user": "자동차", "payment": ""}, {"date": "2026-07-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "스파아일랜드", "amount": 70000, "user": "공동", "payment": ""}, {"date": "2026-07-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "추어탕", "amount": 24000, "user": "공동", "payment": ""}, {"date": "2026-07-12", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "편의점", "amount": 1104, "user": "공동", "payment": ""}, {"date": "2026-07-12", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 5197, "user": "자동차", "payment": ""}, {"date": "2026-07-12", "type": "지출", "main": "고정지출", "mid": "유류비", "detail": "주유비", "amount": 50000, "user": "자동차", "payment": ""}, {"date": "2026-07-12", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "갤럭시워치", "amount": 130000, "user": "관", "payment": ""}, {"date": "2026-07-12", "type": "지출", "main": "변동지출", "mid": "기타", "detail": "버즈", "amount": 120000, "user": "관", "payment": ""}, {"date": "2026-07-13", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2412, "user": "자동차", "payment": ""}, {"date": "2026-07-13", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "쿠팡 (콜라, 카드지갑)", "amount": 25800, "user": "공동", "payment": ""}, {"date": "2026-07-13", "type": "지출", "main": "고정지출", "mid": "통신비", "detail": "보라핸드폰", "amount": 78900, "user": "보라", "payment": ""}, {"date": "2026-07-14", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "모두의 주차장", "amount": 2400, "user": "공동", "payment": ""}, {"date": "2026-07-14", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "진양재순대", "amount": 11000, "user": "관", "payment": ""}, {"date": "2026-07-14", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "로스터리락온", "amount": 5000, "user": "관", "payment": ""}, {"date": "2026-07-14", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "컴포즈", "amount": 1800, "user": "보라", "payment": ""}, {"date": "2026-07-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "크록스, 헤지스", "amount": 125898, "user": "공동", "payment": ""}, {"date": "2026-07-15", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "연재푸드", "amount": 2000, "user": "공동", "payment": ""}, {"date": "2026-07-15", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3366, "user": "자동차", "payment": ""}, {"date": "2026-07-15", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3318, "user": "자동차", "payment": ""}, {"date": "2026-07-15", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "이마트24", "amount": 7800, "user": "관", "payment": ""}, {"date": "2026-07-15", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "매머드", "amount": 1600, "user": "보라", "payment": ""}, {"date": "2026-07-16", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "한슐랭", "amount": 7500, "user": "공동", "payment": ""}, {"date": "2026-07-16", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "이마트 화정", "amount": 19170, "user": "공동", "payment": ""}, {"date": "2026-07-16", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "KFC", "amount": 7400, "user": "공동", "payment": ""}, {"date": "2026-07-16", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3269, "user": "자동차", "payment": ""}, {"date": "2026-07-16", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "로스터리 락온", "amount": 6500, "user": "관", "payment": ""}, {"date": "2026-07-16", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "플럭스커피", "amount": 4000, "user": "보라", "payment": ""}, {"date": "2026-07-17", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "무인양품", "amount": 8800, "user": "공동", "payment": ""}, {"date": "2026-07-17", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 2246, "user": "자동차", "payment": ""}, {"date": "2026-07-17", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "할리스", "amount": 6555, "user": "보라", "payment": ""}, {"date": "2026-07-17", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "박하헤어", "amount": 20000, "user": "관", "payment": ""}, {"date": "2026-07-17", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "탑텐", "amount": 10000, "user": "보라", "payment": ""}, {"date": "2026-07-17", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "고망고", "amount": 3200, "user": "보라", "payment": ""}, {"date": "2026-07-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "자동차세", "amount": 18290, "user": "공동", "payment": ""}, {"date": "2026-07-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "커피사피엔스", "amount": 9100, "user": "공동", "payment": ""}, {"date": "2026-07-18", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "리스토어", "amount": 9000, "user": "공동", "payment": ""}, {"date": "2026-07-18", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3203, "user": "자동차", "payment": ""}, {"date": "2026-07-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "라빈", "amount": 11000, "user": "공동", "payment": ""}, {"date": "2026-07-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "엽떡", "amount": 16000, "user": "공동", "payment": ""}, {"date": "2026-07-19", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "단백질쉐이크", "amount": 31190, "user": "공동", "payment": ""}, {"date": "2026-07-19", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 8390, "user": "자동차", "payment": ""}, {"date": "2026-07-19", "type": "수입", "main": "변동수입", "mid": "기타소득", "detail": "에어팟", "amount": 85000, "user": "공동", "payment": ""}, {"date": "2026-07-20", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "서브웨이", "amount": 15400, "user": "공동", "payment": ""}, {"date": "2026-07-20", "type": "수입", "main": "고정수입", "mid": "급여", "detail": "보라월급", "amount": 3022190, "user": "보라", "payment": ""}, {"date": "2026-07-20", "type": "수입", "main": "변동수입", "mid": "급여", "detail": "휴가비", "amount": 500000, "user": "보라", "payment": ""}, {"date": "2026-07-20", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "ai구독", "amount": 9657, "user": "관", "payment": ""}, {"date": "2026-07-20", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "진양재순대", "amount": 11000, "user": "관", "payment": ""}, {"date": "2026-07-21", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "뚜레쥬르", "amount": 7400, "user": "공동", "payment": ""}, {"date": "2026-07-21", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "가비아", "amount": 2750, "user": "관", "payment": ""}, {"date": "2026-07-21", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "더휴컨벤션", "amount": 11000, "user": "관", "payment": ""}, {"date": "2026-07-21", "type": "지출", "main": "변동지출", "mid": "생활비", "detail": "피트니스 벨", "amount": 22000, "user": "보라", "payment": ""}, {"date": "2026-07-21", "type": "지출", "main": "고정지출", "mid": "주거비", "detail": "관리비", "amount": 217580, "user": "공동", "payment": ""}, {"date": "2026-07-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "재산세", "amount": 76090, "user": "공동", "payment": ""}, {"date": "2026-07-22", "type": "지출", "main": "변동지출", "mid": "공동", "detail": "저녁", "amount": 27900, "user": "공동", "payment": ""}, {"date": "2026-07-22", "type": "지출", "main": "고정지출", "mid": "교통비", "detail": "차지비", "amount": 3050, "user": "자동차", "payment": ""}];
+
+function seedIfEmpty(){
+  if(DB.list().length > 0) return;
+  SEED_DATA.forEach(r => {
+    DB.add({
+      date: r.date, type: r.type, main: r.main, category: r.mid,
+      note: r.detail, amount: r.amount, user: r.user||'', payment: r.payment||''
+    });
+  });
 }
 
+/* =================================================================================
+   5. 렌더 - 공통 뼈대 (네비게이션)
+   ================================================================================= */
 function render(){
-  const grid = document.getElementById('grid');
-  const emptyMsg = document.getElementById('emptyMsg');
+  const app = document.getElementById('app');
+  const list = DB.list();
+  const monthsWithData = new Set(list.map(t=>ymOf(t.date)));
 
-  if(projects.length === 0){
-    grid.innerHTML = "";
-    emptyMsg.style.display = "block";
-    return;
+  let tabsHtml = `<button class="tab summary-tab ${state.view==='summary'?'active':''}" onclick="location.hash='#/summary'">SUMMARY</button>`;
+  for(let m=1;m<=12;m++){
+    const ym = state.year + '-' + String(m).padStart(2,'0');
+    const active = state.view===ym;
+    const hasData = monthsWithData.has(ym);
+    tabsHtml += `<button class="tab ${active?'active':''} ${hasData?'has-data':''}" onclick="location.hash='#/${ym}'"><span class="dot"></span>${m}월</button>`;
   }
-  emptyMsg.style.display = "none";
+  const yearMenuHtml = yearRange().map(y=>`<button class="year-item ${y===state.year?'active':''}" onclick="selectYear(${y})">${y}</button>`).join('');
 
-  const sorted = projects.slice().sort((a,b) => (b.updatedAt||"").localeCompare(a.updatedAt||""));
-
-  grid.innerHTML = sorted.map(p => `
-    <div class="project-card">
-      <div class="thumb">
-        ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="">` : ''}
-      </div>
-      <div class="body">
-        <div class="title">${escapeHtml(p.title)}</div>
-        <div class="desc">${escapeHtml(p.description)}</div>
-        <div class="card-actions">
-          ${p.notionUrl ? `<a class="notion-link" href="${escapeHtml(p.notionUrl)}" target="_blank" rel="noopener">노션에서 보기 →</a>` : ''}
-          <button class="del-btn" onclick="deleteProject('${p.id}')">삭제</button>
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="brand">
+        <span class="mark">家</span>
+        <div>
+          <h1>우리집 가계부</h1>
+          <div class="sub">구조 설계 단계 · 로컬 저장 (Supabase 연동 예정)</div>
         </div>
       </div>
     </div>
-  `).join('');
+    <div class="tabs-wrap">
+      <div class="tabs-row">
+        <div class="year-select" id="yearSelect">
+          <button class="year-btn" onclick="toggleYearMenu()">${state.year}<span class="caret">▾</span></button>
+          <div class="year-menu" id="yearMenu">${yearMenuHtml}</div>
+        </div>
+        <nav class="tabs">${tabsHtml}</nav>
+      </div>
+    </div>
+    <div id="view"></div>
+    <footer class="foot">yunkwan.cloud · 가계부.html — 현재 데이터는 브라우저(localStorage)에 저장됩니다. Supabase 연동 시 자동으로 클라우드 동기화됩니다.</footer>
+  `;
+
+  if(state.view === 'summary') renderSummary();
+  else renderMonth(state.view);
 }
 
-// 이미지 선택 → 미리보기 + 업로드
-function bindImageInput(){
-  const input = document.getElementById('in-image');
-  input.addEventListener('change', async function(e){
-    const file = e.target.files[0];
-    if(!file) return;
+/* =================================================================================
+   6. Summary 페이지
+   ================================================================================= */
+function renderSummary(){
+  const list = DB.list().filter(t => t.date.startsWith(String(state.year)));
+  const income = sumBy(list,'수입'), expense = sumBy(list,'지출');
+  const saving = sumBy(list,'저축'), invest = sumBy(list,'투자');
+  const net = income - expense;
+  const rate = income ? (net/income*100) : 0;
 
-    const statusEl = document.getElementById('uploadStatus');
-    const saveBtn = document.getElementById('saveBtn');
+  const monthly = MONTH_NAMES.map((_,i)=>{
+    const ym = state.year + '-' + String(i+1).padStart(2,'0');
+    const mt = monthTx(list, ym);
+    return { ym, income: sumBy(mt,'수입'), expense: sumBy(mt,'지출') };
+  });
 
-    const reader = new FileReader();
-    reader.onload = async function(evt){
-      const dataUrl = evt.target.result;
-      document.getElementById('dropZone').innerHTML =
-        `<img src="${dataUrl}" alt=""><input type="file" accept="image/*" id="in-image">`;
-      bindImageInput();
+  // 지출 카테고리 12개월 표
+  const expenseRows = [];
+  Object.entries(TAXONOMY['지출']).forEach(([main, cats])=>{
+    cats.forEach(cat=>{
+      const row = { main, cat, months: [], total:0 };
+      monthly.forEach(m=>{
+        const amt = list.filter(t=>t.type==='지출'&&t.main===main&&t.category===cat&&ymOf(t.date)===m.ym)
+                        .reduce((s,t)=>s+Number(t.amount||0),0);
+        row.months.push(amt); row.total += amt;
+      });
+      if(row.total>0) expenseRows.push(row);
+    });
+  });
+  expenseRows.sort((a,b)=>b.total-a.total);
 
-      statusEl.textContent = "업로드 중...";
-      saveBtn.disabled = true;
+  document.getElementById('view').innerHTML = `
+    <div class="section-head">
+      <h2 class="display" style="font-size:20px;">${state.year}년 연간 요약</h2>
+    </div>
 
-      const base64 = dataUrl.split(',')[1];
-      try{
-        const result = await callApi("uploadImage", {
-          filename: file.name,
-          mimeType: file.type,
-          base64: base64
-        });
-        pendingImageUrl = result.url;
-        statusEl.textContent = "업로드 완료 ✓";
-      }catch(err){
-        statusEl.textContent = "업로드 실패: " + err.message;
-        pendingImageUrl = "";
+    <div class="grid kpis">
+      <div class="card kpi income"><div class="label">연간 총수입</div><div class="value mono">${wonShort(income)}</div></div>
+      <div class="card kpi expense"><div class="label">연간 총지출</div><div class="value mono">${wonShort(expense)}</div></div>
+      <div class="card kpi saving"><div class="label">저축 + 투자</div><div class="value mono">${wonShort(saving+invest)}</div></div>
+      <div class="card kpi"><div class="label">순저축률 (수입-지출)</div><div class="value mono">${pct(rate)}</div></div>
+    </div>
+
+    <div class="grid two-col section">
+      <div class="card chart-card">
+        <div class="section-head"><h2>월별 수입 · 지출</h2></div>
+        <canvas id="chartMonthly"></canvas>
+      </div>
+      <div class="card chart-card">
+        <div class="section-head"><h2>월별 저축율 추이</h2></div>
+        <canvas id="chartRate"></canvas>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>지출 카테고리 · 월별 상세</h2><span class="hint">대분류 &gt; 카테고리, 단위: 원</span></div>
+      <div class="card table-card" style="overflow-x:auto;">
+        <table class="tx-table">
+          <thead><tr>
+            <th>대분류</th><th>카테고리</th>
+            ${MONTH_NAMES.map(m=>`<th style="text-align:right">${m}</th>`).join('')}
+            <th style="text-align:right">합계</th>
+          </tr></thead>
+          <tbody>
+            ${expenseRows.length ? expenseRows.map(r=>`
+              <tr>
+                <td style="color:var(--muted);white-space:nowrap;">${r.main}</td>
+                <td style="font-weight:600;white-space:nowrap;">${r.cat}</td>
+                ${r.months.map(v=>`<td class="amt">${v? v.toLocaleString('ko-KR'):'·'}</td>`).join('')}
+                <td class="amt expense" style="font-weight:700;">${r.total.toLocaleString('ko-KR')}</td>
+              </tr>
+            `).join('') : `<tr class="empty-row"><td colspan="15">아직 입력된 지출 데이터가 없습니다.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    ${renderBudgetSummarySections(list)}
+  `;
+
+  // 차트
+  if(typeof Chart === 'undefined'){
+    document.getElementById('chartMonthly').replaceWith(chartFallbackNode());
+    document.getElementById('chartRate').replaceWith(chartFallbackNode());
+    return;
+  }
+  new Chart(document.getElementById('chartMonthly'), {
+    type:'bar',
+    data:{
+      labels: MONTH_NAMES,
+      datasets:[
+        {label:'수입', data:monthly.map(m=>m.income), backgroundColor:'#2F6F4E', borderRadius:4, maxBarThickness:22},
+        {label:'지출', data:monthly.map(m=>m.expense), backgroundColor:'#B5495B', borderRadius:4, maxBarThickness:22},
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{position:'top', labels:{boxWidth:10,font:{size:11}}}},
+      scales:{
+        y:{ticks:{callback:v=>wonShort(v), font:{size:10}}, grid:{color:'#EFEDE4'}},
+        x:{grid:{display:false}, ticks:{font:{size:11}}}
       }
-      saveBtn.disabled = false;
-    };
-    reader.readAsDataURL(file);
+    }
+  });
+
+  new Chart(document.getElementById('chartRate'), {
+    type:'line',
+    data:{
+      labels: MONTH_NAMES,
+      datasets:[{
+        label:'저축율(%)',
+        data: monthly.map(m=> m.income ? ((m.income-m.expense)/m.income*100) : null),
+        borderColor:'#3C6E9E', backgroundColor:'rgba(60,110,158,0.12)', fill:true, tension:.35, spanGaps:true,
+        pointRadius:3, pointBackgroundColor:'#3C6E9E'
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{ticks:{callback:v=>v+'%', font:{size:10}}, grid:{color:'#EFEDE4'}},
+        x:{grid:{display:false}, ticks:{font:{size:11}}}
+      }
+    }
   });
 }
-bindImageInput();
 
-async function addProject(){
-  const title = document.getElementById('in-title').value.trim();
-  const description = document.getElementById('in-description').value.trim();
-  const notionUrl = document.getElementById('in-notion').value.trim();
+function renderBudgetSummarySections(list){
+  const budgets = DB.getBudgets(state.year);
+  const cats = flatExpenseCategories();
 
-  if(!title){ alert('프로젝트 제목을 입력해주세요.'); return; }
+  const formRows = cats.map(({main,cat})=>{
+    const key = main + '|' + cat;
+    return `<div class="cat-row">
+      <div class="top"><span class="name">${cat}<span class="sub">${main}</span></span></div>
+      <input class="budget-input" type="number" data-key="${key}" placeholder="월 예산 (원)" value="${budgets[key]||''}">
+    </div>`;
+  }).join('');
 
-  const newItem = {
-    id: uid(),
-    title, description, notionUrl,
-    imageUrl: pendingImageUrl,
-    updatedAt: new Date().toISOString().slice(0,10)
-  };
+  const activeBudgets = Object.entries(budgets).filter(([,v])=>v>0);
+  const actualHtml = activeBudgets.length ? activeBudgets.map(([key,monthly])=>{
+    const [main,cat] = key.split('|');
+    const yearly = monthly*12;
+    const actual = list.filter(t=>t.type==='지출'&&(t.main+'|'+t.category)===key).reduce((s,t)=>s+Number(t.amount),0);
+    const w = Math.min(100, yearly ? actual/yearly*100 : 0);
+    const over = actual>yearly;
+    return `<div class="cat-row">
+      <div class="top"><span class="name">${cat}<span class="sub">${main}</span></span><span class="amt">${won(actual)} / ${won(yearly)}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${over?'var(--expense)':'var(--saving)'}"></div></div>
+    </div>`;
+  }).join('') : `<div style="color:var(--muted);font-size:13px;padding:6px 0;">왼쪽에서 카테고리별 월 예산을 입력하고 저장하면, 연간 예산(월 예산×12) 대비 실적이 여기 표시됩니다.</div>`;
 
-  try{
-    const data = await callApi("add", { item: newItem });
-    projects = data.items;
-  }catch(err){
-    alert("저장 실패: " + err.message);
-    return;
-  }
-
-  document.getElementById('in-title').value = "";
-  document.getElementById('in-description').value = "";
-  document.getElementById('in-notion').value = "";
-  document.getElementById('uploadStatus').textContent = "";
-  pendingImageUrl = "";
-  document.getElementById('dropZone').innerHTML =
-    `<span id="dropLabel">클릭해서 이미지 선택</span><input type="file" accept="image/*" id="in-image">`;
-  bindImageInput();
-
-  render();
+  return `
+    <div class="grid two-col section">
+      <div class="card cat-list-card">
+        <div class="section-head"><h2>월 예산 설정</h2><span class="hint">카테고리별, ${state.year}년 전체 월에 동일 적용</span></div>
+        <div id="budgetForm">${formRows}</div>
+        <button class="ghost-btn primary" style="margin-top:12px;" onclick="saveBudgetsFromForm()">예산 저장</button>
+      </div>
+      <div class="card cat-list-card">
+        <div class="section-head"><h2>예산 대비 연간 실적</h2><span class="hint">월 예산 × 12 기준</span></div>
+        ${actualHtml}
+      </div>
+    </div>
+  `;
 }
 
-async function deleteProject(id){
-  if(!confirm('이 프로젝트를 삭제할까요?')) return;
-  try{
-    const data = await callApi("delete", { id });
-    projects = data.items;
-  }catch(err){
-    alert("삭제 실패: " + err.message);
-    return;
-  }
-  render();
+function saveBudgetsFromForm(){
+  const map = {};
+  document.querySelectorAll('#budgetForm .budget-input').forEach(inp=>{
+    const v = Number(inp.value)||0;
+    if(v>0) map[inp.dataset.key] = v;
+  });
+  DB.saveBudgets(state.year, map);
+  renderSummary();
 }
 
-loadProjects();
+/* =================================================================================
+   7. Month 페이지
+   ================================================================================= */
+function renderMonth(ym){
+  state.currentYm = ym;
+  if(state.compareTarget !== ym){ state.compareYm = shiftYm(ym,-1); state.compareTarget = ym; }
 
-// ===========================================================
-// 노션에서 가져온 프로젝트 (읽기 전용, 노션이 원본)
-// ===========================================================
-let notionProjects = [];
+  const [y,m] = ym.split('-').map(Number);
+  const all = DB.list();
+  const tx = monthTx(all, ym).sort((a,b)=> a.date < b.date ? 1 : -1);
+  const income = sumBy(tx,'수입'), expense = sumBy(tx,'지출'), saving = sumBy(tx,'저축'), invest=sumBy(tx,'투자');
+  const rate = income ? ((income-expense)/income*100) : 0;
 
-async function loadNotionProjects(){
-  const grid = document.getElementById('notionGrid');
-  const emptyMsg = document.getElementById('notionEmptyMsg');
-  const errorMsg = document.getElementById('notionErrorMsg');
-  errorMsg.style.display = "none";
+  const pYm = prevYm(ym);
+  const pTx = monthTx(all, pYm);
+  const pExpense = sumBy(pTx,'지출');
+  const expenseDelta = pExpense ? ((expense-pExpense)/pExpense*100) : null;
 
-  try{
-    const res = await fetch(`${API_URL}?key=${encodeURIComponent(SITE_KEY)}&resource=notion`, { cache:"no-store" });
-    const data = await res.json();
-    if(!data.ok){
-      errorMsg.textContent = "노션 연결 실패: " + data.error;
-      errorMsg.style.display = "block";
-      grid.innerHTML = "";
-      emptyMsg.style.display = "none";
+  document.getElementById('view').innerHTML = `
+    <div class="month-nav">
+      <button class="move" onclick="location.hash='#/${prevYm(ym)}'">‹ 이전 달</button>
+      <h1 class="display">${y}년 ${m}월</h1>
+      <button class="move" onclick="location.hash='#/${nextYm(ym)}'">다음 달 ›</button>
+    </div>
+
+    <div class="grid kpis">
+      <div class="card kpi income"><div class="label">이번 달 수입</div><div class="value mono">${wonShort(income)}</div></div>
+      <div class="card kpi expense">
+        <div class="label">이번 달 지출</div><div class="value mono">${wonShort(expense)}</div>
+        ${expenseDelta!==null ? `<div class="delta ${expenseDelta>=0?'up':'down'}">전월 대비 ${expenseDelta>=0?'▲':'▼'} ${Math.abs(expenseDelta).toFixed(1)}%</div>` : `<div class="delta" style="color:var(--muted)">전월 데이터 없음</div>`}
+      </div>
+      <div class="card kpi saving"><div class="label">저축 + 투자</div><div class="value mono">${wonShort(saving+invest)}</div></div>
+      <div class="card kpi"><div class="label">저축률</div><div class="value mono">${pct(rate)}</div></div>
+    </div>
+
+    <div class="grid two-col section">
+      <div class="card cal-card">
+        <div class="section-head"><h2>지출 캘린더</h2><span class="hint">일별 지출 합계</span></div>
+        <div id="calWrap"></div>
+      </div>
+      <div class="card cat-list-card">
+        <div class="section-head"><h2>분류별 리스트업</h2></div>
+        <div class="cat-tabs" id="catTabs">
+          ${TYPES.map(t=>`<button class="cat-tab ${state.catTabType===t?'active':''}" onclick="state.catTabType='${t}';renderCatList('${ym}')">${t}</button>`).join('')}
+        </div>
+        <div id="catListWrap"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>이번 달 예산 대비 실적</h2><span class="hint">Summary 페이지에서 카테고리별 월 예산 설정</span></div>
+      <div class="card cat-list-card" id="budgetWrap"></div>
+    </div>
+
+    <div class="grid two-col section">
+      <div class="card chart-card">
+        <div class="section-head">
+          <h2>지출 비교</h2>
+          <select class="compare-select" id="compareSelect" onchange="state.compareYm=this.value; renderCompareChart('${ym}')"></select>
+        </div>
+        <canvas id="chartCompare"></canvas>
+      </div>
+      <div class="card review-card">
+        <div class="section-head"><h2>지출 리뷰</h2><button class="ghost-btn" onclick="renderAutoReview('${ym}')" style="font-size:11px;">↻ 다시 분석</button></div>
+        <div class="pill-note">⚙︎ 규칙 기반 자동 분석 · 추후 실제 AI 요약으로 교체 예정</div>
+        <div id="autoReviewWrap"></div>
+        <hr style="border:none;border-top:1px solid var(--line);margin:6px 0 14px;">
+        <textarea id="reviewBox" placeholder="이번 달 소비 패턴에 대해 메모해보세요. 예) 배달비가 많이 나온 이유, 다음 달 줄일 항목 등">${DB.getReview(ym)}</textarea>
+        <div class="save-note">자동 저장됩니다.</div>
+        <div class="review-stats">
+          <div class="item"><b>${tx.filter(t=>t.type==='지출').length}건</b>지출 건수</div>
+          <div class="item"><b>${wonShort(tx.filter(t=>t.type==='지출').length ? expense/tx.filter(t=>t.type==='지출').length : 0)}</b>건당 평균 지출</div>
+          <div class="item"><b>${topCategory(tx)}</b>최다 지출 카테고리</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h2>거래 내역</h2><span class="hint">총 ${tx.length}건 · 행을 클릭하면 수정할 수 있어요</span></div>
+      <div class="card table-card">
+        <div class="table-toolbar" id="txToolbar" style="flex-direction:column;align-items:stretch;gap:8px;"></div>
+        <div class="tx-form">
+          <input type="date" id="f_date" value="${ym}-01">
+          <select id="f_type" onchange="onFormTypeChange()">${TYPES.map(t=>`<option>${t}</option>`).join('')}</select>
+          <select id="f_main" onchange="onFormMainChange()"></select>
+          <select id="f_category"></select>
+          <input type="text" id="f_note" placeholder="내용 (예: 스타벅스)">
+          <input type="text" id="f_user" placeholder="사용자/결제수단">
+          <input type="number" id="f_amount" placeholder="금액">
+          <button class="add-btn" onclick="submitTx('${ym}')" title="추가">＋</button>
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="tx-table">
+          <thead><tr>
+            <th>날짜</th><th>구분</th><th>대분류</th><th>카테고리</th><th>내용</th><th>사용자</th><th style="text-align:right">금액</th>
+          </tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderCalendar(y,m,tx);
+  renderCatList(ym);
+  renderTxToolbar(ym);
+  renderTxTable(ym);
+  renderBudgetProgress(ym);
+  renderAutoReview(ym);
+  renderCompareChart(ym);
+  onFormTypeChange();
+
+  // 리뷰 자동저장
+  let saveTimer;
+  document.getElementById('reviewBox').addEventListener('input', e=>{
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(()=> DB.saveReview(ym, e.target.value), 400);
+  });
+}
+
+/* ---- 예산 대비 실적 (월별) ---- */
+function renderBudgetProgress(ym){
+  const budgets = DB.getBudgets(Number(ym.split('-')[0]));
+  const keys = Object.keys(budgets).filter(k=>budgets[k]>0);
+  const tx = monthTx(DB.list(), ym).filter(t=>t.type==='지출');
+  const actualByCat = {};
+  tx.forEach(t=>{ const k=t.main+'|'+t.category; actualByCat[k]=(actualByCat[k]||0)+Number(t.amount); });
+
+  document.getElementById('budgetWrap').innerHTML = keys.length ? keys.map(k=>{
+    const [main,cat] = k.split('|');
+    const budget = budgets[k];
+    const actual = actualByCat[k]||0;
+    const w = Math.min(100, actual/budget*100);
+    const over = actual>budget;
+    return `<div class="cat-row">
+      <div class="top"><span class="name">${cat}<span class="sub">${main}</span></span><span class="amt">${won(actual)} / ${won(budget)}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${over?'var(--expense)':'var(--income)'}"></div></div>
+    </div>`;
+  }).join('') : `<div style="color:var(--muted);font-size:13px;">아직 설정된 예산이 없어요. <a href="#/summary" style="color:var(--ink);font-weight:600;">Summary 페이지</a>에서 카테고리별 월 예산을 설정해보세요.</div>`;
+}
+
+/* ---- 전월/선택월 대비 지출 비교 차트 ---- */
+let _compareChart = null;
+function compareOptions(ym){
+  const opts = [];
+  for(let i=1;i<=12;i++){
+    const cand = shiftYm(ym,-i);
+    const [cy,cm] = cand.split('-');
+    const label = cy===ym.slice(0,4) ? Number(cm)+'월' : cy+'년 '+Number(cm)+'월';
+    opts.push({value:cand, label});
+  }
+  return opts;
+}
+function renderCompareChart(ym){
+  const sel = document.getElementById('compareSelect');
+  sel.innerHTML = compareOptions(ym).map(o=>`<option value="${o.value}" ${o.value===state.compareYm?'selected':''}>${o.label}</option>`).join('');
+
+  const tx = monthTx(DB.list(), ym).filter(t=>t.type==='지출');
+  const pTx = monthTx(DB.list(), state.compareYm).filter(t=>t.type==='지출');
+  const catSet = new Set();
+  tx.forEach(t=>catSet.add(t.category));
+  pTx.forEach(t=>catSet.add(t.category));
+  const cats = Array.from(catSet).slice(0,10);
+  const curByCat = cats.map(c => tx.filter(t=>t.category===c).reduce((s,t)=>s+Number(t.amount),0));
+  const prevByCat = cats.map(c => pTx.filter(t=>t.category===c).reduce((s,t)=>s+Number(t.amount),0));
+
+  if(typeof Chart === 'undefined'){
+    document.getElementById('chartCompare').replaceWith(chartFallbackNode());
+    return;
+  }
+  if(_compareChart) _compareChart.destroy();
+  _compareChart = new Chart(document.getElementById('chartCompare'), {
+    type:'bar',
+    data:{ labels:cats.length?cats:['데이터 없음'], datasets:[
+      {label:compareOptions(ym).find(o=>o.value===state.compareYm)?.label || '비교월', data:cats.length?prevByCat:[0], backgroundColor:'#D9D5C6', borderRadius:4, maxBarThickness:16},
+      {label:'이번 달', data:cats.length?curByCat:[0], backgroundColor:'#B5495B', borderRadius:4, maxBarThickness:16},
+    ]},
+    options:{
+      indexAxis:'y', responsive:true,
+      plugins:{legend:{position:'top', labels:{boxWidth:10,font:{size:11}}}},
+      scales:{ x:{ticks:{callback:v=>wonShort(v), font:{size:10}}, grid:{color:'#EFEDE4'}}, y:{grid:{display:false}, ticks:{font:{size:11}}} }
+    }
+  });
+}
+
+/* ---- 지출 리뷰: 규칙 기반 자동 분석 ----
+   TODO[AI]: 아래 computeAutoReview()를 서버(Supabase Edge Function 등)에서
+   거래내역을 Claude API로 보내 자연어 요약을 받아오는 방식으로 교체 예정.
+*/
+function computeAutoReview(ym){
+  const all = DB.list();
+  const cur = monthTx(all, ym).filter(t=>t.type==='지출');
+  const histMonths = [];
+  for(let i=1;i<=6;i++){
+    const hy = shiftYm(ym,-i);
+    const ht = monthTx(all, hy).filter(t=>t.type==='지출');
+    if(ht.length) histMonths.push(ht);
+  }
+  const curByCat = {};
+  cur.forEach(t=> curByCat[t.category] = (curByCat[t.category]||0)+Number(t.amount));
+  const histByCat = {};
+  histMonths.forEach(ht=>{
+    const m = {};
+    ht.forEach(t=> m[t.category] = (m[t.category]||0)+Number(t.amount));
+    Object.entries(m).forEach(([c,v])=>{ (histByCat[c]=histByCat[c]||[]).push(v); });
+  });
+
+  const insights = [];
+  Object.entries(curByCat).forEach(([cat,curAmt])=>{
+    const hist = histByCat[cat];
+    if(!hist || !hist.length){
+      if(curAmt>=10000) insights.push({cat, kind:'new', curAmt, mag:100});
       return;
     }
-    notionProjects = Array.isArray(data.items) ? data.items : [];
-  }catch(e){
-    errorMsg.textContent = "노션 연결 실패: " + e.message;
-    errorMsg.style.display = "block";
-    return;
-  }
-  renderNotionProjects();
+    const avg = hist.reduce((s,v)=>s+v,0)/hist.length;
+    if(avg<=0) return;
+    const diffPct = (curAmt-avg)/avg*100;
+    if(Math.abs(diffPct)>=30 && Math.abs(curAmt-avg)>=10000){
+      insights.push({cat, kind: diffPct>0?'up':'down', curAmt, avg, diffPct, mag:Math.abs(diffPct)});
+    }
+  });
+  Object.entries(histByCat).forEach(([cat,hist])=>{
+    if(!curByCat[cat]){
+      const avg = hist.reduce((s,v)=>s+v,0)/hist.length;
+      if(avg>=10000) insights.push({cat, kind:'gone', avg, mag:avg/1000});
+    }
+  });
+  insights.sort((a,b)=>b.mag-a.mag);
+  return insights.slice(0,6);
+}
+let _lastInsights = [];
+let _lastInsightYm = null;
+function renderAutoReview(ym){
+  const insights = computeAutoReview(ym);
+  _lastInsights = insights;
+  _lastInsightYm = ym;
+  const lines = insights.map((ins,i)=>{
+    if(ins.kind==='new') return `<li onclick="openInsightDetail(${i})">· <b>${ins.cat}</b> 카테고리에 새로 ${won(ins.curAmt)} 지출이 생겼어요. (최근 6개월 이력 없음)</li>`;
+    if(ins.kind==='gone') return `<li onclick="openInsightDetail(${i})">· 최근 평균 ${won(Math.round(ins.avg))}씩 쓰던 <b>${ins.cat}</b> 지출이 이번 달엔 없었어요.</li>`;
+    const dir = ins.kind==='up' ? '증가' : '감소';
+    return `<li onclick="openInsightDetail(${i})">· <b>${ins.cat}</b> 지출이 최근 평균(${won(Math.round(ins.avg))}) 대비 ${Math.abs(ins.diffPct).toFixed(0)}% ${dir}했어요. (이번 달 ${won(ins.curAmt)})</li>`;
+  });
+  document.getElementById('autoReviewWrap').innerHTML = lines.length
+    ? `<ul class="auto-review-list">${lines.join('')}</ul><div class="save-note">항목을 클릭하면 상세 내용을 볼 수 있어요.</div>`
+    : `<div style="color:var(--muted);font-size:13px;padding:6px 0 14px;">아직 비교할 이전 달 데이터가 충분하지 않아요.</div>`;
 }
 
-function renderNotionProjects(){
-  const grid = document.getElementById('notionGrid');
-  const emptyMsg = document.getElementById('notionEmptyMsg');
+/* ---- 지출 리뷰 인사이트 상세 팝업 ---- */
+function openInsightDetail(i){
+  const ins = _lastInsights[i];
+  if(!ins) return;
+  const ym = _lastInsightYm;
 
-  if(notionProjects.length === 0){
-    grid.innerHTML = "";
-    emptyMsg.style.display = "block";
-    return;
+  const curItems = monthTx(DB.list(), ym)
+    .filter(t=>t.type==='지출' && t.category===ins.cat)
+    .sort((a,b)=> a.date<b.date?-1:1);
+  const curTotal = curItems.reduce((s,t)=>s+Number(t.amount),0);
+
+  let narrative = '';
+  if(ins.kind==='new'){
+    narrative = `<b>${ins.cat}</b> 카테고리는 최근 6개월 동안 지출 이력이 없었는데, 이번 달 처음으로 ${won(ins.curAmt)}이 기록됐어요. 새로 생긴 구독이나 일회성 지출일 가능성이 높으니, 아래 내역을 확인해서 계속 나갈 항목인지 한 번만 나간 항목인지 살펴보면 좋아요.`;
+  } else if(ins.kind==='gone'){
+    narrative = `최근 몇 달간 평균 ${won(Math.round(ins.avg))} 정도 꾸준히 나가던 <b>${ins.cat}</b> 지출이 이번 달엔 한 건도 없었어요. 결제 주기가 바뀌었거나, 해지했거나, 아직 입력을 안 한 것일 수 있어요. 정말 지출이 없었던 게 맞는지 한 번 확인해보세요.`;
+  } else {
+    const dir = ins.kind==='up' ? '늘었어요' : '줄었어요';
+    const tip = ins.kind==='up'
+      ? '아래 내역 중 평소보다 유독 크게 나간 항목이 있는지 확인해보면 원인을 찾기 쉬워요.'
+      : '지출이 줄어든 좋은 흐름이에요. 어떤 습관이 바뀌었는지 기억해두면 다음 달에도 도움이 될 거예요.';
+    narrative = `<b>${ins.cat}</b> 카테고리는 최근 평균 ${won(Math.round(ins.avg))}에서 이번 달 ${won(ins.curAmt)}(으)로 ${Math.abs(ins.diffPct).toFixed(0)}% ${dir}. ${tip}`;
   }
-  emptyMsg.style.display = "none";
 
-  const sorted = notionProjects.slice().sort((a,b) => (b.updatedAt||"").localeCompare(a.updatedAt||""));
+  const itemsHtml = curItems.length ? `<ul class="modal-tx-list">${curItems.map(t=>`
+    <li>
+      <span style="color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11.5px;min-width:38px;">${t.date.slice(8)}일</span>
+      <span class="n">${t.note||'(내용 없음)'}${t.user?` · ${t.user}`:''}</span>
+      <span class="a amt expense">${Number(t.amount).toLocaleString('ko-KR')}원</span>
+    </li>
+  `).join('')}</ul>` : `<div style="color:var(--muted);font-size:13px;">이번 달 이 카테고리에 기록된 거래가 없어요.</div>`;
 
-  grid.innerHTML = sorted.map(p => `
-    <div class="project-card">
-      <div class="thumb">
-        ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="">` : ''}
-      </div>
-      <div class="body">
-        <div class="title">${escapeHtml(p.title || '(제목 없음)')}</div>
-        <div class="desc">${escapeHtml(p.description)}</div>
-        <div class="card-actions">
-          ${p.notionUrl ? `<a class="notion-link" href="${escapeHtml(p.notionUrl)}" target="_blank" rel="noopener">노션에서 보기 →</a>` : ''}
+  let historyHtml = '';
+  if(ins.kind !== 'new'){
+    const rows = [];
+    for(let i2=1;i2<=6;i2++){
+      const hy = shiftYm(ym,-i2);
+      const amt = monthTx(DB.list(), hy).filter(t=>t.type==='지출'&&t.category===ins.cat).reduce((s,t)=>s+Number(t.amount),0);
+      if(amt>0) rows.push({hy, amt});
+    }
+    if(rows.length){
+      historyHtml = `<div class="modal-section-label">최근 월별 ${ins.cat} 지출</div>
+        <ul class="modal-tx-list">${rows.map(r=>{
+          const [ry,rm] = r.hy.split('-');
+          return `<li><span class="n">${ry===ym.slice(0,4)?'':ry+'년 '}${Number(rm)}월</span><span class="a">${won(r.amt)}</span></li>`;
+        }).join('')}</ul>`;
+    }
+  }
+
+  openModal(`
+    <h3 class="display">${ins.cat} 상세</h3>
+    <div class="modal-sub">${Number(ym.split('-')[1])}월 · ${curItems.length}건 · 합계 ${won(curTotal)}</div>
+    <div class="modal-narrative">${narrative}</div>
+    <div class="modal-section-label">이번 달 ${ins.cat} 거래 내역</div>
+    ${itemsHtml}
+    ${historyHtml}
+  `);
+}
+
+function nextYm(ym){
+  let [y,m] = ym.split('-').map(Number);
+  m += 1; if(m===13){ m=1; y+=1; }
+  return y + '-' + String(m).padStart(2,'0');
+}
+
+function topCategory(tx){
+  const map = {};
+  tx.filter(t=>t.type==='지출').forEach(t=> map[t.category] = (map[t.category]||0)+Number(t.amount));
+  const arr = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  return arr.length ? arr[0][0] : '-';
+}
+
+/* ---- 캘린더 ---- */
+function renderCalendar(y,m,tx){
+  const ym = y + '-' + String(m).padStart(2,'0');
+  const byDay = {};
+  tx.filter(t=>t.type==='지출').forEach(t=>{
+    const d = Number(t.date.split('-')[2]);
+    byDay[d] = (byDay[d]||0) + Number(t.amount);
+  });
+  const max = Math.max(1, ...Object.values(byDay));
+  const dim = daysInMonth(y,m);
+  const firstDow = mondayIndex(new Date(y, m-1, 1).getDay());
+
+  let html = DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0;i<firstDow;i++) html += `<div class="cal-cell empty"></div>`;
+  const today = new Date();
+  const isThisMonth = today.getFullYear()===y && (today.getMonth()+1)===m;
+  for(let d=1; d<=dim; d++){
+    const amt = byDay[d]||0;
+    const intensity = amt / max;
+    const bg = amt ? `rgba(181,73,91,${0.08 + intensity*0.35})` : 'var(--paper)';
+    const isToday = isThisMonth && today.getDate()===d;
+    html += `<div class="cal-cell ${isToday?'today':''}" style="background:${bg}" onclick="openDayModal('${ym}',${d})">
+      <span class="d">${d}</span>
+      <span class="amt">${amt? wonShort(amt):''}</span>
+    </div>`;
+  }
+  document.getElementById('calWrap').innerHTML = `<div class="cal-grid">${html}</div>
+    <div class="cal-legend"><span class="sw" style="background:rgba(181,73,91,0.1)"></span>적음 &nbsp;→&nbsp; <span class="sw" style="background:rgba(181,73,91,0.4)"></span>많음</div>`;
+}
+
+/* ---- 캘린더: 날짜 클릭 팝업 ---- */
+function openDayModal(ym, day){
+  const dateStr = ym + '-' + String(day).padStart(2,'0');
+  const [yy,mm] = ym.split('-').map(Number);
+  const items = DB.list().filter(t=>t.date===dateStr).sort((a,b)=> a.type<b.type?-1:1);
+  const total = items.filter(t=>t.type==='지출').reduce((s,t)=>s+Number(t.amount),0);
+  const listHtml = items.length ? `<ul class="modal-tx-list">${items.map(t=>`
+    <li>
+      <span class="badge ${TYPE_KEY[t.type]}">${t.type}</span>
+      <span class="n">${t.category} · ${t.note||'(내용 없음)'}${t.user?` · ${t.user}`:''}</span>
+      <span class="a amt ${TYPE_KEY[t.type]}">${Number(t.amount).toLocaleString('ko-KR')}원</span>
+    </li>
+  `).join('')}</ul>` : `<div style="color:var(--muted);font-size:13px;">이 날은 기록된 거래가 없어요.</div>`;
+
+  openModal(`
+    <h3 class="display">${mm}월 ${day}일</h3>
+    <div class="modal-sub">지출 합계 ${won(total)} · 총 ${items.length}건</div>
+    ${listHtml}
+  `);
+}
+
+/* ---- 카테고리 리스트업 ---- */
+function renderCatList(ym){
+  const tx = monthTx(DB.list(), ym).filter(t=>t.type===state.catTabType);
+  document.querySelectorAll('#catTabs .cat-tab').forEach(b=>b.classList.remove('active'));
+  const idx = TYPES.indexOf(state.catTabType);
+  document.querySelectorAll('#catTabs .cat-tab')[idx]?.classList.add('active');
+
+  const total = tx.reduce((s,t)=>s+Number(t.amount),0);
+  const map = {};
+  tx.forEach(t=>{
+    const key = t.main + '|' + t.category;
+    map[key] = (map[key]||0) + Number(t.amount);
+  });
+  const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  const colorVar = `var(--${TYPE_KEY[state.catTabType]})`;
+
+  document.getElementById('catListWrap').innerHTML = rows.length ? rows.map(([key,amt])=>{
+    const [main,cat] = key.split('|');
+    const w = total ? (amt/total*100) : 0;
+    return `<div class="cat-row">
+      <div class="top"><span class="name">${cat}<span class="sub">${main}</span></span><span class="amt">${won(amt)}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${colorVar}"></div></div>
+    </div>`;
+  }).join('') : `<div style="color:var(--muted);font-size:13px;padding:20px 0;">이번 달 ${state.catTabType} 내역이 없습니다.</div>`;
+}
+
+/* ---- 거래 내역 툴바 (구분 → 대분류 → 카테고리 드릴다운 + 내용 검색) ---- */
+function renderTxToolbar(ym){
+  const type = state.monthTxFilter;
+  let mainRow = '';
+  if(type !== '전체'){
+    const mains = ['전체', ...Object.keys(TAXONOMY[type])];
+    mainRow = `<div class="filters">${mains.map(mn=>`<button class="chip sub ${state.mainFilter===mn?'active':''}" onclick="setMainFilter('${mn}')">${mn}</button>`).join('')}</div>`;
+  }
+  let catRow = '';
+  if(type !== '전체' && state.mainFilter !== '전체'){
+    const cats = ['전체', ...TAXONOMY[type][state.mainFilter]];
+    catRow = `<div class="filters">${cats.map(c=>`<button class="chip sub ${state.catFilter===c?'active':''}" onclick="setCatFilter('${c}')">${c}</button>`).join('')}</div>`;
+  }
+  document.getElementById('txToolbar').innerHTML = `
+    <div class="filters">
+      ${['전체',...TYPES].map(t=>`<button class="chip ${state.monthTxFilter===t?'active':''}" onclick="setTypeFilter('${t}')">${t}</button>`).join('')}
+      <input type="text" class="note-search" id="noteSearch" placeholder="내용 검색" value="${escapeAttr(state.noteFilter)}"
+             oninput="state.noteFilter=this.value; renderTxTable('${ym}')" style="margin-left:auto;">
+    </div>
+    ${mainRow}
+    ${catRow}
+  `;
+}
+function setTypeFilter(t){
+  state.monthTxFilter = t; state.mainFilter = '전체'; state.catFilter = '전체';
+  renderTxToolbar(state.currentYm); renderTxTable(state.currentYm);
+}
+function setMainFilter(m){
+  state.mainFilter = m; state.catFilter = '전체';
+  renderTxToolbar(state.currentYm); renderTxTable(state.currentYm);
+}
+function setCatFilter(c){
+  state.catFilter = c;
+  renderTxToolbar(state.currentYm); renderTxTable(state.currentYm);
+}
+function quickFilterMain(type, main){
+  state.monthTxFilter = type; state.mainFilter = main; state.catFilter = '전체';
+  renderTxToolbar(state.currentYm); renderTxTable(state.currentYm);
+}
+function quickFilterCat(type, main, cat){
+  state.monthTxFilter = type; state.mainFilter = main; state.catFilter = cat;
+  renderTxToolbar(state.currentYm); renderTxTable(state.currentYm);
+}
+
+/* ---- 거래 내역 테이블 (행 클릭 → 인라인 수정) ---- */
+function renderTxTable(ym){
+  let tx = monthTx(DB.list(), ym).sort((a,b)=> a.date<b.date?1:-1);
+  if(state.monthTxFilter!=='전체') tx = tx.filter(t=>t.type===state.monthTxFilter);
+  if(state.mainFilter!=='전체') tx = tx.filter(t=>t.main===state.mainFilter);
+  if(state.catFilter!=='전체') tx = tx.filter(t=>t.category===state.catFilter);
+  if(state.noteFilter && state.noteFilter.trim()){
+    const q = state.noteFilter.trim().toLowerCase();
+    tx = tx.filter(t=> (t.note||'').toLowerCase().includes(q));
+  }
+
+  document.getElementById('txBody').innerHTML = tx.length
+    ? tx.map(t => t.id===state.editingTxId ? editRowHtml(t) : displayRowHtml(t)).join('')
+    : `<tr class="empty-row"><td colspan="7">해당 조건의 거래 내역이 없습니다.</td></tr>`;
+}
+
+function displayRowHtml(t){
+  return `<tr class="tx-row" onclick="startEditTx('${t.id}')">
+    <td class="mono" style="color:var(--muted)">${t.date.slice(5)}</td>
+    <td><span class="badge ${TYPE_KEY[t.type]}">${t.type}</span></td>
+    <td style="color:var(--muted)"><span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${t.type}','${t.main}')">${t.main}</span></td>
+    <td style="font-weight:600"><span class="filter-link" onclick="event.stopPropagation();quickFilterCat('${t.type}','${t.main}','${t.category}')">${t.category}</span></td>
+    <td>${t.note||''}</td>
+    <td style="color:var(--muted)">${t.user||''}</td>
+    <td class="amt ${TYPE_KEY[t.type]}">${Number(t.amount).toLocaleString('ko-KR')}</td>
+  </tr>`;
+}
+
+function editRowHtml(t){
+  return `<tr class="edit-row">
+    <td colspan="7">
+      <div class="tx-edit-form">
+        <input type="date" id="e_date_${t.id}" value="${t.date}">
+        <select id="e_type_${t.id}" onchange="onEditTypeChange('${t.id}')">${TYPES.map(ty=>`<option ${ty===t.type?'selected':''}>${ty}</option>`).join('')}</select>
+        <select id="e_main_${t.id}" onchange="onEditMainChange('${t.id}')">${mainOptions(t.type,t.main)}</select>
+        <select id="e_category_${t.id}">${catOptions(t.type,t.main,t.category)}</select>
+        <input type="text" id="e_note_${t.id}" value="${escapeAttr(t.note)}" placeholder="내용">
+        <input type="text" id="e_user_${t.id}" value="${escapeAttr(t.user)}" placeholder="사용자">
+        <input type="number" id="e_amount_${t.id}" value="${t.amount}">
+        <div class="edit-actions">
+          <button class="ghost-btn primary" onclick="saveEditTx('${t.id}')">저장</button>
+          <button class="ghost-btn danger" onclick="deleteEditTx('${t.id}')">삭제</button>
+          <button class="ghost-btn" onclick="cancelEditTx()">취소</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </td>
+  </tr>`;
 }
 
-loadNotionProjects();
-setInterval(loadNotionProjects, 120000); // 2분마다 자동 새로고침
+function startEditTx(id){
+  state.editingTxId = id;
+  renderTxTable(state.currentYm);
+}
+function cancelEditTx(){
+  state.editingTxId = null;
+  renderTxTable(state.currentYm);
+}
+function onEditTypeChange(id){
+  const type = document.getElementById('e_type_'+id).value;
+  document.getElementById('e_main_'+id).innerHTML = mainOptions(type, null);
+  onEditMainChange(id);
+}
+function onEditMainChange(id){
+  const type = document.getElementById('e_type_'+id).value;
+  const main = document.getElementById('e_main_'+id).value;
+  document.getElementById('e_category_'+id).innerHTML = catOptions(type, main, null);
+}
+function saveEditTx(id){
+  const date = document.getElementById('e_date_'+id).value;
+  const amount = Number(document.getElementById('e_amount_'+id).value);
+  if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
+  DB.update(id, {
+    date, type: document.getElementById('e_type_'+id).value,
+    main: document.getElementById('e_main_'+id).value,
+    category: document.getElementById('e_category_'+id).value,
+    note: document.getElementById('e_note_'+id).value,
+    user: document.getElementById('e_user_'+id).value,
+    amount
+  });
+  state.editingTxId = null;
+  const targetYm = ymOf(date);
+  if(targetYm !== state.currentYm) location.hash = '#/' + targetYm;
+  else renderMonth(targetYm);
+}
+function deleteEditTx(id){
+  if(!confirm('이 거래를 삭제할까요?')) return;
+  DB.remove(id);
+  state.editingTxId = null;
+  renderMonth(state.currentYm);
+}
+
+function onFormTypeChange(){
+  const type = document.getElementById('f_type').value;
+  document.getElementById('f_main').innerHTML = mainOptions(type, null);
+  onFormMainChange();
+}
+function onFormMainChange(){
+  const type = document.getElementById('f_type').value;
+  const main = document.getElementById('f_main').value;
+  document.getElementById('f_category').innerHTML = catOptions(type, main, null);
+}
+function submitTx(ym){
+  const date = document.getElementById('f_date').value;
+  const amount = Number(document.getElementById('f_amount').value);
+  if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
+  DB.add({
+    date, type: document.getElementById('f_type').value,
+    main: document.getElementById('f_main').value,
+    category: document.getElementById('f_category').value,
+    note: document.getElementById('f_note').value,
+    user: document.getElementById('f_user').value,
+    amount, payment:''
+  });
+  document.getElementById('f_note').value='';
+  document.getElementById('f_amount').value='';
+  renderMonth(ymOf(date));
+  if(ymOf(date) !== ym) location.hash = '#/' + ymOf(date);
+}
+
+/* =================================================================================
+   8. 부팅
+   ================================================================================= */
+seedIfEmpty();
+route();
 </script>
-<script src="./auth-gate.js"></script>
 </body>
 </html>
