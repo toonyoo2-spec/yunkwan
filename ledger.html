@@ -224,7 +224,7 @@ button{font-family:inherit;}
 .chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 
 .tx-form{
-  display:grid;grid-template-columns: 118px 84px 96px 1fr 1.3fr 110px 84px 40px;
+  display:grid;grid-template-columns: 84px 118px 84px 96px 1fr 1fr 100px 84px 40px;
   gap:8px;padding:14px 18px;background:var(--paper);border-bottom:1px solid var(--line);
   align-items:center;
 }
@@ -330,7 +330,7 @@ table.tx-table tbody tr.tx-row:hover{background:var(--paper);}
 tr.edit-row{background:var(--paper);}
 tr.edit-row td{padding:12px 10px;}
 .tx-edit-form{
-  display:grid;grid-template-columns:118px 84px 96px 1fr 1fr 100px 90px auto;gap:8px;align-items:center;
+  display:grid;grid-template-columns:84px 118px 84px 96px 1fr 1fr 100px 90px auto;gap:8px;align-items:center;
 }
 @media (max-width:900px){.tx-edit-form{grid-template-columns:repeat(2,1fr);}}
 .tx-edit-form input, .tx-edit-form select{
@@ -491,29 +491,45 @@ try{
 /* =================================================================================
    0. 데이터 모델 & 카테고리 체계  (TAXONOMY)
    ---------------------------------------------------------------------------------
-   기존 스프레드시트의 4단계(구분→대분류→중분류→소분류) 구조를
-   3단계(구분→대분류→카테고리)로 단순화하고, 마지막 항목명은 자유 입력(내용)으로 둠.
+   구분(공동/보라/관) → 대분류(수입/지출) → 중분류 → 소분류의 4단계 구조.
+   공동은 지출만, 보라·관은 수입/지출 모두 있고 둘은 같은 개인용 분류를 공유합니다.
    ================================================================================= */
-const TAXONOMY = {
+const PERSONAL_TAXONOMY = {
   "수입": {
-    "고정수입": ["급여"],
-    "변동수입": ["급여", "기타소득", "투자소득"]
+    "급여": ["월급", "상여금"],
+    "기타소득": ["부업", "기타"]
   },
   "지출": {
-    "고정지출": ["교통비", "구독", "보험", "주거비", "렌탈", "통신비", "회비"],
-    "변동지출": ["건강", "경조사", "공동", "교통비", "기타", "문화", "생활비", "유류비"]
-  },
-  "저축": {
-    "단기저축": ["비상금", "적금"],
-    "장기저축": ["장기적금", "퇴직연금"]
-  },
-  "투자": {
-    "단기투자": ["주식", "해외주식"],
-    "장기투자": ["국내주식"]
+    "생활비": ["배달", "외식", "식비", "여행", "쇼핑", "기타"],
+    "교통비": ["대중교통", "주유비", "전기차충전", "기타"],
+    "통신비": ["핸드폰"],
+    "자동차": ["주차비", "기타"],
+    "건강": ["실비보험", "병원비", "운동"],
+    "구독": ["OTT", "AI", "쇼핑", "기타"],
+    "가족": ["보라네", "관이네"],
+    "경조사": ["가족", "지인"],
+    "저축·투자": ["저축", "투자"]
   }
 };
-const TYPES = ["수입", "지출", "저축", "투자"];
-const TYPE_KEY = { "수입":"income", "지출":"expense", "저축":"saving", "투자":"invest" };
+const TAXONOMY = {
+  "공동": {
+    "지출": {
+      "생활비": ["배달", "외식", "생필품", "식비", "여행", "쇼핑", "기타"],
+      "교통비": ["대중교통", "주유비", "전기차충전", "기타"],
+      "주거비": ["집대출", "관리비", "정수기", "TV인터넷"],
+      "통신비": ["핸드폰"],
+      "자동차": ["자동차보험", "운전자보험", "할부금", "주차비", "기타"],
+      "구독": ["OTT", "AI", "쇼핑", "기타"],
+      "저축·투자": ["저축", "투자"]
+    }
+  },
+  "보라": PERSONAL_TAXONOMY,
+  "관": PERSONAL_TAXONOMY
+};
+const SCOPES = ["공동", "보라", "관"];
+const SCOPE_LABEL = { "공동":"공동", "보라":"보라", "관":"관" };
+const TYPES = ["수입", "지출"];
+const TYPE_KEY = { "수입":"income", "지출":"expense" };
 const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
 const DOW = ["월","화","수","목","금","토","일"];
 
@@ -527,7 +543,7 @@ const DOW = ["월","화","수","목","금","토","일"];
    반영한 뒤, Supabase에는 결과를 기다리지 않고 던져놓습니다(optimistic update).
 
    Supabase 테이블 (가이드 문서의 스키마와 동일):
-     transactions(id, date, type, main, category, note, amount, user_name, payment)
+     transactions(id, date, type, main, category, note, amount, user_name, payment, scope)
      monthly_reviews(month, memo)
      budgets(year, category, amount)  -- category = '대분류|카테고리'
    ================================================================================= */
@@ -547,7 +563,7 @@ const DB = {
       this._cache = txRes.data.map(r => ({
         id: r.id, date: r.date, type: r.type, main: r.main,
         category: r.category, note: r.note, amount: r.amount,
-        user: r.user_name, payment: r.payment
+        user: r.user_name, payment: r.payment, scope: r.scope
       }));
     } else if(txRes.error){ console.error('거래내역 로드 실패:', txRes.error); }
 
@@ -571,7 +587,7 @@ const DB = {
     this._cache.push(localTx);
     sb.from('transactions').insert({
       date: tx.date, type: tx.type, main: tx.main, category: tx.category,
-      note: tx.note, amount: tx.amount, user_name: tx.user, payment: tx.payment
+      note: tx.note, amount: tx.amount, user_name: tx.user, payment: tx.payment, scope: tx.scope
     }).select().single().then(({data, error})=>{
       if(error){ console.error('거래 추가 실패:', error); return; }
       const row = this._cache.find(t=>t.id===optimisticId);
@@ -585,7 +601,7 @@ const DB = {
     if(row) Object.assign(row, patch);
     sb.from('transactions').update({
       date: patch.date, type: patch.type, main: patch.main, category: patch.category,
-      note: patch.note, amount: patch.amount, user_name: patch.user
+      note: patch.note, amount: patch.amount, user_name: patch.user, scope: patch.scope
     }).eq('id', id).then(({error})=>{ if(error) console.error('거래 수정 실패:', error); });
   },
 
@@ -673,15 +689,37 @@ function closeModal(){
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 
 function flatExpenseCategories(){
-  const arr = [];
-  Object.entries(TAXONOMY['지출']).forEach(([main,cats])=>cats.forEach(cat=>arr.push({main,cat})));
+  const arr = [], seen = new Set();
+  SCOPES.forEach(sc=>{
+    const t = (TAXONOMY[sc] || {})['지출'] || {};
+    Object.entries(t).forEach(([main,cats])=>cats.forEach(cat=>{
+      const key = main + '|' + cat;
+      if(!seen.has(key)){ seen.add(key); arr.push({main,cat}); }
+    }));
+  });
   return arr;
 }
-function mainOptions(type, selected){
-  return Object.keys(TAXONOMY[type]).map(m=>`<option ${m===selected?'selected':''}>${m}</option>`).join('');
+function typesForScope(scope){
+  return Object.keys(TAXONOMY[scope] || {});
 }
-function catOptions(type, main, selected){
-  return (TAXONOMY[type][main]||[]).map(c=>`<option ${c===selected?'selected':''}>${c}</option>`).join('');
+function mainOptions(scope, type, selected){
+  const t = (TAXONOMY[scope] || {})[type] || {};
+  return Object.keys(t).map(m=>`<option ${m===selected?'selected':''}>${m}</option>`).join('');
+}
+function catOptions(scope, type, main, selected){
+  const cats = ((TAXONOMY[scope] || {})[type] || {})[main] || [];
+  return cats.map(c=>`<option ${c===selected?'selected':''}>${c}</option>`).join('');
+}
+/* 필터 UI 등 구분과 무관하게 전체 대분류/중분류/소분류 목록이 필요한 곳에서 사용 */
+function mainsForTypeAllScopes(type){
+  const set = new Set();
+  SCOPES.forEach(sc=>{ const t=(TAXONOMY[sc]||{})[type]; if(t) Object.keys(t).forEach(m=>set.add(m)); });
+  return Array.from(set);
+}
+function catsForMainAllScopes(type, main){
+  const set = new Set();
+  SCOPES.forEach(sc=>{ const c=((TAXONOMY[sc]||{})[type]||{})[main]; if(c) c.forEach(x=>set.add(x)); });
+  return Array.from(set);
 }
 
 /* =================================================================================
@@ -690,6 +728,7 @@ function catOptions(type, main, selected){
 const state = {
   year: 2026,
   view: 'summary',      // 'summary' | 'YYYY-MM'
+  scopeFilter: '전체',
   monthTxFilter: '전체',
   mainFilter: '전체',
   catFilter: '전체',
@@ -801,7 +840,7 @@ function render(){
 function renderSummary(){
   const list = DB.list().filter(t => t.date.startsWith(String(state.year)));
   const income = sumBy(list,'수입'), expense = sumBy(list,'지출');
-  const saving = sumBy(list,'저축'), invest = sumBy(list,'투자');
+  const savingInvest = list.filter(t=>t.type==='지출' && t.main==='저축·투자').reduce((s,t)=>s+Number(t.amount||0),0);
   const net = income - expense;
   const rate = income ? (net/income*100) : 0;
 
@@ -811,18 +850,16 @@ function renderSummary(){
     return { ym, income: sumBy(mt,'수입'), expense: sumBy(mt,'지출') };
   });
 
-  // 지출 카테고리 12개월 표
+  // 지출 카테고리 12개월 표 (구분과 무관하게 전체 지출 중분류/소분류 기준)
   const expenseRows = [];
-  Object.entries(TAXONOMY['지출']).forEach(([main, cats])=>{
-    cats.forEach(cat=>{
-      const row = { main, cat, months: [], total:0 };
-      monthly.forEach(m=>{
-        const amt = list.filter(t=>t.type==='지출'&&t.main===main&&t.category===cat&&ymOf(t.date)===m.ym)
-                        .reduce((s,t)=>s+Number(t.amount||0),0);
-        row.months.push(amt); row.total += amt;
-      });
-      if(row.total>0) expenseRows.push(row);
+  flatExpenseCategories().forEach(({main, cat})=>{
+    const row = { main, cat, months: [], total:0 };
+    monthly.forEach(m=>{
+      const amt = list.filter(t=>t.type==='지출'&&t.main===main&&t.category===cat&&ymOf(t.date)===m.ym)
+                      .reduce((s,t)=>s+Number(t.amount||0),0);
+      row.months.push(amt); row.total += amt;
     });
+    if(row.total>0) expenseRows.push(row);
   });
   expenseRows.sort((a,b)=>b.total-a.total);
 
@@ -834,7 +871,7 @@ function renderSummary(){
     <div class="grid kpis">
       <div class="card kpi income"><div class="label">연간 총수입</div><div class="value mono">${wonShort(income)}</div></div>
       <div class="card kpi expense"><div class="label">연간 총지출</div><div class="value mono">${wonShort(expense)}</div></div>
-      <div class="card kpi saving"><div class="label">저축 + 투자</div><div class="value mono">${wonShort(saving+invest)}</div></div>
+      <div class="card kpi saving"><div class="label">저축 + 투자</div><div class="value mono">${wonShort(savingInvest)}</div></div>
       <div class="card kpi"><div class="label">순저축률 (수입-지출)</div><div class="value mono">${pct(rate)}</div></div>
     </div>
 
@@ -982,13 +1019,13 @@ function renderMonth(ym){
   const [y,m] = ym.split('-').map(Number);
   const all = DB.list();
   const tx = monthTx(all, ym).sort((a,b)=> a.date < b.date ? 1 : -1);
-  const income = sumBy(tx,'수입'), expense = sumBy(tx,'지출'), saving = sumBy(tx,'저축'), invest=sumBy(tx,'투자');
-  const rate = income ? ((income-expense)/income*100) : 0;
 
-  const pYm = prevYm(ym);
-  const pTx = monthTx(all, pYm);
-  const pExpense = sumBy(pTx,'지출');
-  const expenseDelta = pExpense ? ((expense-pExpense)/pExpense*100) : null;
+  const scopeSummary = SCOPES.map(sc=>{
+    const scTx = tx.filter(t=>t.scope===sc);
+    return { scope:sc, income: sumBy(scTx,'수입'), expense: sumBy(scTx,'지출') };
+  });
+  const expense = sumBy(tx,'지출');
+  const unassignedCount = tx.filter(t=>!t.scope).length;
 
   document.getElementById('view').innerHTML = `
     <div class="month-nav">
@@ -997,15 +1034,19 @@ function renderMonth(ym){
       <button class="move" onclick="location.hash='#/${nextYm(ym)}'">다음 달 ›</button>
     </div>
 
-    <div class="grid kpis">
-      <div class="card kpi income"><div class="label">이번 달 수입</div><div class="value mono">${wonShort(income)}</div></div>
-      <div class="card kpi expense">
-        <div class="label">이번 달 지출</div><div class="value mono">${wonShort(expense)}</div>
-        ${expenseDelta!==null ? `<div class="delta ${expenseDelta>=0?'up':'down'}">전월 대비 ${expenseDelta>=0?'▲':'▼'} ${Math.abs(expenseDelta).toFixed(1)}%</div>` : `<div class="delta" style="color:var(--muted)">전월 데이터 없음</div>`}
-      </div>
-      <div class="card kpi saving"><div class="label">저축 + 투자</div><div class="value mono">${wonShort(saving+invest)}</div></div>
-      <div class="card kpi"><div class="label">저축률</div><div class="value mono">${pct(rate)}</div></div>
+    <div class="grid kpis" style="grid-template-columns:repeat(3,1fr);">
+      ${scopeSummary.map(s=>`
+        <div class="card kpi">
+          <div class="label">${SCOPE_LABEL[s.scope]}</div>
+          <div class="value mono" style="color:var(--income);font-size:16px;">수입 ${wonShort(s.income)}</div>
+          <div class="value mono" style="color:var(--expense);font-size:16px;margin-top:2px;">지출 ${wonShort(s.expense)}</div>
+        </div>
+      `).join('')}
     </div>
+    ${unassignedCount ? `
+    <div class="pill-note" style="cursor:pointer;" onclick="quickFilterUnassigned()">
+      ⚠ 구분·분류 미지정 거래 ${unassignedCount}건 — 눌러서 재분류하기
+    </div>` : ''}
 
     <div class="grid two-col section">
       <div class="card cal-card">
@@ -1054,19 +1095,20 @@ function renderMonth(ym){
       <div class="card table-card">
         <div class="table-toolbar" id="txToolbar" style="flex-direction:column;align-items:stretch;gap:8px;"></div>
         <div class="tx-form">
+          <select id="f_scope" onchange="onFormScopeChange()">${SCOPES.map(s=>`<option>${s}</option>`).join('')}</select>
           <input type="date" id="f_date" value="${ym}-01">
-          <select id="f_type" onchange="onFormTypeChange()">${TYPES.map(t=>`<option>${t}</option>`).join('')}</select>
+          <select id="f_type" onchange="onFormTypeChange()"></select>
           <select id="f_main" onchange="onFormMainChange()"></select>
           <select id="f_category"></select>
           <input type="text" id="f_note" placeholder="내용 (예: 스타벅스)">
-          <input type="text" id="f_user" placeholder="사용자/결제수단">
+          <input type="text" id="f_user" placeholder="결제수단">
           <input type="number" id="f_amount" placeholder="금액">
           <button class="add-btn" onclick="submitTx('${ym}')" title="추가">＋</button>
         </div>
         <div style="overflow-x:auto;">
         <table class="tx-table tx-table-main">
           <thead><tr>
-            <th>날짜</th><th>구분</th><th>대분류</th><th>카테고리</th><th>내용</th><th>사용자</th><th style="text-align:right">금액</th>
+            <th>날짜</th><th>구분</th><th>대분류</th><th>중분류</th><th>소분류</th><th>내용</th><th>결제수단</th><th style="text-align:right">금액</th>
           </tr></thead>
           <tbody id="txBody"></tbody>
         </table>
@@ -1082,7 +1124,7 @@ function renderMonth(ym){
   renderBudgetProgress(ym);
   renderAutoReview(ym);
   renderCompareChart(ym);
-  onFormTypeChange();
+  onFormScopeChange();
 
   // 리뷰 자동저장
   let saveTimer;
@@ -1368,28 +1410,36 @@ function renderCatList(ym){
   }).join('') : `<div style="color:var(--muted);font-size:13px;padding:20px 0;">이번 달 ${state.catTabType} 내역이 없습니다.</div>`;
 }
 
-/* ---- 거래 내역 툴바 (구분 → 대분류 → 카테고리 드릴다운 + 내용 검색) ---- */
+/* ---- 거래 내역 툴바 (구분 → 대분류 → 중분류 → 소분류 드릴다운 + 내용 검색) ---- */
 function renderTxToolbar(ym){
   const type = state.monthTxFilter;
   let mainRow = '';
   if(type !== '전체'){
-    const mains = ['전체', ...Object.keys(TAXONOMY[type])];
+    const mains = ['전체', ...mainsForTypeAllScopes(type)];
     mainRow = `<div class="filters">${mains.map(mn=>`<button class="chip sub ${state.mainFilter===mn?'active':''}" onclick="setMainFilter('${mn}')">${mn}</button>`).join('')}</div>`;
   }
   let catRow = '';
   if(type !== '전체' && state.mainFilter !== '전체'){
-    const cats = ['전체', ...TAXONOMY[type][state.mainFilter]];
+    const cats = ['전체', ...catsForMainAllScopes(type, state.mainFilter)];
     catRow = `<div class="filters">${cats.map(c=>`<button class="chip sub ${state.catFilter===c?'active':''}" onclick="setCatFilter('${c}')">${c}</button>`).join('')}</div>`;
   }
+  const scopeChips = ['전체', ...SCOPES, '미지정'];
   document.getElementById('txToolbar').innerHTML = `
     <div class="filters">
-      ${['전체',...TYPES].map(t=>`<button class="chip ${state.monthTxFilter===t?'active':''}" onclick="setTypeFilter('${t}')">${t}</button>`).join('')}
+      ${scopeChips.map(s=>`<button class="chip ${state.scopeFilter===s?'active':''}" onclick="setScopeFilter('${s}')">${s}</button>`).join('')}
       <input type="text" class="note-search" id="noteSearch" placeholder="내용 검색" value="${escapeAttr(state.noteFilter)}"
              oninput="state.noteFilter=this.value; renderTxTable('${ym}')" style="margin-left:auto;">
+    </div>
+    <div class="filters">
+      ${['전체',...TYPES].map(t=>`<button class="chip ${state.monthTxFilter===t?'active':''}" onclick="setTypeFilter('${t}')">${t}</button>`).join('')}
     </div>
     ${mainRow}
     ${catRow}
   `;
+}
+function setScopeFilter(s){
+  state.scopeFilter = s;
+  renderTxToolbar(state.currentYm); renderTxTable(state.currentYm);
 }
 function setTypeFilter(t){
   state.monthTxFilter = t; state.mainFilter = '전체'; state.catFilter = '전체';
@@ -1411,10 +1461,17 @@ function quickFilterCat(type, main, cat){
   state.monthTxFilter = type; state.mainFilter = main; state.catFilter = cat;
   renderTxToolbar(state.currentYm); renderTxTable(state.currentYm);
 }
+function quickFilterUnassigned(){
+  state.scopeFilter = '미지정'; state.monthTxFilter = '전체'; state.mainFilter = '전체'; state.catFilter = '전체';
+  renderTxToolbar(state.currentYm); renderTxTable(state.currentYm);
+  document.querySelector('.table-card')?.scrollIntoView({behavior:'smooth', block:'center'});
+}
 
 /* ---- 거래 내역 테이블 (행 클릭 → 인라인 수정) ---- */
 function renderTxTable(ym){
   let tx = monthTx(DB.list(), ym).sort((a,b)=> a.date<b.date?1:-1);
+  if(state.scopeFilter==='미지정') tx = tx.filter(t=>!t.scope);
+  else if(state.scopeFilter!=='전체') tx = tx.filter(t=>t.scope===state.scopeFilter);
   if(state.monthTxFilter!=='전체') tx = tx.filter(t=>t.type===state.monthTxFilter);
   if(state.mainFilter!=='전체') tx = tx.filter(t=>t.main===state.mainFilter);
   if(state.catFilter!=='전체') tx = tx.filter(t=>t.category===state.catFilter);
@@ -1425,31 +1482,46 @@ function renderTxTable(ym){
 
   document.getElementById('txBody').innerHTML = tx.length
     ? tx.map(t => t.id===state.editingTxId ? editRowHtml(t) : displayRowHtml(t)).join('')
-    : `<tr class="empty-row"><td colspan="7">해당 조건의 거래 내역이 없습니다.</td></tr>`;
+    : `<tr class="empty-row"><td colspan="8">해당 조건의 거래 내역이 없습니다.</td></tr>`;
 }
 
 function displayRowHtml(t){
+  const scopeBadge = t.scope
+    ? `<span class="filter-link" onclick="event.stopPropagation();setScopeFilter('${t.scope}')">${t.scope}</span>`
+    : `<span class="filter-link" style="color:var(--expense);" onclick="event.stopPropagation();setScopeFilter('미지정')">미지정</span>`;
+  const mainLabel = t.main
+    ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${t.type}','${t.main}')">${t.main}</span>`
+    : `<span style="color:var(--expense);">미지정</span>`;
+  const catLabel = t.category
+    ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterCat('${t.type}','${t.main}','${t.category}')">${t.category}</span>`
+    : `<span style="color:var(--expense);">미지정</span>`;
   return `<tr class="tx-row" onclick="startEditTx('${t.id}')">
     <td class="mono" data-label="날짜" style="color:var(--muted)">${t.date.slice(5)}</td>
-    <td data-label="구분"><span class="badge ${TYPE_KEY[t.type]}">${t.type}</span></td>
-    <td data-label="대분류" style="color:var(--muted)"><span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${t.type}','${t.main}')">${t.main}</span></td>
-    <td data-label="카테고리" style="font-weight:600"><span class="filter-link" onclick="event.stopPropagation();quickFilterCat('${t.type}','${t.main}','${t.category}')">${t.category}</span></td>
+    <td data-label="구분">${scopeBadge}</td>
+    <td data-label="대분류"><span class="badge ${TYPE_KEY[t.type]}">${t.type}</span></td>
+    <td data-label="중분류" style="color:var(--muted)">${mainLabel}</td>
+    <td data-label="소분류" style="font-weight:600">${catLabel}</td>
     <td data-label="내용">${escapeAttr(t.note)}</td>
-    <td data-label="사용자" style="color:var(--muted)">${escapeAttr(t.user)}</td>
+    <td data-label="결제수단" style="color:var(--muted)">${escapeAttr(t.user)}</td>
     <td class="amt ${TYPE_KEY[t.type]}" data-label="금액">${Number(t.amount).toLocaleString('ko-KR')}</td>
   </tr>`;
 }
 
 function editRowHtml(t){
+  const scope = t.scope || (t.type === '수입' ? '보라' : SCOPES[0]);
   return `<tr class="edit-row">
-    <td colspan="7">
+    <td colspan="8">
       <div class="tx-edit-form">
+        <select id="e_scope_${t.id}" onchange="onEditScopeChange('${t.id}')">
+          <option value="" ${!t.scope?'selected':''}>미지정</option>
+          ${SCOPES.map(s=>`<option ${s===t.scope?'selected':''}>${s}</option>`).join('')}
+        </select>
         <input type="date" id="e_date_${t.id}" value="${t.date}">
-        <select id="e_type_${t.id}" onchange="onEditTypeChange('${t.id}')">${TYPES.map(ty=>`<option ${ty===t.type?'selected':''}>${ty}</option>`).join('')}</select>
-        <select id="e_main_${t.id}" onchange="onEditMainChange('${t.id}')">${mainOptions(t.type,t.main)}</select>
-        <select id="e_category_${t.id}">${catOptions(t.type,t.main,t.category)}</select>
+        <select id="e_type_${t.id}" onchange="onEditTypeChange('${t.id}')">${typesForScope(scope).map(ty=>`<option ${ty===t.type?'selected':''}>${ty}</option>`).join('')}</select>
+        <select id="e_main_${t.id}" onchange="onEditMainChange('${t.id}')">${mainOptions(scope, t.type, t.main)}</select>
+        <select id="e_category_${t.id}">${catOptions(scope, t.type, t.main, t.category)}</select>
         <input type="text" id="e_note_${t.id}" value="${escapeAttr(t.note)}" placeholder="내용">
-        <input type="text" id="e_user_${t.id}" value="${escapeAttr(t.user)}" placeholder="사용자">
+        <input type="text" id="e_user_${t.id}" value="${escapeAttr(t.user)}" placeholder="결제수단">
         <input type="number" id="e_amount_${t.id}" value="${t.amount}">
         <div class="edit-actions">
           <button class="ghost-btn primary" onclick="saveEditTx('${t.id}')">저장</button>
@@ -1469,22 +1541,31 @@ function cancelEditTx(){
   state.editingTxId = null;
   renderTxTable(state.currentYm);
 }
+function onEditScopeChange(id){
+  const scope = document.getElementById('e_scope_'+id).value;
+  const types = typesForScope(scope || SCOPES[0]);
+  document.getElementById('e_type_'+id).innerHTML = types.map(ty=>`<option>${ty}</option>`).join('');
+  onEditTypeChange(id);
+}
 function onEditTypeChange(id){
+  const scope = document.getElementById('e_scope_'+id).value || SCOPES[0];
   const type = document.getElementById('e_type_'+id).value;
-  document.getElementById('e_main_'+id).innerHTML = mainOptions(type, null);
+  document.getElementById('e_main_'+id).innerHTML = mainOptions(scope, type, null);
   onEditMainChange(id);
 }
 function onEditMainChange(id){
+  const scope = document.getElementById('e_scope_'+id).value || SCOPES[0];
   const type = document.getElementById('e_type_'+id).value;
   const main = document.getElementById('e_main_'+id).value;
-  document.getElementById('e_category_'+id).innerHTML = catOptions(type, main, null);
+  document.getElementById('e_category_'+id).innerHTML = catOptions(scope, type, main, null);
 }
 function saveEditTx(id){
   const date = document.getElementById('e_date_'+id).value;
   const amount = Number(document.getElementById('e_amount_'+id).value);
   if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
   DB.update(id, {
-    date, type: document.getElementById('e_type_'+id).value,
+    date, scope: document.getElementById('e_scope_'+id).value || null,
+    type: document.getElementById('e_type_'+id).value,
     main: document.getElementById('e_main_'+id).value,
     category: document.getElementById('e_category_'+id).value,
     note: document.getElementById('e_note_'+id).value,
@@ -1503,22 +1584,30 @@ function deleteEditTx(id){
   renderMonth(state.currentYm);
 }
 
+function onFormScopeChange(){
+  const scope = document.getElementById('f_scope').value;
+  document.getElementById('f_type').innerHTML = typesForScope(scope).map(t=>`<option>${t}</option>`).join('');
+  onFormTypeChange();
+}
 function onFormTypeChange(){
+  const scope = document.getElementById('f_scope').value;
   const type = document.getElementById('f_type').value;
-  document.getElementById('f_main').innerHTML = mainOptions(type, null);
+  document.getElementById('f_main').innerHTML = mainOptions(scope, type, null);
   onFormMainChange();
 }
 function onFormMainChange(){
+  const scope = document.getElementById('f_scope').value;
   const type = document.getElementById('f_type').value;
   const main = document.getElementById('f_main').value;
-  document.getElementById('f_category').innerHTML = catOptions(type, main, null);
+  document.getElementById('f_category').innerHTML = catOptions(scope, type, main, null);
 }
 function submitTx(ym){
   const date = document.getElementById('f_date').value;
   const amount = Number(document.getElementById('f_amount').value);
   if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
   DB.add({
-    date, type: document.getElementById('f_type').value,
+    date, scope: document.getElementById('f_scope').value,
+    type: document.getElementById('f_type').value,
     main: document.getElementById('f_main').value,
     category: document.getElementById('f_category').value,
     note: document.getElementById('f_note').value,
