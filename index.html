@@ -545,11 +545,8 @@
 <script src="./supabase-config.js"></script>
 <script>
 /* ===========================================================
-   체험단 캘린더 + 부부 일정(events) 데이터 연동
+   체험단 캘린더(campaigns) + 부부 일정(couple_events) 데이터 연동
    =========================================================== */
-const CAL_API_URL = "https://script.google.com/macros/s/AKfycbzMSBUZ5hBbLR2T-lx7m0G2ODIcXKu7oUqvXbA9iiSL_QtJNcevO_aws-Jb1DhhOImX/exec";
-const CAL_SITE_KEY = "130702";
-
 const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
   auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
 });
@@ -854,12 +851,11 @@ window.addEventListener('resize', () => {
 
 /* ---- 체험단 데이터 로드 ---- */
 async function calLoad(){
-  try{
-    const res = await fetch(`${CAL_API_URL}?key=${encodeURIComponent(CAL_SITE_KEY)}`, { cache: "no-store" });
-    const data = await res.json();
-    if(data.ok && Array.isArray(data.items)) calItems = data.items;
-  }catch(e){
-    console.error("체험단 캘린더 데이터 로드 실패:", e);
+  const { data, error } = await sb.from('campaigns').select('*');
+  if(error){
+    console.error("체험단 캘린더 데이터 로드 실패:", error);
+  } else {
+    calItems = data || [];
   }
   calRender();
 }
@@ -867,15 +863,11 @@ async function calLoad(){
 /* ---- 부부 일정 데이터 로드 ---- */
 async function coupleLoad(){
   if(!coupleLoggedIn) return;
-  try{
-    const res = await fetch(`${CAL_API_URL}?key=${encodeURIComponent(CAL_SITE_KEY)}&resource=events`, { cache: "no-store" });
-    const data = await res.json();
-    if(!data.ok) throw new Error(data.error);
-    coupleItems = (data.items || [])
-      .map(coupleRowToItem)
-      .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-  }catch(e){
-    console.error("부부 일정 데이터 로드 실패:", e);
+  const { data, error } = await sb.from('couple_events').select('*').order('date');
+  if(error){
+    console.error("부부 일정 데이터 로드 실패:", error);
+  } else {
+    coupleItems = (data || []).map(coupleRowToItem);
   }
   calRender();
 }
@@ -931,6 +923,20 @@ calLoad();
 setInterval(calLoad, 30000);
 coupleInitAuth();
 setInterval(() => { if(coupleLoggedIn) coupleLoad(); }, 30000);
+
+// 다른 사람이 데이터를 수정하면(다른 탭/기기 포함) 실시간으로 반영
+// (실시간 이벤트를 놓치는 경우를 대비해 위 setInterval 폴링도 그대로 유지)
+sb.channel('campaigns-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => {
+    calLoad();
+  })
+  .subscribe();
+
+sb.channel('couple-events-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'couple_events' }, () => {
+    if(coupleLoggedIn) coupleLoad();
+  })
+  .subscribe();
 
 // 이벤트 요약 상세 팝업
 const calFieldLabels = {
@@ -1088,18 +1094,10 @@ async function coupleAddEvent(){
   saveBtn.disabled = true;
   statusMsg.textContent = "저장 중...";
   try{
-    const res = await fetch(CAL_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        action: isEdit ? "update" : "add",
-        key: CAL_SITE_KEY,
-        resource: "events",
-        item: row
-      })
-    });
-    const data = await res.json();
-    if(!data.ok) throw new Error(data.error);
+    const { error } = isEdit
+      ? await sb.from('couple_events').update(row).eq('id', coupleEditId)
+      : await sb.from('couple_events').insert(row);
+    if(error) throw error;
     await coupleLoad();
     statusMsg.textContent = "저장 완료 ✓";
     setTimeout(coupleCloseAdd, 500);
@@ -1113,19 +1111,12 @@ async function coupleDeleteEvent(id){
   if(!id) return;
   if(!coupleLoggedIn){ alert('로그인 후 이용해주세요.'); coupleShowLogin(); return; }
   if(!confirm('이 일정을 삭제할까요?')) return;
-  try{
-    const res = await fetch(CAL_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "delete", key: CAL_SITE_KEY, resource: "events", id })
-    });
-    const data = await res.json();
-    if(!data.ok) throw new Error(data.error);
-    await coupleLoad();
-  }catch(err){
-    alert("삭제 실패: " + err.message);
+  const { error } = await sb.from('couple_events').delete().eq('id', id);
+  if(error){
+    alert("삭제 실패: " + error.message);
     return;
   }
+  await coupleLoad();
   coupleCloseAdd();
 }
 </script>
