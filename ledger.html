@@ -563,6 +563,7 @@ function bootApp(){
   initRecurringTemplatesIfEmpty();
   migrateFamilyCategory();
   cleanupRecurringBeforeAug();
+  cleanupFutureRecurring();
   applyManualAdditions();
   route();
 }
@@ -974,6 +975,14 @@ function cleanupRecurringBeforeAug(){
   dupes.forEach(t => DB.remove(t.id));
 }
 
+/* 예전 버전(오늘 날짜 이후는 반영하지 않는 기능이 없던 시절)에 미리 채워졌을 수 있는
+   '아직 오지 않은 날짜'의 정기 자동이체 거래를 정리합니다. */
+function cleanupFutureRecurring(){
+  const today = todayStr();
+  const premature = DB.list().filter(t => t.recurringKey && t.date > today);
+  premature.forEach(t => DB.remove(t.id));
+}
+
 /* 개발 중 수동으로 추가 요청받은 거래를 1회만 넣어줍니다(중복 방지용 마커 포함). */
 const MANUAL_ADDITIONS = [
   { key:'m_20260723_1', date:'2026-07-23', scope:'보라', type:'지출', main:'건강',   category:'실비보험', note:'삼성화재',   amount:22210,   user:'', payment:'' },
@@ -1014,6 +1023,7 @@ function ensureRecurringForMonth(ym){
   templates.forEach(tpl=>{
     if(existingKeys.has(tpl.key)) return;
     if(skips.has(tpl.key + '|' + ym)) return;
+    if(tpl.endYm && ym >= tpl.endYm) return; // 종료월이 설정된 경우, 그 달부터는 더 이상 자동 생성하지 않음
     const day = Math.min(tpl.day, dim);
     const date = ym + '-' + String(day).padStart(2,'0');
     if(date > today) return; // 아직 오늘이 지나지 않은 날짜(미래)는 반영하지 않음
@@ -1280,12 +1290,13 @@ function renderRecurringTable(){
     : `<tr class="empty-row"><td colspan="7">등록된 정기 자동이체가 없습니다.</td></tr>`;
 }
 function recurDisplayRowHtml(t){
+  const endTag = t.endYm ? `<span class="fixed-tag" title="${t.endYm}부터 자동 생성되지 않음">(${t.endYm}부터 종료)</span>` : '';
   return `<tr class="tx-row" onclick="startEditRecur('${t.key}')">
     <td class="mono" data-label="일">${t.day}일</td>
     <td data-label="구분">${t.scope}</td>
     <td data-label="중분류" style="color:var(--muted)">${t.main}</td>
     <td data-label="소분류" style="font-weight:600">${t.category}</td>
-    <td data-label="내용">${escapeAttr(t.note)}</td>
+    <td data-label="내용">${escapeAttr(t.note)} ${endTag}</td>
     <td data-label="결제수단" style="color:var(--muted)">${escapeAttr(t.payment)}</td>
     <td class="amt expense" data-label="금액">${Number(t.amount).toLocaleString('ko-KR')}</td>
   </tr>`;
@@ -1310,6 +1321,13 @@ function recurEditRowHtml(t){
         <span class="payment-toggle-label">결제수단</span>
         ${PAYMENT_METHODS.map(p=>`<button type="button" class="chip pay-chip ${p===t.payment?'active':''}" data-val="${escapeAttr(p)}" onclick="selectPaymentToggle('paymentToggleRce_${t.key}','${escapeAttr(p)}')">${p}</button>`).join('')}
       </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span class="payment-toggle-label">종료월(선택)</span>
+        <input type="month" id="rce_endym_${t.key}" value="${t.endYm||''}"
+               style="border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit;">
+        <span style="font-size:11px;color:var(--muted);">설정한 달부터는 더 이상 자동 생성되지 않아요 (이미 만들어진 달의 거래는 그대로 남아요)</span>
+        ${t.endYm ? `<button type="button" class="ghost-btn" onclick="document.getElementById('rce_endym_${t.key}').value='';">해제</button>` : ''}
+      </div>
     </td>
   </tr>`;
 }
@@ -1320,6 +1338,7 @@ function saveRecurEdit(key){
   const amount = Number(document.getElementById('rce_amount_'+key).value);
   if(!day || day<1 || day>31 || !amount){ alert('일자(1~31)와 금액을 확인해주세요.'); return; }
   const payment = document.getElementById('paymentToggleRce_'+key)?.dataset.selected || '';
+  const endYm = document.getElementById('rce_endym_'+key)?.value || '';
   const templates = DB.getRecurringTemplates() || [];
   const idx = templates.findIndex(t=>t.key===key);
   if(idx > -1){
@@ -1327,7 +1346,7 @@ function saveRecurEdit(key){
       ...templates[idx],
       day, scope: document.getElementById('rce_scope_'+key).value,
       note: document.getElementById('rce_note_'+key).value,
-      amount, payment
+      amount, payment, endYm
       // main/category는 고정 — 수정하려면 삭제 후 새로 추가
     };
     DB.saveRecurringTemplates(templates);
@@ -1427,7 +1446,7 @@ function renderMonth(ym){
           <input type="text" id="f_note" placeholder="내용 (예: 스타벅스)">
           <input type="number" id="f_amount" placeholder="금액">
           <select id="f_payment" class="pay-quick-select">
-            <option value="">미지정</option>
+            <option value="">결제수단</option>
             ${PAYMENT_METHODS.map(p=>`<option value="${escapeAttr(p)}">${p}</option>`).join('')}
           </select>
           <button class="add-btn" onclick="submitTx('${ym}')" title="추가">+</button>
