@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>우리집 가계부</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
 /* =========================================================
    토큰 (Design tokens)
    ========================================================= */
 :root{
+  --font: "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --paper:#F7F6F1;
   --paper-line: rgba(32,36,31,0.05);
   --surface:#FFFFFF;
@@ -41,35 +41,26 @@
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
-  background: var(--paper);
+  background:var(--paper);
   color:var(--ink);
-  font-family:'Inter',system-ui,sans-serif;
+  font-family:var(--font);
   -webkit-font-smoothing:antialiased;
   min-height:100vh;
 }
-
-.home-btn{
-  display:inline-block;
-  font-size:12.5px;
-  color:var(--muted);
-  text-decoration:none;
-  margin-bottom:8px;
-}
-.home-btn:hover{color:var(--ink);}
 h1,h2,h3,.display{
-  font-family:'Fraunces',serif;
-  font-weight:600;
-  letter-spacing:-0.01em;
+  font-family:var(--font);
+  font-weight:700;
+  letter-spacing:-0.02em;
   margin:0;
 }
-.mono{ font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
+.mono{ font-family:var(--font); font-variant-numeric:tabular-nums; }
 a{color:inherit;}
 button{font-family:inherit;}
 
 /* =========================================================
    레이아웃
    ========================================================= */
-#app{max-width:1600px;width:95%;margin:0 auto;padding:32px 24px 80px;}
+#app{max-width:1180px;margin:0 auto;padding:28px 20px 80px;}
 
 .topbar{
   display:flex;align-items:baseline;justify-content:space-between;
@@ -79,7 +70,7 @@ button{font-family:inherit;}
 .topbar .brand .mark{
   width:34px;height:34px;border-radius:9px;background:var(--ink);
   display:inline-flex;align-items:center;justify-content:center;
-  color:var(--paper);font-family:'Fraunces',serif;font-size:17px;font-weight:700;
+  color:var(--paper);font-family:var(--font);font-size:17px;font-weight:700;
   transform:translateY(4px);
 }
 .topbar h1{font-size:26px;}
@@ -117,7 +108,7 @@ button{font-family:inherit;}
   top:2px;
   white-space:nowrap;
 }
-.tab.summary-tab{font-family:'Fraunces',serif;font-size:14px;}
+.tab.summary-tab{font-family:var(--font);font-size:14px;}
 .tab:hover{color:var(--ink-soft);}
 .tab.active{
   color:var(--ink);
@@ -147,7 +138,7 @@ button{font-family:inherit;}
 
 .kpi{padding:18px 18px 16px;}
 .kpi .label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em;}
-.kpi .value{font-family:'Fraunces',serif;font-size:25px;font-weight:600;margin-top:6px;}
+.kpi .value{font-family:var(--font);font-size:25px;font-weight:600;margin-top:6px;}
 .kpi .delta{font-size:12px;margin-top:6px;font-weight:600;}
 .kpi .delta.up{color:var(--expense);}
 .kpi .delta.down{color:var(--income);}
@@ -204,7 +195,7 @@ button{font-family:inherit;}
 .cat-row .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;}
 .cat-row .top .name{font-weight:600;}
 .cat-row .top .name .sub{color:var(--muted);font-weight:400;margin-left:4px;}
-.cat-row .top .amt{font-family:'IBM Plex Mono',monospace;}
+.cat-row .top .amt{font-family:var(--font);}
 .bar-track{height:7px;border-radius:100px;background:var(--line);overflow:hidden;}
 .bar-fill{height:100%;border-radius:100px;}
 
@@ -224,7 +215,7 @@ button{font-family:inherit;}
 .chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 
 .tx-form{
-  display:grid;grid-template-columns: 84px 118px 84px 96px 1fr 1fr 100px 84px 40px;
+  display:grid;grid-template-columns: 118px 84px 96px 1fr 1.3fr 110px 84px 40px;
   gap:8px;padding:14px 18px;background:var(--paper);border-bottom:1px solid var(--line);
   align-items:center;
 }
@@ -246,7 +237,7 @@ table.tx-table th{
 }
 table.tx-table td{padding:9px 10px;border-bottom:1px solid var(--paper-line);vertical-align:middle;}
 table.tx-table tbody tr:hover{background:var(--paper);}
-table.tx-table td.amt{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap;}
+table.tx-table td.amt{font-family:var(--font);text-align:right;white-space:nowrap;}
 table.tx-table td.amt.expense{color:var(--expense);}
 table.tx-table td.amt.income{color:var(--income);}
 table.tx-table td.amt.saving{color:var(--saving);}
@@ -258,6 +249,10 @@ table.tx-table td.amt.invest{color:var(--invest);}
 }
 .icon-btn:hover{background:var(--line);color:var(--ink);}
 .empty-row td{text-align:center;color:var(--muted);padding:30px;font-size:13px;}
+tr.scope-divider td{
+  background:var(--paper);font-weight:800;font-size:13px;
+  padding:10px;border-top:2px solid var(--ink);border-bottom:1px solid var(--line-strong);
+}
 
 /* =========================================================
    리뷰 메모
@@ -270,7 +265,7 @@ table.tx-table td.amt.invest{color:var(--invest);}
 }
 .review-stats{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap;}
 .review-stats .item{font-size:12px;color:var(--ink-soft);}
-.review-stats .item b{display:block;font-family:'Fraunces',serif;font-size:17px;color:var(--ink);}
+.review-stats .item b{display:block;font-family:var(--font);font-size:17px;color:var(--ink);}
 .save-note{font-size:11px;color:var(--muted);margin-top:8px;}
 
 /* =========================================================
@@ -283,7 +278,7 @@ table.tx-table td.amt.invest{color:var(--invest);}
   border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;
   width:26px;height:26px;cursor:pointer;color:var(--ink-soft);
 }
-.year-switch .y{font-family:'Fraunces',serif;font-weight:700;font-size:16px;min-width:44px;text-align:center;}
+.year-switch .y{font-family:var(--font);font-weight:700;font-size:16px;min-width:44px;text-align:center;}
 
 .month-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
 .month-nav .move{
@@ -307,7 +302,7 @@ footer.foot{
 .year-btn{
   display:flex;align-items:center;gap:5px;
   border:2px solid var(--ink);border-bottom:none;background:var(--surface);color:var(--ink);
-  border-radius:10px 10px 0 0;padding:9px 14px;font-family:'Fraunces',serif;font-weight:700;font-size:14px;
+  border-radius:10px 10px 0 0;padding:9px 14px;font-family:var(--font);font-weight:700;font-size:14px;
   cursor:pointer;
 }
 .year-btn .caret{font-size:10px;color:var(--muted);}
@@ -319,7 +314,7 @@ footer.foot{
 .year-menu.open{display:flex;}
 .year-item{
   border:none;background:transparent;text-align:left;padding:7px 10px;border-radius:6px;
-  font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;font-family:'IBM Plex Mono',monospace;
+  font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;font-family:var(--font);
 }
 .year-item:hover{background:var(--paper);}
 .year-item.active{background:var(--ink);color:var(--paper);}
@@ -330,7 +325,7 @@ table.tx-table tbody tr.tx-row:hover{background:var(--paper);}
 tr.edit-row{background:var(--paper);}
 tr.edit-row td{padding:12px 10px;}
 .tx-edit-form{
-  display:grid;grid-template-columns:84px 118px 84px 96px 1fr 1fr 100px 90px auto;gap:8px;align-items:center;
+  display:grid;grid-template-columns:118px 84px 96px 1fr 1fr 100px 90px auto;gap:8px;align-items:center;
 }
 @media (max-width:900px){.tx-edit-form{grid-template-columns:repeat(2,1fr);}}
 .tx-edit-form input, .tx-edit-form select{
@@ -338,62 +333,13 @@ tr.edit-row td{padding:12px 10px;}
   font-size:12.5px;font-family:inherit;background:var(--surface);color:var(--ink);
 }
 .edit-actions{display:flex;gap:6px;}
-
-/* =========================================================
-   모바일 최적화 (폰 화면에서 잘리거나 좌우 정렬이 깨지는 부분 정리)
-   ========================================================= */
-@media (max-width:640px){
-  #app{padding:20px 14px 60px;}
-  .topbar{align-items:flex-start;}
-  .kpis{grid-template-columns:repeat(2,1fr);}
-  .month-nav h1{font-size:19px;}
-
-  /* 거래 추가 폼: 한 줄에 한 항목씩, 버튼은 라벨과 함께 전체폭 */
-  .tx-form{grid-template-columns:1fr;padding:12px;}
-  .tx-form .add-btn{
-    width:100%;height:38px;font-size:13px;font-weight:700;
-  }
-  .tx-form .add-btn::before{content:"거래 추가";margin-right:4px;font-size:12.5px;}
-
-  /* 수정 폼도 한 줄에 한 항목씩 */
-  .tx-edit-form{grid-template-columns:1fr;}
-  .edit-actions{justify-content:flex-end;}
-
-  /* 거래내역 테이블 → 카드형 리스트로 전환 (가로 스크롤/잘림 방지) */
-  table.tx-table.tx-table-main thead{display:none;}
-  table.tx-table.tx-table-main,
-  table.tx-table.tx-table-main tbody,
-  table.tx-table.tx-table-main tr,
-  table.tx-table.tx-table-main td{display:block;width:100%;}
-  table.tx-table.tx-table-main tr.tx-row{
-    border:1px solid var(--paper-line);border-radius:var(--radius-s);
-    padding:10px 12px;margin-bottom:8px;
-  }
-  table.tx-table.tx-table-main td{
-    display:flex;justify-content:space-between;align-items:center;gap:10px;
-    padding:4px 0;border-bottom:none;text-align:right;
-  }
-  table.tx-table.tx-table-main td::before{
-    content:attr(data-label);color:var(--muted);font-size:11px;font-weight:600;
-    text-align:left;flex-shrink:0;
-  }
-  table.tx-table.tx-table-main td.amt{font-size:14px;font-weight:700;}
-  table.tx-table.tx-table-main tr.empty-row{border:none;padding:0;}
-  table.tx-table.tx-table-main tr.empty-row td{display:block;text-align:center;padding:24px 0;}
-  table.tx-table.tx-table-main tr.empty-row td::before{content:none;}
-  table.tx-table.tx-table-main tr.edit-row{border:1px solid var(--line-strong);border-radius:var(--radius-s);margin-bottom:8px;}
-  table.tx-table.tx-table-main tr.edit-row td{display:block;padding:10px;}
-  table.tx-table.tx-table-main tr.edit-row td::before{content:none;}
-
-  /* 카테고리별 월간 매트릭스 표는 그대로 가로 스크롤 유지 (overflow-x:auto 래퍼 존재) */
-}
 .ghost-btn.danger{color:var(--expense);border-color:var(--expense);}
 .ghost-btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 
 /* ---- 예산 ---- */
 .budget-input{
   width:100%;margin-top:5px;border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px;
-  font-size:12.5px;font-family:'IBM Plex Mono',monospace;background:var(--paper);color:var(--ink);
+  font-size:12.5px;font-family:var(--font);background:var(--paper);color:var(--ink);
 }
 .compare-select{
   border:1px solid var(--line-strong);border-radius:8px;padding:5px 8px;font-size:12px;
@@ -451,7 +397,48 @@ tr.edit-row td{padding:12px 10px;}
 }
 .modal-tx-list li:last-child{border-bottom:none;}
 .modal-tx-list .n{flex:1;color:var(--ink-soft);}
-.modal-tx-list .a{font-family:'IBM Plex Mono',monospace;font-weight:600;white-space:nowrap;}
+.modal-tx-list .a{font-family:var(--font);font-weight:600;white-space:nowrap;}
+
+/* =========================================================
+   모바일 최적화 (폰 화면에서 거래내역 표를 카드형 리스트로 전환)
+   ========================================================= */
+@media (max-width:640px){
+  #app{padding:20px 14px 60px;}
+  .topbar{align-items:flex-start;}
+  .kpis{grid-template-columns:repeat(2,1fr);}
+  .month-nav h1{font-size:19px;}
+
+  .tx-form{grid-template-columns:1fr;padding:12px;}
+  .tx-form .add-btn{width:100%;height:38px;font-size:13px;font-weight:700;}
+
+  .tx-edit-form{grid-template-columns:1fr;}
+  .edit-actions{justify-content:flex-end;}
+
+  table.tx-table.tx-table-main thead{display:none;}
+  table.tx-table.tx-table-main,
+  table.tx-table.tx-table-main tbody,
+  table.tx-table.tx-table-main tr,
+  table.tx-table.tx-table-main td{display:block;width:100%;}
+  table.tx-table.tx-table-main tr.tx-row{
+    border:1px solid var(--paper-line);border-radius:var(--radius-s);
+    padding:10px 12px;margin-bottom:8px;
+  }
+  table.tx-table.tx-table-main td{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:4px 0;border-bottom:none;text-align:right;
+  }
+  table.tx-table.tx-table-main td::before{
+    content:attr(data-label);color:var(--muted);font-size:11px;font-weight:600;
+    text-align:left;flex-shrink:0;
+  }
+  table.tx-table.tx-table-main td.amt{font-size:14px;font-weight:700;}
+  table.tx-table.tx-table-main tr.empty-row{border:none;padding:0;}
+  table.tx-table.tx-table-main tr.empty-row td{display:block;text-align:center;padding:24px 0;}
+  table.tx-table.tx-table-main tr.empty-row td::before{content:none;}
+  table.tx-table.tx-table-main tr.edit-row{border:1px solid var(--line-strong);border-radius:var(--radius-s);margin-bottom:8px;}
+  table.tx-table.tx-table-main tr.edit-row td{display:block;padding:10px;}
+  table.tx-table.tx-table-main tr.edit-row td::before{content:none;}
+}
 </style>
 </head>
 <body>
@@ -464,30 +451,7 @@ tr.edit-row td{padding:12px 10px;}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./supabase-config.js"></script>
 <script>
-let sb;
-try{
-  if(typeof supabase === 'undefined'){
-    throw new Error('Supabase 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해주세요.');
-  }
-  if(!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY){
-    throw new Error('supabase-config.js에서 SUPABASE_URL / SUPABASE_ANON_KEY를 찾을 수 없어요.');
-  }
-  sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
-    auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
-  });
-}catch(err){
-  document.getElementById('app').innerHTML = `
-    <div style="max-width:420px;margin:80px auto;text-align:center;padding:24px;">
-      <div style="font-family:'Fraunces',serif;font-weight:600;font-size:18px;color:#B5495B;margin-bottom:8px;">연결에 문제가 생겼어요</div>
-      <div style="color:#8A8D80;font-size:13px;line-height:1.6;">${err.message}</div>
-      <a href="./index.html" style="display:inline-block;margin-top:16px;font-size:12.5px;color:#8A8D80;">← 홈으로</a>
-    </div>`;
-  throw err;
-}
-
 /* =================================================================================
    0. 데이터 모델 & 카테고리 체계  (TAXONOMY)
    ---------------------------------------------------------------------------------
@@ -534,109 +498,83 @@ const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9�
 const DOW = ["월","화","수","목","금","토","일"];
 
 /* =================================================================================
-   1. DB 레이어 (Supabase 연동)
+   1. DB 레이어
    ---------------------------------------------------------------------------------
-   부팅 시 DB.init()으로 transactions/monthly_reviews/budgets를 한 번에 불러와
-   메모리 캐시에 저장합니다. 화면 코드는 기존과 동일하게 DB.list()/getReview()/
-   getBudgets()를 "동기"로 호출하고(캐시를 읽는 것뿐이라 즉시 반환됩니다),
-   add/update/remove/saveReview/saveBudgets는 캐시를 먼저 바꿔 화면에 즉시
-   반영한 뒤, Supabase에는 결과를 기다리지 않고 던져놓습니다(optimistic update).
+   지금은 localStorage 로만 저장됩니다. 나중에 Supabase 로 옮길 때는
+   아래 DB 객체의 메서드 내부만 supabase-js 호출로 교체하면 되도록
+   (화면 코드는 DB.* 메서드만 호출) 설계했습니다.
 
-   Supabase 테이블 (가이드 문서의 스키마와 동일):
-     transactions(id, date, type, main, category, note, amount, user_name, payment, scope)
-     monthly_reviews(month, memo)
-     budgets(year, category, amount)  -- category = '대분류|카테고리'
+   예상 Supabase 테이블 스키마 (참고용):
+     transactions (
+       id uuid primary key default gen_random_uuid(),
+       date date not null,
+       type text not null,          -- 수입/지출/저축/투자
+       main text not null,          -- 대분류
+       category text not null,      -- 중분류
+       note text,                   -- 세부내용
+       amount integer not null,
+       user_name text,              -- 사용자
+       payment text,                -- 결제수단
+       created_at timestamptz default now()
+     )
+     monthly_reviews (
+       month text primary key,      -- 'YYYY-MM'
+       memo text,
+       updated_at timestamptz default now()
+     )
    ================================================================================= */
 const DB = {
-  _cache: [],        // transactions
-  _reviewCache: {},  // { 'YYYY-MM': memo }
-  _budgetCache: {},  // { year: { '대분류|카테고리': amount } }
+  TX_KEY: "gagyebu_v1_transactions",
+  REVIEW_KEY_PREFIX: "gagyebu_v1_review_",
 
-  async init(){
-    const [txRes, reviewRes, budgetRes] = await Promise.all([
-      sb.from('transactions').select('*').order('date'),
-      sb.from('monthly_reviews').select('*'),
-      sb.from('budgets').select('*')
-    ]);
-
-    if(!txRes.error && txRes.data){
-      this._cache = txRes.data.map(r => ({
-        id: r.id, date: r.date, type: r.type, main: r.main,
-        category: r.category, note: r.note, amount: r.amount,
-        user: r.user_name, payment: r.payment, scope: r.scope
-      }));
-    } else if(txRes.error){ console.error('거래내역 로드 실패:', txRes.error); }
-
-    if(!reviewRes.error && reviewRes.data){
-      reviewRes.data.forEach(r => { this._reviewCache[r.month] = r.memo || ""; });
-    } else if(reviewRes.error){ console.error('지출 리뷰 로드 실패:', reviewRes.error); }
-
-    if(!budgetRes.error && budgetRes.data){
-      budgetRes.data.forEach(r => {
-        if(!this._budgetCache[r.year]) this._budgetCache[r.year] = {};
-        this._budgetCache[r.year][r.category] = r.amount;
-      });
-    } else if(budgetRes.error){ console.error('예산 로드 실패:', budgetRes.error); }
+  // TODO[Supabase]: `return (await supabase.from('transactions').select('*')).data`
+  list(){
+    const raw = localStorage.getItem(this.TX_KEY);
+    return raw ? JSON.parse(raw) : [];
   },
-
-  list(){ return this._cache; },
-
+  _save(list){
+    localStorage.setItem(this.TX_KEY, JSON.stringify(list));
+  },
+  // TODO[Supabase]: `await supabase.from('transactions').insert(tx)`
   add(tx){
-    const optimisticId = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-    const localTx = { ...tx, id: optimisticId };
-    this._cache.push(localTx);
-    sb.from('transactions').insert({
-      date: tx.date, type: tx.type, main: tx.main, category: tx.category,
-      note: tx.note, amount: tx.amount, user_name: tx.user, payment: tx.payment, scope: tx.scope
-    }).select().single().then(({data, error})=>{
-      if(error){ console.error('거래 추가 실패:', error); return; }
-      const row = this._cache.find(t=>t.id===optimisticId);
-      if(row) row.id = data.id;
-    });
-    return localTx;
+    const list = this.list();
+    tx.id = tx.id || (Date.now().toString(36) + Math.random().toString(36).slice(2,7));
+    list.push(tx);
+    this._save(list);
+    return tx;
   },
-
+  // TODO[Supabase]: `await supabase.from('transactions').update(patch).eq('id', id)`
   update(id, patch){
-    const row = this._cache.find(t=>t.id===id);
-    if(row) Object.assign(row, patch);
-    sb.from('transactions').update({
-      date: patch.date, type: patch.type, main: patch.main, category: patch.category,
-      note: patch.note, amount: patch.amount, user_name: patch.user, scope: patch.scope
-    }).eq('id', id).then(({error})=>{ if(error) console.error('거래 수정 실패:', error); });
+    const list = this.list();
+    const idx = list.findIndex(t => t.id === id);
+    if(idx > -1){ list[idx] = {...list[idx], ...patch}; this._save(list); }
   },
-
+  // TODO[Supabase]: `await supabase.from('transactions').delete().eq('id', id)`
   remove(id){
-    this._cache = this._cache.filter(t=>t.id!==id);
-    sb.from('transactions').delete().eq('id', id).then(({error})=>{ if(error) console.error('거래 삭제 실패:', error); });
+    this._save(this.list().filter(t => t.id !== id));
   },
-
+  // TODO[Supabase]: `await supabase.from('monthly_reviews').select('memo').eq('month', ym)`
   getReview(ym){
-    return this._reviewCache[ym] || "";
+    return localStorage.getItem(this.REVIEW_KEY_PREFIX + ym) || "";
   },
+  // TODO[Supabase]: `await supabase.from('monthly_reviews').upsert({month: ym, memo})`
   saveReview(ym, memo){
-    this._reviewCache[ym] = memo;
-    sb.from('monthly_reviews').upsert({ month: ym, memo }).then(({error})=>{
-      if(error) console.error('리뷰 저장 실패:', error);
-    });
+    localStorage.setItem(this.REVIEW_KEY_PREFIX + ym, memo);
   },
 
+  BUDGET_KEY_PREFIX: "gagyebu_v1_budget_",
+  // TODO[Supabase]: `await supabase.from('budgets').select('category,amount').eq('year', year)` → map으로 변환
   getBudgets(year){
-    return this._budgetCache[year] || {};
+    const raw = localStorage.getItem(this.BUDGET_KEY_PREFIX + year);
+    return raw ? JSON.parse(raw) : {};
   },
+  // TODO[Supabase]: 카테고리별로 `await supabase.from('budgets').upsert({year, category, amount})`
   saveBudgets(year, map){
-    this._budgetCache[year] = map;
-    sb.from('budgets').delete().eq('year', year).then(({error})=>{
-      if(error){ console.error('예산 저장 실패(삭제 단계):', error); return; }
-      const rows = Object.entries(map).map(([category, amount]) => ({ year, category, amount }));
-      if(rows.length){
-        sb.from('budgets').insert(rows).then(({error})=>{ if(error) console.error('예산 저장 실패:', error); });
-      }
-    });
+    localStorage.setItem(this.BUDGET_KEY_PREFIX + year, JSON.stringify(map));
   },
-
   reset(){
-    // 화면 캐시만 비웁니다. 실제 Supabase 데이터를 지우려면 대시보드에서 직접 삭제하세요.
-    this._cache = [];
+    localStorage.removeItem(this.TX_KEY);
+    Object.keys(localStorage).filter(k=>k.startsWith(this.REVIEW_KEY_PREFIX)||k.startsWith(this.BUDGET_KEY_PREFIX)).forEach(k=>localStorage.removeItem(k));
   }
 };
 
@@ -710,7 +648,7 @@ function catOptions(scope, type, main, selected){
   const cats = ((TAXONOMY[scope] || {})[type] || {})[main] || [];
   return cats.map(c=>`<option ${c===selected?'selected':''}>${c}</option>`).join('');
 }
-/* 필터 UI 등 구분과 무관하게 전체 대분류/중분류/소분류 목록이 필요한 곳에서 사용 */
+/* 필터 UI 등 구분과 무관하게 전체 대분류/중분류 목록이 필요한 곳에서 사용 */
 function mainsForTypeAllScopes(type){
   const set = new Set();
   SCOPES.forEach(sc=>{ const t=(TAXONOMY[sc]||{})[type]; if(t) Object.keys(t).forEach(m=>set.add(m)); });
@@ -728,12 +666,14 @@ function catsForMainAllScopes(type, main){
 const state = {
   year: 2026,
   view: 'summary',      // 'summary' | 'YYYY-MM'
+  summaryScope: '전체',
   scopeFilter: '전체',
   monthTxFilter: '전체',
   mainFilter: '전체',
   catFilter: '전체',
   noteFilter: '',
-  catTabType: '지출',
+  catScope: '전체',
+  catDrillMain: null,
   editingTxId: null,
   currentYm: null,
   compareYm: null,
@@ -743,7 +683,7 @@ const state = {
 function route(){
   const hash = location.hash.replace('#/','') || 'summary';
   if(hash === 'summary'){ state.view = 'summary'; }
-  else { state.view = hash; state.year = Number(hash.split('-')[0]); state.monthTxFilter='전체'; state.mainFilter='전체'; state.catFilter='전체'; state.noteFilter=''; state.editingTxId=null; }
+  else { state.view = hash; state.year = Number(hash.split('-')[0]); state.scopeFilter='전체'; state.monthTxFilter='전체'; state.mainFilter='전체'; state.catFilter='전체'; state.noteFilter=''; state.catScope='전체'; state.catDrillMain=null; state.editingTxId=null; }
   render();
 }
 window.addEventListener('hashchange', route);
@@ -778,14 +718,14 @@ document.addEventListener('click', (e)=>{
 /* =================================================================================
    4. 시드 데이터 (첫 실행 시 1회만 로드 — 실제 사용자의 26년 1~7월 가계부 원본)
    ================================================================================= */
-const SEED_DATA = [];
+const SEED_DATA = [{"date": "2026-01-01", "type": "지출", "scope": "", "main": "교통비", "category": "대중교통", "note": "교통비", "amount": 86550, "payment": ""}, {"date": "2026-01-01", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 40000, "payment": ""}, {"date": "2026-01-01", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "콜롬보식당", "amount": 37000, "payment": ""}, {"date": "2026-01-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 8600, "payment": ""}, {"date": "2026-01-01", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "관 12월 정산", "amount": 790000, "payment": ""}, {"date": "2026-01-02", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "올리브영 (화장품)", "amount": 60000, "payment": ""}, {"date": "2026-01-03", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "노브랜드+편의점", "amount": 15820, "payment": ""}, {"date": "2026-01-03", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "고씨네 정육점", "amount": 12000, "payment": ""}, {"date": "2026-01-03", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "원당시장", "amount": 31500, "payment": ""}, {"date": "2026-01-04", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "등산화", "amount": 113400, "payment": ""}, {"date": "2026-01-04", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "팜스마트", "amount": 34590, "payment": ""}, {"date": "2026-01-04", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "와플대학", "amount": 6800, "payment": ""}, {"date": "2026-01-05", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "하나은행", "amount": 133499, "payment": ""}, {"date": "2026-01-05", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "컬리", "amount": 52332, "payment": ""}, {"date": "2026-01-05", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡", "amount": 15060, "payment": ""}, {"date": "2026-01-05", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "오브미 예약", "amount": 20000, "payment": ""}, {"date": "2026-01-05", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "홈플러스", "amount": 2000, "payment": ""}, {"date": "2026-01-06", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "매머드", "amount": 1600, "payment": ""}, {"date": "2026-01-06", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "주차비", "amount": 1500, "payment": ""}, {"date": "2026-01-06", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 20000, "payment": ""}, {"date": "2026-01-07", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "맥모닝", "amount": 9800, "payment": ""}, {"date": "2026-01-07", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "실비보험", "amount": 46338, "payment": ""}, {"date": "2026-01-07", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "택시", "amount": 11700, "payment": ""}, {"date": "2026-01-07", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "쿠팡이츠", "amount": 25800, "payment": ""}, {"date": "2026-01-08", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "헤어뷰올라 예약", "amount": 5000, "payment": ""}, {"date": "2026-01-08", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥도날드", "amount": 8000, "payment": ""}, {"date": "2026-01-09", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "구글", "amount": 2400, "payment": ""}, {"date": "2026-01-09", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "연회비 환불", "amount": 113000, "payment": ""}, {"date": "2026-01-09", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "물티슈 휴지 세제", "amount": 41840, "payment": ""}, {"date": "2026-01-10", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "맥미니", "amount": 620000, "payment": ""}, {"date": "2026-01-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "헤어뷰올라", "amount": 103000, "payment": ""}, {"date": "2026-01-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "닭강정", "amount": 9500, "payment": ""}, {"date": "2026-01-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "유리선물", "amount": 36350, "payment": ""}, {"date": "2026-01-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "김밥", "amount": 15000, "payment": ""}, {"date": "2026-01-12", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "라구소스", "amount": 15510, "payment": ""}, {"date": "2026-01-12", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "설빙", "amount": 14500, "payment": ""}, {"date": "2026-01-12", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "핸드폰", "amount": 73268, "payment": ""}, {"date": "2026-01-12", "type": "지출", "scope": "", "main": "주거비", "category": "정수기", "note": "코웨이", "amount": 14780, "payment": ""}, {"date": "2026-01-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 3800, "payment": ""}, {"date": "2026-01-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "하늘보리", "amount": 15000, "payment": ""}, {"date": "2026-01-13", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-01-13", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "낙곱새 저녁", "amount": 34000, "payment": ""}, {"date": "2026-01-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "김포롯데몰", "amount": 13180, "payment": ""}, {"date": "2026-01-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 3300, "payment": ""}, {"date": "2026-01-15", "type": "지출", "scope": "", "main": "", "category": "", "note": "회비", "amount": 200000, "payment": ""}, {"date": "2026-01-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "두쫀쿠", "amount": 14000, "payment": ""}, {"date": "2026-01-16", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 3600, "payment": ""}, {"date": "2026-01-16", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "헤어뷰올라", "amount": 14000, "payment": ""}, {"date": "2026-01-16", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "엽떡", "amount": 17500, "payment": ""}, {"date": "2026-01-16", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 2500, "payment": ""}, {"date": "2026-01-17", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "김밥", "amount": 12000, "payment": ""}, {"date": "2026-01-17", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "한의원", "amount": 38400, "payment": ""}, {"date": "2026-01-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "우지커피", "amount": 6800, "payment": ""}, {"date": "2026-01-17", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "야채", "amount": 11000, "payment": ""}, {"date": "2026-01-17", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "고씨네 고기", "amount": 12700, "payment": ""}, {"date": "2026-01-18", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "감자탕", "amount": 20000, "payment": ""}, {"date": "2026-01-18", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유소", "amount": 35000, "payment": ""}, {"date": "2026-01-18", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "롯데마트", "amount": 39500, "payment": ""}, {"date": "2026-01-18", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "방어회", "amount": 46000, "payment": ""}, {"date": "2026-01-19", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 5200, "payment": ""}, {"date": "2026-01-19", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "생선구이", "amount": 33000, "payment": ""}, {"date": "2026-01-20", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 1600, "payment": ""}, {"date": "2026-01-20", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "택시비", "amount": 16500, "payment": ""}, {"date": "2026-01-20", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "월급", "amount": 3223937, "payment": ""}, {"date": "2026-01-20", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "보라생일", "amount": 650000, "payment": ""}, {"date": "2026-01-20", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "찜질방", "amount": 29500, "payment": ""}, {"date": "2026-01-21", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 4200, "payment": ""}, {"date": "2026-01-21", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "바게티", "amount": 108378, "payment": ""}, {"date": "2026-01-22", "type": "지출", "scope": "", "main": "주거비", "category": "관리비", "note": "관리비", "amount": 351070, "payment": ""}, {"date": "2026-01-22", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "쿠팡이츠", "amount": 32500, "payment": ""}, {"date": "2026-01-23", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "삼성화재", "amount": 22210, "payment": ""}, {"date": "2026-01-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-01-23", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "택시", "amount": 26500, "payment": ""}, {"date": "2026-01-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "회식", "amount": 24000, "payment": ""}, {"date": "2026-01-24", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "서브웨이", "amount": 19300, "payment": ""}, {"date": "2026-01-26", "type": "수입", "scope": "", "main": "급여", "category": "상여금", "note": "25년 인센티브", "amount": 14438493, "payment": ""}, {"date": "2026-01-26", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "보금자리", "amount": 665744, "payment": ""}, {"date": "2026-01-26", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "더자인병원", "amount": 171700, "payment": ""}, {"date": "2026-01-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "애플", "amount": 1100, "payment": ""}, {"date": "2026-01-26", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "생리대", "amount": 17550, "payment": ""}, {"date": "2026-01-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "쿠팡 정기결제", "amount": 7890, "payment": ""}, {"date": "2026-01-26", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 식재료", "amount": 42740, "payment": ""}, {"date": "2026-01-27", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "컬리", "amount": 1900, "payment": ""}, {"date": "2026-01-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 3300, "payment": ""}, {"date": "2026-01-28", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1300, "payment": ""}, {"date": "2026-01-28", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "유제품", "amount": 1000000, "payment": ""}, {"date": "2026-01-28", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "김밥", "amount": 9000, "payment": ""}, {"date": "2026-01-28", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "오브미", "amount": 85000, "payment": ""}, {"date": "2026-01-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥모닝", "amount": 9700, "payment": ""}, {"date": "2026-01-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "바지, 카드지갑", "amount": 146115, "payment": ""}, {"date": "2026-01-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "서브웨이", "amount": 10700, "payment": ""}, {"date": "2026-01-29", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "육대장", "amount": 23000, "payment": ""}, {"date": "2026-01-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "붕어빵", "amount": 4000, "payment": ""}, {"date": "2026-01-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "바스", "amount": 7800, "payment": ""}, {"date": "2026-01-30", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-01-30", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "김밥", "amount": 8500, "payment": ""}, {"date": "2026-01-30", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "아웃백", "amount": 94010, "payment": ""}, {"date": "2026-01-31", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "온누리 마포시장", "amount": 20000, "payment": ""}, {"date": "2026-02-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "라비에벨", "amount": 300000, "payment": ""}, {"date": "2026-02-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "보풀제거기", "amount": 13900, "payment": ""}, {"date": "2026-02-01", "type": "지출", "scope": "", "main": "교통비", "category": "대중교통", "note": "교통비", "amount": 52250, "payment": ""}, {"date": "2026-02-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 5600, "payment": ""}, {"date": "2026-02-01", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "팜스 식자재", "amount": 21390, "payment": ""}, {"date": "2026-02-02", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "밀향칼국수", "amount": 25000, "payment": ""}, {"date": "2026-02-03", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "컬리", "amount": 60950, "payment": ""}, {"date": "2026-02-03", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "매실 쿠팡", "amount": 11780, "payment": ""}, {"date": "2026-02-04", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "데스크 매트", "amount": 15800, "payment": ""}, {"date": "2026-02-04", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "하나신용", "amount": 133499, "payment": ""}, {"date": "2026-02-05", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 4000, "payment": ""}, {"date": "2026-02-06", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "보라병원비", "amount": 11400, "payment": ""}, {"date": "2026-02-06", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "점심 죽", "amount": 25000, "payment": ""}, {"date": "2026-02-06", "type": "지출", "scope": "", "main": "경조사", "category": "지인", "note": "회사 축의금", "amount": 70000, "payment": ""}, {"date": "2026-02-07", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점 간식", "amount": 16000, "payment": ""}, {"date": "2026-02-08", "type": "지출", "scope": "", "main": "경조사", "category": "가족", "note": "엄마생일", "amount": 1000000, "payment": ""}, {"date": "2026-02-09", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "단호박죽", "amount": 4500, "payment": ""}, {"date": "2026-02-09", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "구글", "amount": 2400, "payment": ""}, {"date": "2026-02-09", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "독감 수액", "amount": 45000, "payment": ""}, {"date": "2026-02-09", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "약국", "amount": 5200, "payment": ""}, {"date": "2026-02-09", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "택시", "amount": 17300, "payment": ""}, {"date": "2026-02-10", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "설렁탕", "amount": 16100, "payment": ""}, {"date": "2026-02-10", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "햄버거", "amount": 20800, "payment": ""}, {"date": "2026-02-10", "type": "지출", "scope": "", "main": "교통비", "category": "대중교통", "note": "k패스", "amount": 35600, "payment": ""}, {"date": "2026-02-10", "type": "수입", "scope": "", "main": "급여", "category": "상여금", "note": "명절살여", "amount": 500000, "payment": ""}, {"date": "2026-02-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 2900, "payment": ""}, {"date": "2026-02-11", "type": "지출", "scope": "", "main": "주거비", "category": "정수기", "note": "코웨이", "amount": 14900, "payment": ""}, {"date": "2026-02-11", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "희돈애락", "amount": 48000, "payment": ""}, {"date": "2026-02-12", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "맥모닝", "amount": 9900, "payment": ""}, {"date": "2026-02-12", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "보라핸드폰", "amount": 73900, "payment": ""}, {"date": "2026-02-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 5400, "payment": ""}, {"date": "2026-02-13", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "택시", "amount": 21000, "payment": ""}, {"date": "2026-02-14", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "내과 병원", "amount": 18500, "payment": ""}, {"date": "2026-02-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 4300, "payment": ""}, {"date": "2026-02-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "노브랜드", "amount": 6620, "payment": ""}, {"date": "2026-02-14", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "컬리", "amount": 85778, "payment": ""}, {"date": "2026-02-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "더벤티", "amount": 7000, "payment": ""}, {"date": "2026-02-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 2000, "payment": ""}, {"date": "2026-02-15", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "김밥", "amount": 12200, "payment": ""}, {"date": "2026-02-16", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "더벤티", "amount": 6500, "payment": ""}, {"date": "2026-02-16", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "아비꼬", "amount": 20800, "payment": ""}, {"date": "2026-02-16", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "배민", "amount": 12500, "payment": ""}, {"date": "2026-02-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "비마트", "amount": 14050, "payment": ""}, {"date": "2026-02-18", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "택시", "amount": 5000, "payment": ""}, {"date": "2026-02-18", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "관 무릎 수술비", "amount": 406370, "payment": ""}, {"date": "2026-02-19", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡", "amount": 27730, "payment": ""}, {"date": "2026-02-19", "type": "지출", "scope": "", "main": "", "category": "", "note": "가족회비", "amount": 200000, "payment": ""}, {"date": "2026-02-20", "type": "지출", "scope": "", "main": "주거비", "category": "관리비", "note": "관리비", "amount": 413940, "payment": ""}, {"date": "2026-02-20", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "k패스 환급", "amount": 10680, "payment": ""}, {"date": "2026-02-20", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡 방수팩", "amount": 6290, "payment": ""}, {"date": "2026-02-20", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "보라병원", "amount": 16800, "payment": ""}, {"date": "2026-02-20", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "관병원", "amount": 19800, "payment": ""}, {"date": "2026-02-20", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "2월 급여", "amount": 3400823, "payment": ""}, {"date": "2026-02-20", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "김밥 정산", "amount": 1000000, "payment": ""}, {"date": "2026-02-20", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "신세계상품권", "amount": 100000, "payment": ""}, {"date": "2026-02-20", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "ssg 장보기", "amount": 100000, "payment": ""}, {"date": "2026-02-20", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "삼계탕 쿠팡이츠", "amount": 32000, "payment": ""}, {"date": "2026-02-20", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "매머드", "amount": 2500, "payment": ""}, {"date": "2026-02-22", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "바지", "amount": 53210, "payment": ""}, {"date": "2026-02-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "매머드", "amount": 3000, "payment": ""}, {"date": "2026-02-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "바이칸", "amount": 54400, "payment": ""}, {"date": "2026-02-23", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "삼성화재", "amount": 22210, "payment": ""}, {"date": "2026-02-23", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡", "amount": 47790, "payment": ""}, {"date": "2026-02-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "와플대학", "amount": 13400, "payment": ""}, {"date": "2026-02-24", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "탄산수", "amount": 8490, "payment": ""}, {"date": "2026-02-24", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "투썸", "amount": 2900, "payment": ""}, {"date": "2026-02-24", "type": "지출", "scope": "", "main": "생활비", "category": "여행", "note": "청풍 813", "amount": 60000, "payment": ""}, {"date": "2026-02-24", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "팜스마트", "amount": 23690, "payment": ""}, {"date": "2026-02-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "매머드", "amount": 6000, "payment": ""}, {"date": "2026-02-25", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "보금자리", "amount": 668241, "payment": ""}, {"date": "2026-02-25", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡", "amount": 22920, "payment": ""}, {"date": "2026-02-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "쿠팡와우", "amount": 7890, "payment": ""}, {"date": "2026-02-26", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "매머드", "amount": 1600, "payment": ""}, {"date": "2026-02-26", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 쌀", "amount": 19900, "payment": ""}, {"date": "2026-02-26", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "김밥", "amount": 15099, "payment": ""}, {"date": "2026-02-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "아이클라우드", "amount": 1100, "payment": ""}, {"date": "2026-02-27", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "컬리", "amount": 1900, "payment": ""}, {"date": "2026-02-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피,샌드위치", "amount": 6800, "payment": ""}, {"date": "2026-02-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "칭다오 항공, 호텔", "amount": 400000, "payment": ""}, {"date": "2026-02-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "모임회비", "amount": 30000, "payment": ""}, {"date": "2026-02-27", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "트레이더스", "amount": 36600, "payment": ""}, {"date": "2026-02-28", "type": "지출", "scope": "", "main": "경조사", "category": "지인", "note": "주현대리님 축의금", "amount": 100000, "payment": ""}, {"date": "2026-02-28", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 1200, "payment": ""}, {"date": "2026-02-28", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "새뱃돈 (어머님)", "amount": 100000, "payment": ""}, {"date": "2026-02-28", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 ", "amount": 29830, "payment": ""}, {"date": "2026-03-01", "type": "지출", "scope": "", "main": "교통비", "category": "대중교통", "note": "교통비", "amount": 6900, "payment": ""}, {"date": "2026-03-01", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "치킨", "amount": 22500, "payment": ""}, {"date": "2026-03-03", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 2200, "payment": ""}, {"date": "2026-03-03", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡, 토레타", "amount": 32090, "payment": ""}, {"date": "2026-03-03", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "공차", "amount": 9400, "payment": ""}, {"date": "2026-03-04", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "하나은행", "amount": 118324, "payment": ""}, {"date": "2026-03-04", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡 물병", "amount": 8610, "payment": ""}, {"date": "2026-03-05", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "병원", "amount": 20870, "payment": ""}, {"date": "2026-03-06", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "타조메롱", "amount": 4000, "payment": ""}, {"date": "2026-03-06", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡 휴지통", "amount": 6990, "payment": ""}, {"date": "2026-03-06", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "서울대 정수기", "amount": 40900, "payment": ""}, {"date": "2026-03-06", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-03-06", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "우동", "amount": 18000, "payment": ""}, {"date": "2026-03-07", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 조명, 스파게티면", "amount": 8210, "payment": ""}, {"date": "2026-03-07", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "원당시장", "amount": 15000, "payment": ""}, {"date": "2026-03-07", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "팜스마트", "amount": 37820, "payment": ""}, {"date": "2026-03-08", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "이케아 트롤리", "amount": 34900, "payment": ""}, {"date": "2026-03-08", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "노브랜드 버거", "amount": 12800, "payment": ""}, {"date": "2026-03-08", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "트레이더스 고기", "amount": 47780, "payment": ""}, {"date": "2026-03-08", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "항아리 ", "amount": 12870, "payment": ""}, {"date": "2026-03-08", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 김치", "amount": 27900, "payment": ""}, {"date": "2026-03-08", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "생필품 조리도구", "amount": 23000, "payment": ""}, {"date": "2026-03-09", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "구글", "amount": 2400, "payment": ""}, {"date": "2026-03-09", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "루트비커피", "amount": 4000, "payment": ""}, {"date": "2026-03-10", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "빵의시간", "amount": 11300, "payment": ""}, {"date": "2026-03-10", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "비비큐", "amount": 17500, "payment": ""}, {"date": "2026-03-11", "type": "지출", "scope": "", "main": "주거비", "category": "정수기", "note": "코웨이", "amount": 14900, "payment": ""}, {"date": "2026-03-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "서정김밥", "amount": 5000, "payment": ""}, {"date": "2026-03-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "주차비", "amount": 9450, "payment": ""}, {"date": "2026-03-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "젤라또", "amount": 17100, "payment": ""}, {"date": "2026-03-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "마리짱", "amount": 1800, "payment": ""}, {"date": "2026-03-12", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "kt 핸드폰", "amount": 73268, "payment": ""}, {"date": "2026-03-12", "type": "지출", "scope": "", "main": "교통비", "category": "대중교통", "note": "k패스 교통비", "amount": 67100, "payment": ""}, {"date": "2026-03-12", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "더자인병원", "amount": 18400, "payment": ""}, {"date": "2026-03-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥도날드", "amount": 8200, "payment": ""}, {"date": "2026-03-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "플럭스커피", "amount": 4000, "payment": ""}, {"date": "2026-03-12", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 20000, "payment": ""}, {"date": "2026-03-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "뚜레쥬르", "amount": 3200, "payment": ""}, {"date": "2026-03-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "메가커피", "amount": 1800, "payment": ""}, {"date": "2026-03-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "뚜레쥬르", "amount": 6000, "payment": ""}, {"date": "2026-03-13", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "황소곱창", "amount": 56000, "payment": ""}, {"date": "2026-03-13", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "마사지볼", "amount": 53070, "payment": ""}, {"date": "2026-03-14", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 식재료", "amount": 45270, "payment": ""}, {"date": "2026-03-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "모드니", "amount": 33900, "payment": ""}, {"date": "2026-03-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "한알 에그타르트", "amount": 13000, "payment": ""}, {"date": "2026-03-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "영화 왕사남", "amount": 30000, "payment": ""}, {"date": "2026-03-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "다이소", "amount": 8400, "payment": ""}, {"date": "2026-03-15", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-03-15", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "롯데아울렛 쇼핑", "amount": 44400, "payment": ""}, {"date": "2026-03-16", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "마리짱", "amount": 1800, "payment": ""}, {"date": "2026-03-16", "type": "지출", "scope": "", "main": "", "category": "", "note": "가족회비", "amount": 200000, "payment": ""}, {"date": "2026-03-16", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "바퀜", "amount": 61400, "payment": ""}, {"date": "2026-03-17", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "넥가드", "amount": 35900, "payment": ""}, {"date": "2026-03-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 6200, "payment": ""}, {"date": "2026-03-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "주차", "amount": 1500, "payment": ""}, {"date": "2026-03-18", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "샌드위치 커피", "amount": 5700, "payment": ""}, {"date": "2026-03-18", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "노브랜드", "amount": 26200, "payment": ""}, {"date": "2026-03-19", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "빵의시간", "amount": 8300, "payment": ""}, {"date": "2026-03-19", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "트레이더스 켈리", "amount": 18480, "payment": ""}, {"date": "2026-03-19", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡 키친타올, 간장", "amount": 14060, "payment": ""}, {"date": "2026-03-20", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "맥모닝", "amount": 10400, "payment": ""}, {"date": "2026-03-20", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "3월 월급", "amount": 3350180, "payment": ""}, {"date": "2026-03-20", "type": "수입", "scope": "", "main": "급여", "category": "상여금", "note": "연말정산", "amount": 2743680, "payment": ""}, {"date": "2026-03-20", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "토스 주식", "amount": 1682633, "payment": ""}, {"date": "2026-03-20", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "k패스 환급", "amount": 20130, "payment": ""}, {"date": "2026-03-20", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "공차", "amount": 4140, "payment": ""}, {"date": "2026-03-20", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "엽떡", "amount": 17500, "payment": ""}, {"date": "2026-03-21", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "택시", "amount": 13800, "payment": ""}, {"date": "2026-03-21", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쑥뜸", "amount": 35000, "payment": ""}, {"date": "2026-03-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 7500, "payment": ""}, {"date": "2026-03-22", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-03-22", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "주차, 발렛", "amount": 11000, "payment": ""}, {"date": "2026-03-22", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "닭갈비", "amount": 44000, "payment": ""}, {"date": "2026-03-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 10480, "payment": ""}, {"date": "2026-03-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 2800, "payment": ""}, {"date": "2026-03-23", "type": "지출", "scope": "", "main": "주거비", "category": "관리비", "note": "관리비", "amount": 295690, "payment": ""}, {"date": "2026-03-23", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "보라 삼성화재", "amount": 22210, "payment": ""}, {"date": "2026-03-23", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "순대국", "amount": 19000, "payment": ""}, {"date": "2026-03-23", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "팜스마트", "amount": 35520, "payment": ""}, {"date": "2026-03-24", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-03-24", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "다이소", "amount": 3000, "payment": ""}, {"date": "2026-03-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-03-25", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "bmw 차 할부", "amount": 509000, "payment": ""}, {"date": "2026-03-25", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "관 kt", "amount": 65539, "payment": ""}, {"date": "2026-03-25", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "관 skt", "amount": 25740, "payment": ""}, {"date": "2026-03-25", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "관 삼성화재", "amount": 16647, "payment": ""}, {"date": "2026-03-25", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "sk 브로드밴드", "amount": 93126, "payment": ""}, {"date": "2026-03-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 4000, "payment": ""}, {"date": "2026-03-25", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "보금자리", "amount": 670738, "payment": ""}, {"date": "2026-03-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "햄버거", "amount": 4200, "payment": ""}, {"date": "2026-03-25", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "택시", "amount": 15600, "payment": ""}, {"date": "2026-03-26", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "샌드위치", "amount": 7800, "payment": ""}, {"date": "2026-03-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "apple", "amount": 1100, "payment": ""}, {"date": "2026-03-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "쿠팡", "amount": 7890, "payment": ""}, {"date": "2026-03-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피, 뚜레쥬르", "amount": 9060, "payment": ""}, {"date": "2026-03-27", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "컬리", "amount": 1900, "payment": ""}, {"date": "2026-03-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "모임통장", "amount": 30000, "payment": ""}, {"date": "2026-03-27", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "명가부대찌개", "amount": 23500, "payment": ""}, {"date": "2026-03-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "노브랜드", "amount": 1480, "payment": ""}, {"date": "2026-03-28", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "메디킹덤 약국", "amount": 54400, "payment": ""}, {"date": "2026-03-28", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-03-28", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "다이소 봉구", "amount": 3000, "payment": ""}, {"date": "2026-03-28", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "주차비", "amount": 3800, "payment": ""}, {"date": "2026-03-28", "type": "지출", "scope": "", "main": "경조사", "category": "지인", "note": "화연이 생일", "amount": 50000, "payment": ""}, {"date": "2026-03-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "카페", "amount": 20000, "payment": ""}, {"date": "2026-03-30", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 1800, "payment": ""}, {"date": "2026-03-30", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 ", "amount": 46850, "payment": ""}, {"date": "2026-03-30", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "면세쇼핑", "amount": 99705, "payment": ""}, {"date": "2026-03-31", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥날", "amount": 11200, "payment": ""}, {"date": "2026-03-31", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 3000, "payment": ""}, {"date": "2026-03-31", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "베라", "amount": 6600, "payment": ""}, {"date": "2026-03-31", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "칭다오 이심", "amount": 13500, "payment": ""}, {"date": "2026-03-31", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡", "amount": 20450, "payment": ""}, {"date": "2026-04-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피, 샌드위치", "amount": 5700, "payment": ""}, {"date": "2026-04-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "롯데마트", "amount": 11430, "payment": ""}, {"date": "2026-04-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "바퀜", "amount": 61400, "payment": ""}, {"date": "2026-04-02", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "스타벅스", "amount": 10000, "payment": ""}, {"date": "2026-04-02", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-04-02", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "스타필드 탑텐바지", "amount": 35000, "payment": ""}, {"date": "2026-04-03", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "매머드", "amount": 1600, "payment": ""}, {"date": "2026-04-03", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "만차이", "amount": 33000, "payment": ""}, {"date": "2026-04-03", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "영화 롯데시네마", "amount": 19500, "payment": ""}, {"date": "2026-04-03", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "햄버거", "amount": 11000, "payment": ""}, {"date": "2026-04-03", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "현금입금", "amount": 120000, "payment": ""}, {"date": "2026-04-04", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "팜스마트", "amount": 26800, "payment": ""}, {"date": "2026-04-05", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "치킨", "amount": 25000, "payment": ""}, {"date": "2026-04-05", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "여행용 파우치", "amount": 5412, "payment": ""}, {"date": "2026-04-06", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "하나은행", "amount": 131002, "payment": ""}, {"date": "2026-04-07", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-04-07", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡", "amount": 20000, "payment": ""}, {"date": "2026-04-08", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "약국", "amount": 6200, "payment": ""}, {"date": "2026-04-09", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피, 빵", "amount": 13300, "payment": ""}, {"date": "2026-04-09", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "칭다오여행경비", "amount": 320000, "payment": ""}, {"date": "2026-04-09", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "너구리", "amount": 54500, "payment": ""}, {"date": "2026-04-09", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "구글", "amount": 2400, "payment": ""}, {"date": "2026-04-10", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 3600, "payment": ""}, {"date": "2026-04-10", "type": "지출", "scope": "", "main": "교통비", "category": "대중교통", "note": "교통비", "amount": 86550, "payment": ""}, {"date": "2026-04-11", "type": "지출", "scope": "", "main": "주거비", "category": "정수기", "note": "코웨이", "amount": 14900, "payment": ""}, {"date": "2026-04-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 6800, "payment": ""}, {"date": "2026-04-11", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-04-11", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "노량진 회", "amount": 33500, "payment": ""}, {"date": "2026-04-12", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "원당시장", "amount": 21600, "payment": ""}, {"date": "2026-04-12", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "피자", "amount": 29390, "payment": ""}, {"date": "2026-04-12", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "빙수", "amount": 12900, "payment": ""}, {"date": "2026-04-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피 샌드위치", "amount": 3900, "payment": ""}, {"date": "2026-04-13", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "메이그라운드", "amount": 30000, "payment": ""}, {"date": "2026-04-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "네소프레소 캡슐", "amount": 32900, "payment": ""}, {"date": "2026-04-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 1150, "payment": ""}, {"date": "2026-04-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡", "amount": 41830, "payment": ""}, {"date": "2026-04-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "박하스튜디오", "amount": 20000, "payment": ""}, {"date": "2026-04-14", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "휴대폰요금", "amount": 78900, "payment": ""}, {"date": "2026-04-15", "type": "지출", "scope": "", "main": "", "category": "", "note": "가족회비", "amount": 200000, "payment": ""}, {"date": "2026-04-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "5월 뮤지컬", "amount": 40000, "payment": ""}, {"date": "2026-04-15", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "택시", "amount": 17300, "payment": ""}, {"date": "2026-04-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "닭강정", "amount": 14600, "payment": ""}, {"date": "2026-04-16", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피 아누브", "amount": 5700, "payment": ""}, {"date": "2026-04-16", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 60000, "payment": ""}, {"date": "2026-04-16", "type": "지출", "scope": "", "main": "경조사", "category": "지인", "note": "차서호 모친 부조금", "amount": 100000, "payment": ""}, {"date": "2026-04-16", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "왁스", "amount": 2000, "payment": ""}, {"date": "2026-04-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "헤이티", "amount": 6400, "payment": ""}, {"date": "2026-04-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 3500, "payment": ""}, {"date": "2026-04-17", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "롯데프리미엄 아울렛", "amount": 25000, "payment": ""}, {"date": "2026-04-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "와플대학", "amount": 9800, "payment": ""}, {"date": "2026-04-18", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 6300, "payment": ""}, {"date": "2026-04-18", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "하나로마트", "amount": 15180, "payment": ""}, {"date": "2026-04-19", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쉐즈롤", "amount": 18500, "payment": ""}, {"date": "2026-04-19", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-04-20", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "미용실", "amount": 22000, "payment": ""}, {"date": "2026-04-20", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 4600, "payment": ""}, {"date": "2026-04-20", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "원당시장", "amount": 10480, "payment": ""}, {"date": "2026-04-20", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "k패스", "amount": 24060, "payment": ""}, {"date": "2026-04-20", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "사각 정산", "amount": 2417500, "payment": ""}, {"date": "2026-04-20", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "4월 월급", "amount": 3222940, "payment": ""}, {"date": "2026-04-20", "type": "지출", "scope": "", "main": "경조사", "category": "지인", "note": "윤관 친구 축의금", "amount": 100000, "payment": ""}, {"date": "2026-04-20", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "면접비", "amount": 60000, "payment": ""}, {"date": "2026-04-22", "type": "지출", "scope": "", "main": "주거비", "category": "관리비", "note": "관리비", "amount": 345040, "payment": ""}, {"date": "2026-04-22", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "곡물도감", "amount": 37800, "payment": ""}, {"date": "2026-04-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 3300, "payment": ""}, {"date": "2026-04-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "공차", "amount": 9800, "payment": ""}, {"date": "2026-04-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "다이소 식물", "amount": 10000, "payment": ""}, {"date": "2026-04-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥날, 컴포즈", "amount": 10800, "payment": ""}, {"date": "2026-04-23", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "bmw", "amount": 524877, "payment": ""}, {"date": "2026-04-23", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "삼성화재 보라", "amount": 22210, "payment": ""}, {"date": "2026-04-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "음료수", "amount": 1480, "payment": ""}, {"date": "2026-04-24", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "매머드", "amount": 1400, "payment": ""}, {"date": "2026-04-25", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "버거킹", "amount": 13900, "payment": ""}, {"date": "2026-04-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피사피엔스", "amount": 11600, "payment": ""}, {"date": "2026-04-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "한강버스", "amount": 6000, "payment": ""}, {"date": "2026-04-25", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "호화반점", "amount": 20000, "payment": ""}, {"date": "2026-04-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "브로스", "amount": 10000, "payment": ""}, {"date": "2026-04-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "다이소", "amount": 7000, "payment": ""}, {"date": "2026-04-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "애플", "amount": 1100, "payment": ""}, {"date": "2026-04-26", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "세차비", "amount": 5000, "payment": ""}, {"date": "2026-04-26", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "와플대학", "amount": 8600, "payment": ""}, {"date": "2026-04-26", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "다이소", "amount": 7000, "payment": ""}, {"date": "2026-04-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "쿠팡와우", "amount": 7800, "payment": ""}, {"date": "2026-04-26", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡", "amount": 33870, "payment": ""}, {"date": "2026-04-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "모임회비", "amount": 30000, "payment": ""}, {"date": "2026-04-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-04-27", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "구글 관", "amount": 2400, "payment": ""}, {"date": "2026-04-27", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "관 핸드폰kt", "amount": 47000, "payment": ""}, {"date": "2026-04-27", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "관 핸드폰 skt", "amount": 59990, "payment": ""}, {"date": "2026-04-27", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "삼성화재 관", "amount": 16647, "payment": ""}, {"date": "2026-04-27", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "tv,인터넷", "amount": 46563, "payment": ""}, {"date": "2026-04-27", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "보금자리", "amount": 673235, "payment": ""}, {"date": "2026-04-27", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 20000, "payment": ""}, {"date": "2026-04-27", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "트레이더스", "amount": 24920, "payment": ""}, {"date": "2026-04-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-04-29", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "망원시장", "amount": 19250, "payment": ""}, {"date": "2026-04-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "다이소", "amount": 2000, "payment": ""}, {"date": "2026-04-30", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 5100, "payment": ""}, {"date": "2026-04-30", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "회식 택시", "amount": 17000, "payment": ""}, {"date": "2026-05-01", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "현대백화점 판교", "amount": 24000, "payment": ""}, {"date": "2026-05-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "버터앤쉘", "amount": 18000, "payment": ""}, {"date": "2026-05-01", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "서부청기와", "amount": 20000, "payment": ""}, {"date": "2026-05-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡 식물", "amount": 16050, "payment": ""}, {"date": "2026-05-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "토스페이 (알리)", "amount": 31152, "payment": ""}, {"date": "2026-05-02", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 50000, "payment": ""}, {"date": "2026-05-02", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "행주산성", "amount": 9350, "payment": ""}, {"date": "2026-05-03", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "바지락칼국수", "amount": 30000, "payment": ""}, {"date": "2026-05-03", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "키보드", "amount": 78500, "payment": ""}, {"date": "2026-05-03", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠폴로서울", "amount": 26300, "payment": ""}, {"date": "2026-05-03", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "서강껍데기", "amount": 47000, "payment": ""}, {"date": "2026-05-03", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "주차비", "amount": 19000, "payment": ""}, {"date": "2026-05-04", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 식재료", "amount": 35410, "payment": ""}, {"date": "2026-05-04", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "바퀜", "amount": 61400, "payment": ""}, {"date": "2026-05-04", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "하나은행", "amount": 110175, "payment": ""}, {"date": "2026-05-04", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "하나카드 연회비", "amount": 19900, "payment": ""}, {"date": "2026-05-04", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "디자인팀 회식", "amount": 40000, "payment": ""}, {"date": "2026-05-04", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "매머드", "amount": 3000, "payment": ""}, {"date": "2026-05-05", "type": "지출", "scope": "", "main": "경조사", "category": "가족", "note": "엄마선물", "amount": 49000, "payment": ""}, {"date": "2026-05-05", "type": "지출", "scope": "", "main": "경조사", "category": "가족", "note": "아빠선물", "amount": 118000, "payment": ""}, {"date": "2026-05-05", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "이케아", "amount": 23000, "payment": ""}, {"date": "2026-05-05", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "주차비", "amount": 3000, "payment": ""}, {"date": "2026-05-06", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-05-06", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 2300, "payment": ""}, {"date": "2026-05-07", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "엽떡", "amount": 16100, "payment": ""}, {"date": "2026-05-07", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 2200, "payment": ""}, {"date": "2026-05-08", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "닥터피엘", "amount": 20430, "payment": ""}, {"date": "2026-05-08", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 3300, "payment": ""}, {"date": "2026-05-08", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡", "amount": 33040, "payment": ""}, {"date": "2026-05-08", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "하이오카페", "amount": 8000, "payment": ""}, {"date": "2026-05-08", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "아이파크 용산", "amount": 62170, "payment": ""}, {"date": "2026-05-09", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "구글", "amount": 2400, "payment": ""}, {"date": "2026-05-09", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 8000, "payment": ""}, {"date": "2026-05-10", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-05-10", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "다이소 청소용품", "amount": 12700, "payment": ""}, {"date": "2026-05-10", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "빽다방", "amount": 5880, "payment": ""}, {"date": "2026-05-10", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡", "amount": 64500, "payment": ""}, {"date": "2026-05-10", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 19000, "payment": ""}, {"date": "2026-05-11", "type": "지출", "scope": "", "main": "교통비", "category": "대중교통", "note": "k패스", "amount": 71650, "payment": ""}, {"date": "2026-05-11", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "듀먼 정산", "amount": 2150000, "payment": ""}, {"date": "2026-05-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-05-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "다이소", "amount": 11000, "payment": ""}, {"date": "2026-05-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡 베란다 페인트", "amount": 21000, "payment": ""}, {"date": "2026-05-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "타조메롱", "amount": 5800, "payment": ""}, {"date": "2026-05-12", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "롯데몰", "amount": 40700, "payment": ""}, {"date": "2026-05-12", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "핸드폰", "amount": 78900, "payment": ""}, {"date": "2026-05-12", "type": "지출", "scope": "", "main": "주거비", "category": "정수기", "note": "코웨이", "amount": 14900, "payment": ""}, {"date": "2026-05-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 3300, "payment": ""}, {"date": "2026-05-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "마우스", "amount": 65750, "payment": ""}, {"date": "2026-05-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "우체국", "amount": 12000, "payment": ""}, {"date": "2026-05-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥날", "amount": 6900, "payment": ""}, {"date": "2026-05-13", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": " das 당근", "amount": 210000, "payment": ""}, {"date": "2026-05-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-05-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥모닝", "amount": 9600, "payment": ""}, {"date": "2026-05-15", "type": "지출", "scope": "", "main": "경조사", "category": "가족", "note": "결이 돌선물", "amount": 195470, "payment": ""}, {"date": "2026-05-15", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 330000, "payment": ""}, {"date": "2026-05-15", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 200000, "payment": ""}, {"date": "2026-05-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "점심외식", "amount": 17500, "payment": ""}, {"date": "2026-05-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "수수료", "amount": 3300, "payment": ""}, {"date": "2026-05-15", "type": "지출", "scope": "", "main": "", "category": "", "note": "가족회비", "amount": 200000, "payment": ""}, {"date": "2026-05-15", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "민쿡앞바당", "amount": 41000, "payment": ""}, {"date": "2026-05-15", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "서래마을 주차비", "amount": 4900, "payment": ""}, {"date": "2026-05-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡 섬유유연제, 필터", "amount": 32340, "payment": ""}, {"date": "2026-05-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "식물 흙", "amount": 4860, "payment": ""}, {"date": "2026-05-16", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 495000, "payment": ""}, {"date": "2026-05-16", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-05-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 10000, "payment": ""}, {"date": "2026-05-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "써큘레이터", "amount": 40000, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "관 삼성화재", "amount": 16647, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "kt 핸드폰", "amount": 49198, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "알리 테무", "amount": 54505, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "당근 택배", "amount": 38000, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "저녁외식 돈가스클럽", "amount": 41500, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "세차충전", "amount": 10000, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-05-18", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 220000, "payment": ""}, {"date": "2026-05-18", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 150000, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쓰봉, 다이소", "amount": 10000, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "뚜레쥬르", "amount": 10000, "payment": ""}, {"date": "2026-05-18", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "올리브영", "amount": 16800, "payment": ""}, {"date": "2026-05-19", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "주차비", "amount": 12900, "payment": ""}, {"date": "2026-05-19", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 3600, "payment": ""}, {"date": "2026-05-19", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "광평", "amount": 138000, "payment": ""}, {"date": "2026-05-19", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 2200, "payment": ""}, {"date": "2026-05-19", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 100000, "payment": ""}, {"date": "2026-05-19", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "마사지", "amount": 50000, "payment": ""}, {"date": "2026-05-19", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "마사지", "amount": 50000, "payment": ""}, {"date": "2026-05-20", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "월급", "amount": 3269090, "payment": ""}, {"date": "2026-05-20", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "바나나", "amount": 3830, "payment": ""}, {"date": "2026-05-20", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "모자", "amount": 14900, "payment": ""}, {"date": "2026-05-20", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "구찌가방", "amount": 780000, "payment": ""}, {"date": "2026-05-21", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "매머드", "amount": 3200, "payment": ""}, {"date": "2026-05-21", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "운동화 그외", "amount": 100000, "payment": ""}, {"date": "2026-05-21", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-05-21", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "서브웨이", "amount": 7900, "payment": ""}, {"date": "2026-05-21", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "타임스퀘어 쇼핑", "amount": 193160, "payment": ""}, {"date": "2026-05-21", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "공차", "amount": 17000, "payment": ""}, {"date": "2026-05-22", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "주차비", "amount": 4800, "payment": ""}, {"date": "2026-05-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥모닝", "amount": 9700, "payment": ""}, {"date": "2026-05-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡 ", "amount": 15900, "payment": ""}, {"date": "2026-05-22", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 623700, "payment": ""}, {"date": "2026-05-22", "type": "지출", "scope": "", "main": "주거비", "category": "관리비", "note": "관리비", "amount": 251775, "payment": ""}, {"date": "2026-05-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "올리브영", "amount": 22610, "payment": ""}, {"date": "2026-05-22", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "k패스 환급", "amount": 35660, "payment": ""}, {"date": "2026-05-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "베라", "amount": 4300, "payment": ""}, {"date": "2026-05-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "키노야", "amount": 12500, "payment": ""}, {"date": "2026-05-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "빽다방", "amount": 4500, "payment": ""}, {"date": "2026-05-23", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "파타코니아", "amount": 180000, "payment": ""}, {"date": "2026-05-23", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "파타고니아", "amount": 62000, "payment": ""}, {"date": "2026-05-23", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "팜스마트", "amount": 13570, "payment": ""}, {"date": "2026-05-23", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡", "amount": 43050, "payment": ""}, {"date": "2026-05-24", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "처갓집", "amount": 37000, "payment": ""}, {"date": "2026-05-24", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "소고기", "amount": 50000, "payment": ""}, {"date": "2026-05-24", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "투썸", "amount": 8100, "payment": ""}, {"date": "2026-05-24", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "주차비", "amount": 2750, "payment": ""}, {"date": "2026-05-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡 옷걸이", "amount": 17990, "payment": ""}, {"date": "2026-05-25", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 30000, "payment": ""}, {"date": "2026-05-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "버거리", "amount": 12700, "payment": ""}, {"date": "2026-05-25", "type": "지출", "scope": "", "main": "경조사", "category": "지인", "note": "루은이선물", "amount": 55000, "payment": ""}, {"date": "2026-05-25", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "찜닭", "amount": 31000, "payment": ""}, {"date": "2026-05-25", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "가방", "amount": 121700, "payment": ""}, {"date": "2026-05-26", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "삼성화재", "amount": 22210, "payment": ""}, {"date": "2026-05-26", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "속옷", "amount": 51700, "payment": ""}, {"date": "2026-05-26", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 2600, "payment": ""}, {"date": "2026-05-26", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "브로드밴드", "amount": 46563, "payment": ""}, {"date": "2026-05-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "쿠팡와우", "amount": 7890, "payment": ""}, {"date": "2026-05-26", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "김밥,커피", "amount": 6800, "payment": ""}, {"date": "2026-05-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "애플", "amount": 1100, "payment": ""}, {"date": "2026-05-26", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "보금자리", "amount": 675732, "payment": ""}, {"date": "2026-05-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-05-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "룰루레몬", "amount": 54000, "payment": ""}, {"date": "2026-05-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "모임회비", "amount": 30000, "payment": ""}, {"date": "2026-05-27", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "이마트", "amount": 20420, "payment": ""}, {"date": "2026-05-27", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "현선이네", "amount": 24000, "payment": ""}, {"date": "2026-05-28", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "뚜쥬, 커피", "amount": 9300, "payment": ""}, {"date": "2026-05-28", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "영업팀 회식", "amount": 51700, "payment": ""}, {"date": "2026-05-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "무신사 킨", "amount": 118990, "payment": ""}, {"date": "2026-05-29", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "서오릉 돼지집", "amount": 26000, "payment": ""}, {"date": "2026-05-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 5800, "payment": ""}, {"date": "2026-05-30", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "역전할맥", "amount": 25500, "payment": ""}, {"date": "2026-05-30", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 18000, "payment": ""}, {"date": "2026-05-30", "type": "지출", "scope": "", "main": "교통비", "category": "기타", "note": "택시", "amount": 9800, "payment": ""}, {"date": "2026-05-31", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "더벤티", "amount": 6840, "payment": ""}, {"date": "2026-05-31", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 ", "amount": 36990, "payment": ""}, {"date": "2026-05-31", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 50000, "payment": ""}, {"date": "2026-06-01", "type": "지출", "scope": "관", "main": "교통비", "category": "대중교통", "note": "관 대중교통", "amount": 17650, "payment": ""}, {"date": "2026-06-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "김밥, 커피", "amount": 12500, "payment": ""}, {"date": "2026-06-01", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 20000, "payment": ""}, {"date": "2026-06-01", "type": "지출", "scope": "", "main": "경조사", "category": "가족", "note": "결이선물", "amount": 195470, "payment": ""}, {"date": "2026-06-01", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 4500, "payment": ""}, {"date": "2026-06-01", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "명가부찌", "amount": 23500, "payment": ""}, {"date": "2026-06-01", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "팜스", "amount": 11910, "payment": ""}, {"date": "2026-06-02", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 3600, "payment": ""}, {"date": "2026-06-02", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "서울식물원 주차장", "amount": 1500, "payment": ""}, {"date": "2026-06-02", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "닭강정", "amount": 14200, "payment": ""}, {"date": "2026-06-03", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "파크프리베 카페", "amount": 33100, "payment": ""}, {"date": "2026-06-03", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 10000, "payment": ""}, {"date": "2026-06-03", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "탑텐", "amount": 110400, "payment": ""}, {"date": "2026-06-03", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "닭갈비", "amount": 32300, "payment": ""}, {"date": "2026-06-04", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-06-04", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "하나신용", "amount": 112287, "payment": ""}, {"date": "2026-06-04", "type": "지출", "scope": "", "main": "생활비", "category": "여행", "note": "제주도 비행기", "amount": 174980, "payment": ""}, {"date": "2026-06-04", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "엽떡", "amount": 16300, "payment": ""}, {"date": "2026-06-04", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 토레타", "amount": 21190, "payment": ""}, {"date": "2026-06-05", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "김밥, 커피", "amount": 3600, "payment": ""}, {"date": "2026-06-05", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맘스터치", "amount": 7700, "payment": ""}, {"date": "2026-06-05", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "우든박스", "amount": 10260, "payment": ""}, {"date": "2026-06-05", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "우체국", "amount": 5400, "payment": ""}, {"date": "2026-06-05", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "하우명품대패", "amount": 42300, "payment": ""}, {"date": "2026-06-05", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 53000, "payment": ""}, {"date": "2026-06-05", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 54000, "payment": ""}, {"date": "2026-06-06", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "우체국", "amount": 3900, "payment": ""}, {"date": "2026-06-06", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "코스트코", "amount": 64000, "payment": ""}, {"date": "2026-06-07", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 58000, "payment": ""}, {"date": "2026-06-07", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "아식스신발", "amount": 95000, "payment": ""}, {"date": "2026-06-07", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "메가커피", "amount": 9600, "payment": ""}, {"date": "2026-06-07", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "꽈배기", "amount": 5600, "payment": ""}, {"date": "2026-06-07", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "닭가슴살", "amount": 22350, "payment": ""}, {"date": "2026-06-08", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 5800, "payment": ""}, {"date": "2026-06-08", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "홍콩반점", "amount": 28800, "payment": ""}, {"date": "2026-06-08", "type": "지출", "scope": "", "main": "생활비", "category": "여행", "note": "제주도 비행기", "amount": 178000, "payment": ""}, {"date": "2026-06-08", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 70000, "payment": ""}, {"date": "2026-06-09", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "구글", "amount": 2400, "payment": ""}, {"date": "2026-06-09", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "일산백병원", "amount": 13900, "payment": ""}, {"date": "2026-06-09", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "팜스마트", "amount": 30380, "payment": ""}, {"date": "2026-06-10", "type": "지출", "scope": "", "main": "교통비", "category": "대중교통", "note": "교통비", "amount": 40650, "payment": ""}, {"date": "2026-06-10", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 1500, "payment": ""}, {"date": "2026-06-10", "type": "지출", "scope": "", "main": "주거비", "category": "정수기", "note": "코웨이", "amount": 14900, "payment": ""}, {"date": "2026-06-10", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "운전자보험", "amount": 6510, "payment": ""}, {"date": "2026-06-10", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "자동차보험", "amount": 508123, "payment": ""}, {"date": "2026-06-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피", "amount": 1600, "payment": ""}, {"date": "2026-06-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "힐링성형외과", "amount": 5600, "payment": ""}, {"date": "2026-06-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥날", "amount": 7300, "payment": ""}, {"date": "2026-06-11", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "보라핸드폰", "amount": 78900, "payment": ""}, {"date": "2026-06-11", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "은행골", "amount": 34000, "payment": ""}, {"date": "2026-06-11", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 50000, "payment": ""}, {"date": "2026-06-11", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "주차비", "amount": 11700, "payment": ""}, {"date": "2026-06-11", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "공차", "amount": 9090, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "쿠팡 차관련 워셔액", "amount": 18140, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥날", "amount": 10000, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2680, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "카페", "amount": 4500, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "올리브영", "amount": 25000, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "차고", "amount": 33000, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡", "amount": 14900, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "우체국", "amount": 3920, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "성형외과", "amount": 62980, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "약국", "amount": 5400, "payment": ""}, {"date": "2026-06-12", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "파파존스", "amount": 33100, "payment": ""}, {"date": "2026-06-13", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "우동이요이요", "amount": 22000, "payment": ""}, {"date": "2026-06-13", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 587, "payment": ""}, {"date": "2026-06-13", "type": "지출", "scope": "", "main": "건강", "category": "병원비", "note": "힐링성형외과", "amount": 7000, "payment": ""}, {"date": "2026-06-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 3600, "payment": ""}, {"date": "2026-06-13", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "세차용품", "amount": 87780, "payment": ""}, {"date": "2026-06-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피캡슐", "amount": 46500, "payment": ""}, {"date": "2026-06-13", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "세차", "amount": 10000, "payment": ""}, {"date": "2026-06-13", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "메디폼", "amount": 14620, "payment": ""}, {"date": "2026-06-13", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "당근", "amount": 255000, "payment": ""}, {"date": "2026-06-14", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "솥밥", "amount": 22600, "payment": ""}, {"date": "2026-06-14", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3267, "payment": ""}, {"date": "2026-06-14", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 1174, "payment": ""}, {"date": "2026-06-14", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "아이스크림", "amount": 1200, "payment": ""}, {"date": "2026-06-15", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "평안도식당", "amount": 22000, "payment": ""}, {"date": "2026-06-15", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡이츠 설빙", "amount": 12400, "payment": ""}, {"date": "2026-06-15", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3263, "payment": ""}, {"date": "2026-06-16", "type": "지출", "scope": "", "main": "생활비", "category": "여행", "note": "제주숙소, 렌트", "amount": 237000, "payment": ""}, {"date": "2026-06-16", "type": "지출", "scope": "", "main": "생활비", "category": "여행", "note": "제주도 경비", "amount": 500000, "payment": ""}, {"date": "2026-06-16", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 1962, "payment": ""}, {"date": "2026-06-16", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "빽다방", "amount": 3700, "payment": ""}, {"date": "2026-06-16", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 6000, "payment": ""}, {"date": "2026-06-16", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "등촌칼국수", "amount": 29000, "payment": ""}, {"date": "2026-06-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "서정김밥", "amount": 8500, "payment": ""}, {"date": "2026-06-17", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "쿠팡 주차스티커", "amount": 8010, "payment": ""}, {"date": "2026-06-17", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "타조메롱", "amount": 4000, "payment": ""}, {"date": "2026-06-17", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 6138, "payment": ""}, {"date": "2026-06-18", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 50000, "payment": ""}, {"date": "2026-06-18", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥날", "amount": 9900, "payment": ""}, {"date": "2026-06-18", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "힐링성형외과", "amount": 9600, "payment": ""}, {"date": "2026-06-18", "type": "지출", "scope": "", "main": "생활비", "category": "여행", "note": "김포공항", "amount": 29900, "payment": ""}, {"date": "2026-06-19", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점 (생리대)", "amount": 8900, "payment": ""}, {"date": "2026-06-19", "type": "수입", "scope": "", "main": "급여", "category": "월급", "note": "월급", "amount": 3173890, "payment": ""}, {"date": "2026-06-20", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "사이다", "amount": 2100, "payment": ""}, {"date": "2026-06-21", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "순대국", "amount": 22000, "payment": ""}, {"date": "2026-06-21", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "더벤티", "amount": 6480, "payment": ""}, {"date": "2026-06-21", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2866, "payment": ""}, {"date": "2026-06-21", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "옥루몽", "amount": 20500, "payment": ""}, {"date": "2026-06-22", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3257, "payment": ""}, {"date": "2026-06-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "맥날", "amount": 5200, "payment": ""}, {"date": "2026-06-22", "type": "지출", "scope": "", "main": "주거비", "category": "관리비", "note": "관리비", "amount": 228850, "payment": ""}, {"date": "2026-06-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "쿠팡 생필품", "amount": 45750, "payment": ""}, {"date": "2026-06-22", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "매머드", "amount": 3000, "payment": ""}, {"date": "2026-06-22", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2393, "payment": ""}, {"date": "2026-06-23", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "삼성화재", "amount": 22210, "payment": ""}, {"date": "2026-06-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "어썸어스 헬스", "amount": 231000, "payment": ""}, {"date": "2026-06-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-06-23", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-06-23", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "미소야", "amount": 19500, "payment": ""}, {"date": "2026-06-23", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2625, "payment": ""}, {"date": "2026-06-23", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 계란", "amount": 16560, "payment": ""}, {"date": "2026-06-24", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "구글", "amount": 2400, "payment": ""}, {"date": "2026-06-24", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "tv 인터넷", "amount": 46563, "payment": ""}, {"date": "2026-06-24", "type": "지출", "scope": "", "main": "건강", "category": "실비보험", "note": "삼성화재 ", "amount": 16647, "payment": ""}, {"date": "2026-06-24", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "관 핸드폰 skt", "amount": 28000, "payment": ""}, {"date": "2026-06-24", "type": "지출", "scope": "", "main": "통신비", "category": "핸드폰", "note": "관 핸드폰 kt", "amount": 47000, "payment": ""}, {"date": "2026-06-24", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "관 충전", "amount": 10000, "payment": ""}, {"date": "2026-06-24", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "커피, 빵", "amount": 7300, "payment": ""}, {"date": "2026-06-24", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "팜스마트", "amount": 16590, "payment": ""}, {"date": "2026-06-24", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2453, "payment": ""}, {"date": "2026-06-25", "type": "지출", "scope": "", "main": "주거비", "category": "집대출", "note": "보금자리", "amount": 678229, "payment": ""}, {"date": "2026-06-25", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "쿠팡 목배게", "amount": 24890, "payment": ""}, {"date": "2026-06-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "쿠팡 와우", "amount": 7890, "payment": ""}, {"date": "2026-06-26", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "서브웨이", "amount": 12600, "payment": ""}, {"date": "2026-06-26", "type": "지출", "scope": "", "main": "구독", "category": "OTT", "note": "애플", "amount": 1100, "payment": ""}, {"date": "2026-06-26", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "모임회비", "amount": 30000, "payment": ""}, {"date": "2026-06-26", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 1882, "payment": ""}, {"date": "2026-06-26", "type": "지출", "scope": "", "main": "자동차", "category": "기타", "note": "주차비", "amount": 2200, "payment": ""}, {"date": "2026-06-27", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2434, "payment": ""}, {"date": "2026-06-27", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "스벅", "amount": 13900, "payment": ""}, {"date": "2026-06-27", "type": "지출", "scope": "", "main": "생활비", "category": "쇼핑", "note": "탑텐", "amount": 155500, "payment": ""}, {"date": "2026-06-27", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "부산식당", "amount": 46200, "payment": ""}, {"date": "2026-06-27", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2708, "payment": ""}, {"date": "2026-06-28", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 4992, "payment": ""}, {"date": "2026-06-28", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "올리브영", "amount": 25800, "payment": ""}, {"date": "2026-06-28", "type": "지출", "scope": "", "main": "생활비", "category": "배달", "note": "청기와", "amount": 20000, "payment": ""}, {"date": "2026-06-28", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "다이소", "amount": 21200, "payment": ""}, {"date": "2026-06-29", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3731, "payment": ""}, {"date": "2026-06-29", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 5000, "payment": ""}, {"date": "2026-06-30", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "편의점", "amount": 6300, "payment": ""}, {"date": "2026-06-30", "type": "지출", "scope": "", "main": "생활비", "category": "식비", "note": "쿠팡 쉐이크, 아침용", "amount": 71380, "payment": ""}, {"date": "2026-06-30", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2421, "payment": ""}, {"date": "2026-06-30", "type": "지출", "scope": "", "main": "생활비", "category": "기타", "note": "타조메롱", "amount": 4000, "payment": ""}, {"date": "2026-07-01", "type": "지출", "scope": "공동", "main": "생활비", "category": "식비", "note": "컬리", "amount": 35595, "payment": ""}, {"date": "2026-07-01", "type": "지출", "scope": "보라", "main": "교통비", "category": "대중교통", "note": "대중교통", "amount": 17400, "payment": ""}, {"date": "2026-07-01", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2249, "payment": ""}, {"date": "2026-07-01", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "점심", "amount": 11000, "payment": ""}, {"date": "2026-07-02", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "뚜레쥬르", "amount": 5100, "payment": ""}, {"date": "2026-07-02", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "닭칼국수", "amount": 22000, "payment": ""}, {"date": "2026-07-02", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "트러스트커피", "amount": 7600, "payment": ""}, {"date": "2026-07-03", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "오가네", "amount": 21000, "payment": ""}, {"date": "2026-07-03", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3228, "payment": ""}, {"date": "2026-07-03", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "플럭스커피", "amount": 4000, "payment": ""}, {"date": "2026-07-04", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "유니클로", "amount": 59900, "payment": ""}, {"date": "2026-07-04", "type": "지출", "scope": "공동", "main": "자동차", "category": "기타", "note": "영등포 주차비", "amount": 2870, "payment": ""}, {"date": "2026-07-04", "type": "지출", "scope": "공동", "main": "자동차", "category": "기타", "note": "뉴코아 주차비", "amount": 8800, "payment": ""}, {"date": "2026-07-04", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "뽑기", "amount": 7000, "payment": ""}, {"date": "2026-07-04", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 1059, "payment": ""}, {"date": "2026-07-04", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2597, "payment": ""}, {"date": "2026-07-05", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "코지하우스", "amount": 43200, "payment": ""}, {"date": "2026-07-05", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 8682, "payment": ""}, {"date": "2026-07-06", "type": "지출", "scope": "보라", "main": "자동차", "category": "기타", "note": "주차비", "amount": 4500, "payment": ""}, {"date": "2026-07-06", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3318, "payment": ""}, {"date": "2026-07-06", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "블로그", "amount": 10000, "payment": ""}, {"date": "2026-07-06", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "퀵", "amount": 11400, "payment": ""}, {"date": "2026-07-06", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "그릭요거트", "amount": 7800, "payment": ""}, {"date": "2026-07-06", "type": "지출", "scope": "공동", "main": "주거비", "category": "집대출", "note": "하나은행", "amount": 108665, "payment": ""}, {"date": "2026-07-07", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "도바우", "amount": 7000, "payment": ""}, {"date": "2026-07-07", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3346, "payment": ""}, {"date": "2026-07-07", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "스벅", "amount": 6000, "payment": ""}, {"date": "2026-07-07", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "오호라", "amount": 25120, "payment": ""}, {"date": "2026-07-08", "type": "지출", "scope": "공동", "main": "자동차", "category": "기타", "note": "주차비", "amount": 4750, "payment": ""}, {"date": "2026-07-08", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "샤넬 화장품", "amount": 178000, "payment": ""}, {"date": "2026-07-08", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "심가네 칼국수", "amount": 20000, "payment": ""}, {"date": "2026-07-08", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "베라", "amount": 10500, "payment": ""}, {"date": "2026-07-09", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "스벅", "amount": 1200, "payment": ""}, {"date": "2026-07-09", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3263, "payment": ""}, {"date": "2026-07-09", "type": "지출", "scope": "보라", "main": "교통비", "category": "기타", "note": "굽네몰 회식 택시", "amount": 26500, "payment": ""}, {"date": "2026-07-09", "type": "지출", "scope": "공동", "main": "구독", "category": "OTT", "note": "구글", "amount": 2400, "payment": ""}, {"date": "2026-07-09", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "죠샌드위치", "amount": 8500, "payment": ""}, {"date": "2026-07-09", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "서정김밥", "amount": 5000, "payment": ""}, {"date": "2026-07-10", "type": "지출", "scope": "공동", "main": "생활비", "category": "쇼핑", "note": "탑텐", "amount": 20000, "payment": ""}, {"date": "2026-07-10", "type": "지출", "scope": "공동", "main": "자동차", "category": "자동차보험", "note": "자동차보험", "amount": 508123, "payment": ""}, {"date": "2026-07-10", "type": "지출", "scope": "공동", "main": "자동차", "category": "할부금", "note": "할부금", "amount": 456520, "payment": ""}, {"date": "2026-07-10", "type": "지출", "scope": "관", "main": "교통비", "category": "대중교통", "note": "후불교통카드", "amount": 72410, "payment": ""}, {"date": "2026-07-10", "type": "지출", "scope": "공동", "main": "자동차", "category": "자동차보험", "note": "운전자보험", "amount": 6510, "payment": ""}, {"date": "2026-07-10", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "회식", "amount": 49416, "payment": ""}, {"date": "2026-07-10", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "플로어칠", "amount": 11500, "payment": ""}, {"date": "2026-07-10", "type": "지출", "scope": "공동", "main": "주거비", "category": "정수기", "note": "코웨이", "amount": 14900, "payment": ""}, {"date": "2026-07-11", "type": "지출", "scope": "공동", "main": "자동차", "category": "기타", "note": "김포롯데몰 주차", "amount": 2000, "payment": ""}, {"date": "2026-07-11", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "어나더사이드", "amount": 18300, "payment": ""}, {"date": "2026-07-11", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "영화", "amount": 4000, "payment": ""}, {"date": "2026-07-11", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "닭강정", "amount": 17000, "payment": ""}, {"date": "2026-07-11", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 8439, "payment": ""}, {"date": "2026-07-12", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "스파아일랜드", "amount": 70000, "payment": ""}, {"date": "2026-07-12", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "추어탕", "amount": 24000, "payment": ""}, {"date": "2026-07-12", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "편의점", "amount": 1104, "payment": ""}, {"date": "2026-07-12", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 5197, "payment": ""}, {"date": "2026-07-12", "type": "지출", "scope": "", "main": "교통비", "category": "주유비", "note": "주유비", "amount": 50000, "payment": ""}, {"date": "2026-07-12", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "갤럭시워치", "amount": 130000, "payment": ""}, {"date": "2026-07-12", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "버즈", "amount": 120000, "payment": ""}, {"date": "2026-07-13", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2412, "payment": ""}, {"date": "2026-07-13", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "쿠팡 (콜라, 카드지갑)", "amount": 25800, "payment": ""}, {"date": "2026-07-13", "type": "지출", "scope": "보라", "main": "통신비", "category": "핸드폰", "note": "보라핸드폰", "amount": 78900, "payment": ""}, {"date": "2026-07-14", "type": "지출", "scope": "공동", "main": "자동차", "category": "기타", "note": "모두의 주차장", "amount": 2400, "payment": ""}, {"date": "2026-07-14", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "진양재순대", "amount": 11000, "payment": ""}, {"date": "2026-07-14", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "로스터리락온", "amount": 5000, "payment": ""}, {"date": "2026-07-14", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "컴포즈", "amount": 1800, "payment": ""}, {"date": "2026-07-15", "type": "지출", "scope": "공동", "main": "생활비", "category": "쇼핑", "note": "크록스, 헤지스", "amount": 125898, "payment": ""}, {"date": "2026-07-15", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "연재푸드", "amount": 2000, "payment": ""}, {"date": "2026-07-15", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3366, "payment": ""}, {"date": "2026-07-15", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3318, "payment": ""}, {"date": "2026-07-15", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "이마트24", "amount": 7800, "payment": ""}, {"date": "2026-07-15", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "매머드", "amount": 1600, "payment": ""}, {"date": "2026-07-16", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "한슐랭", "amount": 7500, "payment": ""}, {"date": "2026-07-16", "type": "지출", "scope": "공동", "main": "생활비", "category": "식비", "note": "이마트 화정", "amount": 19170, "payment": ""}, {"date": "2026-07-16", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "KFC", "amount": 7400, "payment": ""}, {"date": "2026-07-16", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3269, "payment": ""}, {"date": "2026-07-16", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "로스터리 락온", "amount": 6500, "payment": ""}, {"date": "2026-07-16", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "플럭스커피", "amount": 4000, "payment": ""}, {"date": "2026-07-17", "type": "지출", "scope": "공동", "main": "생활비", "category": "생필품", "note": "무인양품", "amount": 8800, "payment": ""}, {"date": "2026-07-17", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 2246, "payment": ""}, {"date": "2026-07-17", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "할리스", "amount": 6555, "payment": ""}, {"date": "2026-07-17", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "박하헤어", "amount": 20000, "payment": ""}, {"date": "2026-07-17", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "탑텐", "amount": 10000, "payment": ""}, {"date": "2026-07-17", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "고망고", "amount": 3200, "payment": ""}, {"date": "2026-07-18", "type": "지출", "scope": "공동", "main": "자동차", "category": "기타", "note": "자동차세", "amount": 18290, "payment": ""}, {"date": "2026-07-18", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "커피사피엔스", "amount": 9100, "payment": ""}, {"date": "2026-07-18", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "리스토어", "amount": 9000, "payment": ""}, {"date": "2026-07-18", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3203, "payment": ""}, {"date": "2026-07-19", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "라빈", "amount": 11000, "payment": ""}, {"date": "2026-07-19", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "엽떡", "amount": 16000, "payment": ""}, {"date": "2026-07-19", "type": "지출", "scope": "공동", "main": "생활비", "category": "식비", "note": "단백질쉐이크", "amount": 31190, "payment": ""}, {"date": "2026-07-19", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 8390, "payment": ""}, {"date": "2026-07-19", "type": "수입", "scope": "", "main": "기타소득", "category": "기타", "note": "에어팟", "amount": 85000, "payment": ""}, {"date": "2026-07-20", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "서브웨이", "amount": 15400, "payment": ""}, {"date": "2026-07-20", "type": "수입", "scope": "보라", "main": "급여", "category": "월급", "note": "보라월급", "amount": 3022190, "payment": ""}, {"date": "2026-07-20", "type": "수입", "scope": "보라", "main": "급여", "category": "상여금", "note": "휴가비", "amount": 500000, "payment": ""}, {"date": "2026-07-20", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "ai구독", "amount": 9657, "payment": ""}, {"date": "2026-07-20", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "진양재순대", "amount": 11000, "payment": ""}, {"date": "2026-07-21", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "뚜레쥬르", "amount": 7400, "payment": ""}, {"date": "2026-07-21", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "가비아", "amount": 2750, "payment": ""}, {"date": "2026-07-21", "type": "지출", "scope": "관", "main": "생활비", "category": "기타", "note": "더휴컨벤션", "amount": 11000, "payment": ""}, {"date": "2026-07-21", "type": "지출", "scope": "보라", "main": "생활비", "category": "기타", "note": "피트니스 벨", "amount": 22000, "payment": ""}, {"date": "2026-07-21", "type": "지출", "scope": "공동", "main": "주거비", "category": "관리비", "note": "관리비", "amount": 217580, "payment": ""}, {"date": "2026-07-22", "type": "지출", "scope": "공동", "main": "생활비", "category": "기타", "note": "재산세", "amount": 76090, "payment": ""}, {"date": "2026-07-22", "type": "지출", "scope": "공동", "main": "생활비", "category": "배달", "note": "저녁", "amount": 27900, "payment": ""}, {"date": "2026-07-22", "type": "지출", "scope": "", "main": "교통비", "category": "전기차충전", "note": "차지비", "amount": 3050, "payment": ""}];
 
 function seedIfEmpty(){
   if(DB.list().length > 0) return;
   SEED_DATA.forEach(r => {
     DB.add({
-      date: r.date, type: r.type, main: r.main, category: r.mid,
-      note: r.detail, amount: r.amount, user: r.user||'', payment: r.payment||''
+      date: r.date, type: r.type, scope: r.scope || '', main: r.main || '', category: r.category || '',
+      note: r.note, amount: r.amount, user: r.payment||'', payment: r.payment||''
     });
   });
 }
@@ -810,8 +750,8 @@ function render(){
   app.innerHTML = `
     <div class="topbar">
       <div class="brand">
+        <span class="mark">家</span>
         <div>
-        <a href="./index.html" class="home-btn">← 홈</a>
           <h1>우리집 가계부</h1>
           <div class="sub">구조 설계 단계 · 로컬 저장 (Supabase 연동 예정)</div>
         </div>
@@ -827,7 +767,7 @@ function render(){
       </div>
     </div>
     <div id="view"></div>
-    <footer class="foot">yunkwan.cloud · 가계부.html — Supabase에 저장되어 기기 간 자동으로 동기화됩니다.</footer>
+    <footer class="foot">yunkwan.cloud · 가계부.html — 현재 데이터는 브라우저(localStorage)에 저장됩니다. Supabase 연동 시 자동으로 클라우드 동기화됩니다.</footer>
   `;
 
   if(state.view === 'summary') renderSummary();
@@ -843,25 +783,7 @@ function renderSummary(){
   const savingInvest = list.filter(t=>t.type==='지출' && t.main==='저축·투자').reduce((s,t)=>s+Number(t.amount||0),0);
   const net = income - expense;
   const rate = income ? (net/income*100) : 0;
-
-  const monthly = MONTH_NAMES.map((_,i)=>{
-    const ym = state.year + '-' + String(i+1).padStart(2,'0');
-    const mt = monthTx(list, ym);
-    return { ym, income: sumBy(mt,'수입'), expense: sumBy(mt,'지출') };
-  });
-
-  // 지출 카테고리 12개월 표 (구분과 무관하게 전체 지출 중분류/소분류 기준)
-  const expenseRows = [];
-  flatExpenseCategories().forEach(({main, cat})=>{
-    const row = { main, cat, months: [], total:0 };
-    monthly.forEach(m=>{
-      const amt = list.filter(t=>t.type==='지출'&&t.main===main&&t.category===cat&&ymOf(t.date)===m.ym)
-                      .reduce((s,t)=>s+Number(t.amount||0),0);
-      row.months.push(amt); row.total += amt;
-    });
-    if(row.total>0) expenseRows.push(row);
-  });
-  expenseRows.sort((a,b)=>b.total-a.total);
+  const monthYms = MONTH_NAMES.map((_,i)=> state.year + '-' + String(i+1).padStart(2,'0'));
 
   document.getElementById('view').innerHTML = `
     <div class="section-head">
@@ -875,50 +797,60 @@ function renderSummary(){
       <div class="card kpi"><div class="label">순저축률 (수입-지출)</div><div class="value mono">${pct(rate)}</div></div>
     </div>
 
-    <div class="grid two-col section">
+    <div class="section">
       <div class="card chart-card">
-        <div class="section-head"><h2>월별 수입 · 지출</h2></div>
+        <div class="section-head">
+          <h2>월별 수입 · 지출</h2>
+          <div class="filters" id="summaryScopeTabs">
+            ${['전체',...SCOPES].map(s=>`<button class="chip ${state.summaryScope===s?'active':''}" onclick="setSummaryScope('${s}')">${s}</button>`).join('')}
+          </div>
+        </div>
         <canvas id="chartMonthly"></canvas>
-      </div>
-      <div class="card chart-card">
-        <div class="section-head"><h2>월별 저축율 추이</h2></div>
-        <canvas id="chartRate"></canvas>
       </div>
     </div>
 
     <div class="section">
-      <div class="section-head"><h2>지출 카테고리 · 월별 상세</h2><span class="hint">대분류 &gt; 카테고리, 단위: 원</span></div>
+      <div class="section-head"><h2>지출 카테고리 · 월별 상세</h2><span class="hint">구분(공동/보라/관) &gt; 중분류 &gt; 소분류, 단위: 원</span></div>
       <div class="card table-card" style="overflow-x:auto;">
         <table class="tx-table">
           <thead><tr>
-            <th>대분류</th><th>카테고리</th>
+            <th>중분류</th><th>소분류</th>
             ${MONTH_NAMES.map(m=>`<th style="text-align:right">${m}</th>`).join('')}
             <th style="text-align:right">합계</th>
           </tr></thead>
           <tbody>
-            ${expenseRows.length ? expenseRows.map(r=>`
-              <tr>
-                <td style="color:var(--muted);white-space:nowrap;">${r.main}</td>
-                <td style="font-weight:600;white-space:nowrap;">${r.cat}</td>
-                ${r.months.map(v=>`<td class="amt">${v? v.toLocaleString('ko-KR'):'·'}</td>`).join('')}
-                <td class="amt expense" style="font-weight:700;">${r.total.toLocaleString('ko-KR')}</td>
-              </tr>
-            `).join('') : `<tr class="empty-row"><td colspan="15">아직 입력된 지출 데이터가 없습니다.</td></tr>`}
+            ${buildCategoryMatrixRows(list, monthYms) || `<tr class="empty-row"><td colspan="15">아직 입력된 지출 데이터가 없습니다.</td></tr>`}
           </tbody>
         </table>
       </div>
     </div>
-
-    ${renderBudgetSummarySections(list)}
   `;
 
-  // 차트
+  renderIncomeExpenseChart();
+}
+
+function setSummaryScope(s){
+  state.summaryScope = s;
+  document.getElementById('summaryScopeTabs').innerHTML = ['전체',...SCOPES].map(sc=>`<button class="chip ${state.summaryScope===sc?'active':''}" onclick="setSummaryScope('${sc}')">${sc}</button>`).join('');
+  renderIncomeExpenseChart();
+}
+
+let _monthlyChart = null;
+function renderIncomeExpenseChart(){
+  const scope = state.summaryScope;
+  const list = DB.list().filter(t => t.date.startsWith(String(state.year)) && (scope==='전체' || t.scope===scope));
+  const monthly = MONTH_NAMES.map((_,i)=>{
+    const ym = state.year + '-' + String(i+1).padStart(2,'0');
+    const mt = monthTx(list, ym);
+    return { income: sumBy(mt,'수입'), expense: sumBy(mt,'지출') };
+  });
   if(typeof Chart === 'undefined'){
-    document.getElementById('chartMonthly').replaceWith(chartFallbackNode());
-    document.getElementById('chartRate').replaceWith(chartFallbackNode());
+    const canvas = document.getElementById('chartMonthly');
+    if(canvas) canvas.replaceWith(chartFallbackNode());
     return;
   }
-  new Chart(document.getElementById('chartMonthly'), {
+  if(_monthlyChart) _monthlyChart.destroy();
+  _monthlyChart = new Chart(document.getElementById('chartMonthly'), {
     type:'bar',
     data:{
       labels: MONTH_NAMES,
@@ -936,77 +868,35 @@ function renderSummary(){
       }
     }
   });
-
-  new Chart(document.getElementById('chartRate'), {
-    type:'line',
-    data:{
-      labels: MONTH_NAMES,
-      datasets:[{
-        label:'저축율(%)',
-        data: monthly.map(m=> m.income ? ((m.income-m.expense)/m.income*100) : null),
-        borderColor:'#3C6E9E', backgroundColor:'rgba(60,110,158,0.12)', fill:true, tension:.35, spanGaps:true,
-        pointRadius:3, pointBackgroundColor:'#3C6E9E'
-      }]
-    },
-    options:{
-      responsive:true,
-      plugins:{legend:{display:false}},
-      scales:{
-        y:{ticks:{callback:v=>v+'%', font:{size:10}}, grid:{color:'#EFEDE4'}},
-        x:{grid:{display:false}, ticks:{font:{size:11}}}
-      }
-    }
-  });
 }
 
-function renderBudgetSummarySections(list){
-  const budgets = DB.getBudgets(state.year);
-  const cats = flatExpenseCategories();
+/* ---- 지출 카테고리 매트릭스: 구분(공동/보라/관/미지정)별로 그룹핑 ---- */
+function buildCategoryMatrixRows(list, monthYms){
+  const groups = [...SCOPES, '미지정'];
+  let html = '';
+  groups.forEach(scopeKey=>{
+    const scTx = list.filter(t => t.type==='지출' && (scopeKey==='미지정' ? !t.scope : t.scope===scopeKey));
+    if(!scTx.length) return;
+    const seen = new Map();
+    scTx.forEach(t => seen.set(t.main+'|'+t.category, {main:t.main, cat:t.category}));
+    const rows = Array.from(seen.values()).map(({main,cat})=>{
+      const monthsArr = monthYms.map(ym => scTx.filter(t=>t.main===main && t.category===cat && ymOf(t.date)===ym).reduce((s,t)=>s+Number(t.amount||0),0));
+      const total = monthsArr.reduce((s,v)=>s+v,0);
+      return {main,cat,monthsArr,total};
+    }).filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
+    if(!rows.length) return;
 
-  const formRows = cats.map(({main,cat})=>{
-    const key = main + '|' + cat;
-    return `<div class="cat-row">
-      <div class="top"><span class="name">${cat}<span class="sub">${main}</span></span></div>
-      <input class="budget-input" type="number" data-key="${key}" placeholder="월 예산 (원)" value="${budgets[key]||''}">
-    </div>`;
-  }).join('');
-
-  const activeBudgets = Object.entries(budgets).filter(([,v])=>v>0);
-  const actualHtml = activeBudgets.length ? activeBudgets.map(([key,monthly])=>{
-    const [main,cat] = key.split('|');
-    const yearly = monthly*12;
-    const actual = list.filter(t=>t.type==='지출'&&(t.main+'|'+t.category)===key).reduce((s,t)=>s+Number(t.amount),0);
-    const w = Math.min(100, yearly ? actual/yearly*100 : 0);
-    const over = actual>yearly;
-    return `<div class="cat-row">
-      <div class="top"><span class="name">${cat}<span class="sub">${main}</span></span><span class="amt">${won(actual)} / ${won(yearly)}</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${over?'var(--expense)':'var(--saving)'}"></div></div>
-    </div>`;
-  }).join('') : `<div style="color:var(--muted);font-size:13px;padding:6px 0;">왼쪽에서 카테고리별 월 예산을 입력하고 저장하면, 연간 예산(월 예산×12) 대비 실적이 여기 표시됩니다.</div>`;
-
-  return `
-    <div class="grid two-col section">
-      <div class="card cat-list-card">
-        <div class="section-head"><h2>월 예산 설정</h2><span class="hint">카테고리별, ${state.year}년 전체 월에 동일 적용</span></div>
-        <div id="budgetForm">${formRows}</div>
-        <button class="ghost-btn primary" style="margin-top:12px;" onclick="saveBudgetsFromForm()">예산 저장</button>
-      </div>
-      <div class="card cat-list-card">
-        <div class="section-head"><h2>예산 대비 연간 실적</h2><span class="hint">월 예산 × 12 기준</span></div>
-        ${actualHtml}
-      </div>
-    </div>
-  `;
-}
-
-function saveBudgetsFromForm(){
-  const map = {};
-  document.querySelectorAll('#budgetForm .budget-input').forEach(inp=>{
-    const v = Number(inp.value)||0;
-    if(v>0) map[inp.dataset.key] = v;
+    html += `<tr class="scope-divider"><td colspan="15">${scopeKey}</td></tr>`;
+    rows.forEach(r=>{
+      html += `<tr>
+        <td style="color:var(--muted);white-space:nowrap;">${r.main||'미분류'}</td>
+        <td style="font-weight:600;white-space:nowrap;">${r.cat||'미분류'}</td>
+        ${r.monthsArr.map(v=>`<td class="amt">${v? v.toLocaleString('ko-KR'):'·'}</td>`).join('')}
+        <td class="amt expense" style="font-weight:700;">${r.total.toLocaleString('ko-KR')}</td>
+      </tr>`;
+    });
   });
-  DB.saveBudgets(state.year, map);
-  renderSummary();
+  return html;
 }
 
 /* =================================================================================
@@ -1024,7 +914,6 @@ function renderMonth(ym){
     const scTx = tx.filter(t=>t.scope===sc);
     return { scope:sc, income: sumBy(scTx,'수입'), expense: sumBy(scTx,'지출') };
   });
-  const expense = sumBy(tx,'지출');
   const unassignedCount = tx.filter(t=>!t.scope).length;
 
   document.getElementById('view').innerHTML = `
@@ -1045,7 +934,7 @@ function renderMonth(ym){
     </div>
     ${unassignedCount ? `
     <div class="pill-note" style="cursor:pointer;" onclick="quickFilterUnassigned()">
-      ⚠ 구분·분류 미지정 거래 ${unassignedCount}건 — 눌러서 재분류하기
+      ⚠ 구분 미지정 거래 ${unassignedCount}건 — 눌러서 재분류하기
     </div>` : ''}
 
     <div class="grid two-col section">
@@ -1055,16 +944,9 @@ function renderMonth(ym){
       </div>
       <div class="card cat-list-card">
         <div class="section-head"><h2>분류별 리스트업</h2></div>
-        <div class="cat-tabs" id="catTabs">
-          ${TYPES.map(t=>`<button class="cat-tab ${state.catTabType===t?'active':''}" onclick="state.catTabType='${t}';renderCatList('${ym}')">${t}</button>`).join('')}
-        </div>
+        <div id="catTabs"></div>
         <div id="catListWrap"></div>
       </div>
-    </div>
-
-    <div class="section">
-      <div class="section-head"><h2>이번 달 예산 대비 실적</h2><span class="hint">Summary 페이지에서 카테고리별 월 예산 설정</span></div>
-      <div class="card cat-list-card" id="budgetWrap"></div>
     </div>
 
     <div class="grid two-col section">
@@ -1076,17 +958,9 @@ function renderMonth(ym){
         <canvas id="chartCompare"></canvas>
       </div>
       <div class="card review-card">
-        <div class="section-head"><h2>지출 리뷰</h2><button class="ghost-btn" onclick="renderAutoReview('${ym}')" style="font-size:11px;">↻ 다시 분석</button></div>
+        <div class="section-head"><h2>지출 리뷰</h2><button class="ghost-btn" onclick="renderScopeReviews('${ym}')" style="font-size:11px;">↻ 다시 분석</button></div>
         <div class="pill-note">⚙︎ 규칙 기반 자동 분석 · 추후 실제 AI 요약으로 교체 예정</div>
-        <div id="autoReviewWrap"></div>
-        <hr style="border:none;border-top:1px solid var(--line);margin:6px 0 14px;">
-        <textarea id="reviewBox" placeholder="이번 달 소비 패턴에 대해 메모해보세요. 예) 배달비가 많이 나온 이유, 다음 달 줄일 항목 등">${escapeAttr(DB.getReview(ym))}</textarea>
-        <div class="save-note">자동 저장됩니다.</div>
-        <div class="review-stats">
-          <div class="item"><b>${tx.filter(t=>t.type==='지출').length}건</b>지출 건수</div>
-          <div class="item"><b>${wonShort(tx.filter(t=>t.type==='지출').length ? expense/tx.filter(t=>t.type==='지출').length : 0)}</b>건당 평균 지출</div>
-          <div class="item"><b>${topCategory(tx)}</b>최다 지출 카테고리</div>
-        </div>
+        <div id="scopeReviewWrap"></div>
       </div>
     </div>
 
@@ -1121,38 +995,9 @@ function renderMonth(ym){
   renderCatList(ym);
   renderTxToolbar(ym);
   renderTxTable(ym);
-  renderBudgetProgress(ym);
-  renderAutoReview(ym);
+  renderScopeReviews(ym);
   renderCompareChart(ym);
   onFormScopeChange();
-
-  // 리뷰 자동저장
-  let saveTimer;
-  document.getElementById('reviewBox').addEventListener('input', e=>{
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(()=> DB.saveReview(ym, e.target.value), 400);
-  });
-}
-
-/* ---- 예산 대비 실적 (월별) ---- */
-function renderBudgetProgress(ym){
-  const budgets = DB.getBudgets(Number(ym.split('-')[0]));
-  const keys = Object.keys(budgets).filter(k=>budgets[k]>0);
-  const tx = monthTx(DB.list(), ym).filter(t=>t.type==='지출');
-  const actualByCat = {};
-  tx.forEach(t=>{ const k=t.main+'|'+t.category; actualByCat[k]=(actualByCat[k]||0)+Number(t.amount); });
-
-  document.getElementById('budgetWrap').innerHTML = keys.length ? keys.map(k=>{
-    const [main,cat] = k.split('|');
-    const budget = budgets[k];
-    const actual = actualByCat[k]||0;
-    const w = Math.min(100, actual/budget*100);
-    const over = actual>budget;
-    return `<div class="cat-row">
-      <div class="top"><span class="name">${cat}<span class="sub">${main}</span></span><span class="amt">${won(actual)} / ${won(budget)}</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${over?'var(--expense)':'var(--income)'}"></div></div>
-    </div>`;
-  }).join('') : `<div style="color:var(--muted);font-size:13px;">아직 설정된 예산이 없어요. <a href="#/summary" style="color:var(--ink);font-weight:600;">Summary 페이지</a>에서 카테고리별 월 예산을 설정해보세요.</div>`;
 }
 
 /* ---- 전월/선택월 대비 지출 비교 차트 ---- */
@@ -1181,7 +1026,8 @@ function renderCompareChart(ym){
   const prevByCat = cats.map(c => pTx.filter(t=>t.category===c).reduce((s,t)=>s+Number(t.amount),0));
 
   if(typeof Chart === 'undefined'){
-    document.getElementById('chartCompare').replaceWith(chartFallbackNode());
+    const canvas = document.getElementById('chartCompare');
+    if(canvas) canvas.replaceWith(chartFallbackNode());
     return;
   }
   if(_compareChart) _compareChart.destroy();
@@ -1199,125 +1045,47 @@ function renderCompareChart(ym){
   });
 }
 
-/* ---- 지출 리뷰: 규칙 기반 자동 분석 ----
-   TODO[AI]: 아래 computeAutoReview()를 서버(Supabase Edge Function 등)에서
+/* ---- 지출 리뷰: 구분(공동/보라/관)별 규칙 기반 자동 분석 ----
+   TODO[AI]: 아래 계산을 서버(Supabase Edge Function 등)에서
    거래내역을 Claude API로 보내 자연어 요약을 받아오는 방식으로 교체 예정.
 */
-function computeAutoReview(ym){
+function renderScopeReviews(ym){
   const all = DB.list();
-  const cur = monthTx(all, ym).filter(t=>t.type==='지출');
-  const histMonths = [];
-  for(let i=1;i<=6;i++){
-    const hy = shiftYm(ym,-i);
-    const ht = monthTx(all, hy).filter(t=>t.type==='지출');
-    if(ht.length) histMonths.push(ht);
-  }
-  const curByCat = {};
-  cur.forEach(t=> curByCat[t.category] = (curByCat[t.category]||0)+Number(t.amount));
-  const histByCat = {};
-  histMonths.forEach(ht=>{
-    const m = {};
-    ht.forEach(t=> m[t.category] = (m[t.category]||0)+Number(t.amount));
-    Object.entries(m).forEach(([c,v])=>{ (histByCat[c]=histByCat[c]||[]).push(v); });
-  });
+  const wrap = document.getElementById('scopeReviewWrap');
+  wrap.innerHTML = SCOPES.map(scope=>{
+    const cur = monthTx(all, ym).filter(t=>t.type==='지출' && t.scope===scope);
+    const curTotal = cur.reduce((s,t)=>s+Number(t.amount),0);
 
-  const insights = [];
-  Object.entries(curByCat).forEach(([cat,curAmt])=>{
-    const hist = histByCat[cat];
-    if(!hist || !hist.length){
-      if(curAmt>=10000) insights.push({cat, kind:'new', curAmt, mag:100});
-      return;
+    const pYm = shiftYm(ym,-1);
+    const pTotal = monthTx(all, pYm).filter(t=>t.type==='지출' && t.scope===scope).reduce((s,t)=>s+Number(t.amount),0);
+
+    const histTotals = [];
+    for(let i=1;i<=6;i++){
+      const hy = shiftYm(ym,-i);
+      const hAmt = monthTx(all, hy).filter(t=>t.type==='지출' && t.scope===scope).reduce((s,t)=>s+Number(t.amount),0);
+      if(hAmt>0) histTotals.push(hAmt);
     }
-    const avg = hist.reduce((s,v)=>s+v,0)/hist.length;
-    if(avg<=0) return;
-    const diffPct = (curAmt-avg)/avg*100;
-    if(Math.abs(diffPct)>=30 && Math.abs(curAmt-avg)>=10000){
-      insights.push({cat, kind: diffPct>0?'up':'down', curAmt, avg, diffPct, mag:Math.abs(diffPct)});
+    const avg = histTotals.length ? histTotals.reduce((s,v)=>s+v,0)/histTotals.length : 0;
+
+    let narrative;
+    if(curTotal===0){
+      narrative = `이번 달 ${scope} 지출 기록이 아직 없어요.`;
+    } else if(!pTotal && !avg){
+      narrative = `이번 달 ${scope} 지출은 ${won(curTotal)}이에요. 아직 비교할 이전 데이터가 없어요.`;
+    } else {
+      const base = pTotal || avg;
+      const diffPct = base ? ((curTotal-base)/base*100) : 0;
+      const dir = diffPct>=0 ? '늘었어요' : '줄었어요';
+      narrative = `이번 달 ${scope} 지출은 ${won(curTotal)}로, ${pTotal? '전월':'최근 평균'} 대비 ${Math.abs(diffPct).toFixed(0)}% ${dir}.`;
     }
-  });
-  Object.entries(histByCat).forEach(([cat,hist])=>{
-    if(!curByCat[cat]){
-      const avg = hist.reduce((s,v)=>s+v,0)/hist.length;
-      if(avg>=10000) insights.push({cat, kind:'gone', avg, mag:avg/1000});
-    }
-  });
-  insights.sort((a,b)=>b.mag-a.mag);
-  return insights.slice(0,6);
-}
-let _lastInsights = [];
-let _lastInsightYm = null;
-function renderAutoReview(ym){
-  const insights = computeAutoReview(ym);
-  _lastInsights = insights;
-  _lastInsightYm = ym;
-  const lines = insights.map((ins,i)=>{
-    if(ins.kind==='new') return `<li onclick="openInsightDetail(${i})">· <b>${ins.cat}</b> 카테고리에 새로 ${won(ins.curAmt)} 지출이 생겼어요. (최근 6개월 이력 없음)</li>`;
-    if(ins.kind==='gone') return `<li onclick="openInsightDetail(${i})">· 최근 평균 ${won(Math.round(ins.avg))}씩 쓰던 <b>${ins.cat}</b> 지출이 이번 달엔 없었어요.</li>`;
-    const dir = ins.kind==='up' ? '증가' : '감소';
-    return `<li onclick="openInsightDetail(${i})">· <b>${ins.cat}</b> 지출이 최근 평균(${won(Math.round(ins.avg))}) 대비 ${Math.abs(ins.diffPct).toFixed(0)}% ${dir}했어요. (이번 달 ${won(ins.curAmt)})</li>`;
-  });
-  document.getElementById('autoReviewWrap').innerHTML = lines.length
-    ? `<ul class="auto-review-list">${lines.join('')}</ul><div class="save-note">항목을 클릭하면 상세 내용을 볼 수 있어요.</div>`
-    : `<div style="color:var(--muted);font-size:13px;padding:6px 0 14px;">아직 비교할 이전 달 데이터가 충분하지 않아요.</div>`;
-}
 
-/* ---- 지출 리뷰 인사이트 상세 팝업 ---- */
-function openInsightDetail(i){
-  const ins = _lastInsights[i];
-  if(!ins) return;
-  const ym = _lastInsightYm;
-
-  const curItems = monthTx(DB.list(), ym)
-    .filter(t=>t.type==='지출' && t.category===ins.cat)
-    .sort((a,b)=> a.date<b.date?-1:1);
-  const curTotal = curItems.reduce((s,t)=>s+Number(t.amount),0);
-
-  let narrative = '';
-  if(ins.kind==='new'){
-    narrative = `<b>${ins.cat}</b> 카테고리는 최근 6개월 동안 지출 이력이 없었는데, 이번 달 처음으로 ${won(ins.curAmt)}이 기록됐어요. 새로 생긴 구독이나 일회성 지출일 가능성이 높으니, 아래 내역을 확인해서 계속 나갈 항목인지 한 번만 나간 항목인지 살펴보면 좋아요.`;
-  } else if(ins.kind==='gone'){
-    narrative = `최근 몇 달간 평균 ${won(Math.round(ins.avg))} 정도 꾸준히 나가던 <b>${ins.cat}</b> 지출이 이번 달엔 한 건도 없었어요. 결제 주기가 바뀌었거나, 해지했거나, 아직 입력을 안 한 것일 수 있어요. 정말 지출이 없었던 게 맞는지 한 번 확인해보세요.`;
-  } else {
-    const dir = ins.kind==='up' ? '늘었어요' : '줄었어요';
-    const tip = ins.kind==='up'
-      ? '아래 내역 중 평소보다 유독 크게 나간 항목이 있는지 확인해보면 원인을 찾기 쉬워요.'
-      : '지출이 줄어든 좋은 흐름이에요. 어떤 습관이 바뀌었는지 기억해두면 다음 달에도 도움이 될 거예요.';
-    narrative = `<b>${ins.cat}</b> 카테고리는 최근 평균 ${won(Math.round(ins.avg))}에서 이번 달 ${won(ins.curAmt)}(으)로 ${Math.abs(ins.diffPct).toFixed(0)}% ${dir}. ${tip}`;
-  }
-
-  const itemsHtml = curItems.length ? `<ul class="modal-tx-list">${curItems.map(t=>`
-    <li>
-      <span style="color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11.5px;min-width:38px;">${t.date.slice(8)}일</span>
-      <span class="n">${escapeAttr(t.note)||'(내용 없음)'}${t.user?` · ${escapeAttr(t.user)}`:''}</span>
-      <span class="a amt expense">${Number(t.amount).toLocaleString('ko-KR')}원</span>
-    </li>
-  `).join('')}</ul>` : `<div style="color:var(--muted);font-size:13px;">이번 달 이 카테고리에 기록된 거래가 없어요.</div>`;
-
-  let historyHtml = '';
-  if(ins.kind !== 'new'){
-    const rows = [];
-    for(let i2=1;i2<=6;i2++){
-      const hy = shiftYm(ym,-i2);
-      const amt = monthTx(DB.list(), hy).filter(t=>t.type==='지출'&&t.category===ins.cat).reduce((s,t)=>s+Number(t.amount),0);
-      if(amt>0) rows.push({hy, amt});
-    }
-    if(rows.length){
-      historyHtml = `<div class="modal-section-label">최근 월별 ${ins.cat} 지출</div>
-        <ul class="modal-tx-list">${rows.map(r=>{
-          const [ry,rm] = r.hy.split('-');
-          return `<li><span class="n">${ry===ym.slice(0,4)?'':ry+'년 '}${Number(rm)}월</span><span class="a">${won(r.amt)}</span></li>`;
-        }).join('')}</ul>`;
-    }
-  }
-
-  openModal(`
-    <h3 class="display">${ins.cat} 상세</h3>
-    <div class="modal-sub">${Number(ym.split('-')[1])}월 · ${curItems.length}건 · 합계 ${won(curTotal)}</div>
-    <div class="modal-narrative">${narrative}</div>
-    <div class="modal-section-label">이번 달 ${ins.cat} 거래 내역</div>
-    ${itemsHtml}
-    ${historyHtml}
-  `);
+    return `
+      <div class="cat-row" style="margin-bottom:16px;">
+        <div class="top"><span class="name" style="font-size:14px;">${scope}</span><span class="amt">${won(curTotal)}</span></div>
+        <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px;">${narrative}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 function nextYm(ym){
@@ -1372,7 +1140,7 @@ function openDayModal(ym, day){
   const listHtml = items.length ? `<ul class="modal-tx-list">${items.map(t=>`
     <li>
       <span class="badge ${TYPE_KEY[t.type]}">${t.type}</span>
-      <span class="n">${t.category} · ${escapeAttr(t.note)||'(내용 없음)'}${t.user?` · ${escapeAttr(t.user)}`:''}</span>
+      <span class="n">${t.category} · ${t.note||'(내용 없음)'}${t.user?` · ${t.user}`:''}</span>
       <span class="a amt ${TYPE_KEY[t.type]}">${Number(t.amount).toLocaleString('ko-KR')}원</span>
     </li>
   `).join('')}</ul>` : `<div style="color:var(--muted);font-size:13px;">이 날은 기록된 거래가 없어요.</div>`;
@@ -1386,31 +1154,56 @@ function openDayModal(ym, day){
 
 /* ---- 카테고리 리스트업 ---- */
 function renderCatList(ym){
-  const tx = monthTx(DB.list(), ym).filter(t=>t.type===state.catTabType);
-  document.querySelectorAll('#catTabs .cat-tab').forEach(b=>b.classList.remove('active'));
-  const idx = TYPES.indexOf(state.catTabType);
-  document.querySelectorAll('#catTabs .cat-tab')[idx]?.classList.add('active');
+  const scopeOptions = ['전체', ...SCOPES];
+  document.getElementById('catTabs').innerHTML = `<div class="cat-tabs">${scopeOptions.map(s=>`<button class="cat-tab ${state.catScope===s?'active':''}" onclick="setCatScope('${s}')">${s}</button>`).join('')}</div>`;
+
+  let tx = monthTx(DB.list(), ym).filter(t=>t.type==='지출');
+  if(state.catScope !== '전체') tx = tx.filter(t=>t.scope===state.catScope);
+
+  if(state.catDrillMain !== null){
+    const mainLabel = state.catDrillMain || '미분류';
+    const mainTx = tx.filter(t=> (t.main||'') === state.catDrillMain);
+    const total = mainTx.reduce((s,t)=>s+Number(t.amount),0);
+    const map = {};
+    mainTx.forEach(t=>{ const key = t.category || '미분류'; map[key] = (map[key]||0) + Number(t.amount); });
+    const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+
+    document.getElementById('catListWrap').innerHTML = `
+      <button class="ghost-btn" style="margin-bottom:10px;" onclick="setCatDrill(null)">← ${mainLabel}</button>
+      ${rows.length ? rows.map(([cat,amt])=>{
+        const w = total ? (amt/total*100) : 0;
+        return `<div class="cat-row">
+          <div class="top"><span class="name">${cat}</span><span class="amt">${won(amt)}</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:var(--expense)"></div></div>
+        </div>`;
+      }).join('') : `<div style="color:var(--muted);font-size:13px;padding:20px 0;">세부 내역이 없습니다.</div>`}
+    `;
+    return;
+  }
 
   const total = tx.reduce((s,t)=>s+Number(t.amount),0);
   const map = {};
-  tx.forEach(t=>{
-    const key = t.main + '|' + t.category;
-    map[key] = (map[key]||0) + Number(t.amount);
-  });
+  tx.forEach(t=>{ const key = t.main || '미분류'; map[key] = (map[key]||0) + Number(t.amount); });
   const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
-  const colorVar = `var(--${TYPE_KEY[state.catTabType]})`;
 
-  document.getElementById('catListWrap').innerHTML = rows.length ? rows.map(([key,amt])=>{
-    const [main,cat] = key.split('|');
+  document.getElementById('catListWrap').innerHTML = rows.length ? rows.map(([main,amt])=>{
     const w = total ? (amt/total*100) : 0;
-    return `<div class="cat-row">
-      <div class="top"><span class="name">${cat}<span class="sub">${main}</span></span><span class="amt">${won(amt)}</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${colorVar}"></div></div>
+    return `<div class="cat-row" style="cursor:pointer;" onclick="setCatDrill('${main==='미분류'?'':main}')">
+      <div class="top"><span class="name">${main}</span><span class="amt">${won(amt)}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:var(--expense)"></div></div>
     </div>`;
-  }).join('') : `<div style="color:var(--muted);font-size:13px;padding:20px 0;">이번 달 ${state.catTabType} 내역이 없습니다.</div>`;
+  }).join('') : `<div style="color:var(--muted);font-size:13px;padding:20px 0;">이번 달 ${state.catScope} 지출 내역이 없습니다.</div>`;
+}
+function setCatScope(s){
+  state.catScope = s; state.catDrillMain = null;
+  renderCatList(state.currentYm);
+}
+function setCatDrill(main){
+  state.catDrillMain = main;
+  renderCatList(state.currentYm);
 }
 
-/* ---- 거래 내역 툴바 (구분 → 대분류 → 중분류 → 소분류 드릴다운 + 내용 검색) ---- */
+/* ---- 거래 내역 툴바 (구분 → 대분류 → 카테고리 드릴다운 + 내용 검색) ---- */
 function renderTxToolbar(ym){
   const type = state.monthTxFilter;
   let mainRow = '';
@@ -1564,7 +1357,7 @@ function saveEditTx(id){
   const amount = Number(document.getElementById('e_amount_'+id).value);
   if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
   DB.update(id, {
-    date, scope: document.getElementById('e_scope_'+id).value || null,
+    date, scope: document.getElementById('e_scope_'+id).value || '',
     type: document.getElementById('e_type_'+id).value,
     main: document.getElementById('e_main_'+id).value,
     category: document.getElementById('e_category_'+id).value,
@@ -1623,35 +1416,8 @@ function submitTx(ym){
 /* =================================================================================
    8. 부팅
    ================================================================================= */
-(async () => {
-  document.getElementById('app').innerHTML = '<div style="padding:60px 0;text-align:center;color:var(--muted);">불러오는 중...</div>';
-
-  // 로그인 확인: 세션이 없으면 홈(로그인 페이지)으로 돌려보냅니다.
-  let session;
-  try{
-    const { data, error } = await sb.auth.getSession();
-    if(error) throw error;
-    session = data.session;
-  }catch(err){
-    console.error('세션 확인 실패:', err);
-    document.getElementById('app').innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;">로그인 상태를 확인하지 못했어요. 새로고침해보세요.</div>`;
-    return;
-  }
-  if(!session){
-    window.location.href = './index.html';
-    return;
-  }
-
-  try{
-    await DB.init();
-  }catch(err){
-    console.error('데이터 로드 실패:', err);
-    document.getElementById('app').innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;">데이터를 불러오지 못했어요. 새로고침해보세요.</div>`;
-    return;
-  }
-  seedIfEmpty();
-  route();
-})();
+seedIfEmpty();
+route();
 </script>
 </body>
 </html>
