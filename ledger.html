@@ -137,6 +137,8 @@ button{font-family:inherit;}
 @media (max-width:800px){.kpis{grid-template-columns:repeat(2,1fr);}}
 
 .kpi{padding:18px 18px 16px;}
+.kpi.kpi-total{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
+.kpi.kpi-total .label{color:var(--accent);font-weight:700;}
 .kpi .label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em;}
 .kpi .value{font-family:var(--font);font-size:25px;font-weight:600;margin-top:6px;}
 .kpi .delta{font-size:12px;margin-top:6px;font-weight:600;}
@@ -586,15 +588,15 @@ const BORA_TAXONOMY = {
   "지출": {
     "생활비": ["식비", "쇼핑", "외식", "배달", "여행", "기타"],
     "교통비": ["전기차충전", "주유비", "대중교통", "기타"],
-    "통신비": ["핸드폰"],
+    "통신비": ["핸드폰", "기타"],
     "자동차": ["주차비", "기타"],
     "건강": ["병원비", "운동", "기타"],
     "구독": ["OTT", "AI", "쇼핑", "기타"],
-    "경조사": ["가족", "지인"],
-    "저축·투자": ["저축", "투자"]
+    "경조사": ["가족", "지인", "기타"],
+    "저축·투자": ["저축", "투자", "기타"]
   },
   "수입": {
-    "급여": ["월급", "상여금"],
+    "급여": ["월급", "상여금", "기타"],
     "기타소득": ["부업", "기타"]
   }
 };
@@ -602,29 +604,29 @@ const GWAN_TAXONOMY = {
   "지출": {
     "생활비": ["식비", "쇼핑", "외식", "배달", "여행", "기타"],
     "교통비": ["대중교통", "기타"],
-    "통신비": ["핸드폰"],
+    "통신비": ["핸드폰", "기타"],
     "자동차": ["주차비", "기타"],
     "건강": ["병원비", "운동", "기타"],
     "구독": ["OTT", "AI", "쇼핑", "기타"],
-    "경조사": ["가족", "지인"],
-    "저축·투자": ["저축", "투자"]
+    "경조사": ["가족", "지인", "기타"],
+    "저축·투자": ["저축", "투자", "기타"]
   },
   "수입": {
-    "급여": ["월급", "상여금"],
+    "급여": ["월급", "상여금", "기타"],
     "기타소득": ["부업", "기타"]
   }
 };
 const TAXONOMY = {
   "공동": {
     "지출": {
-      "생활비": ["배달", "외식", "생필품", "식비", "여행", "쇼핑", "기타"],
+      "생활비": ["외식", "쇼핑", "생필품", "배달", "식비", "여행", "기타"],
       "교통비": ["대중교통", "주유비", "전기차충전", "기타"],
-      "주거비": ["집대출", "관리비", "정수기", "TV인터넷"],
-      "통신비": ["핸드폰"],
+      "주거비": ["집대출", "관리비", "정수기", "TV인터넷", "기타"],
+      "통신비": ["핸드폰", "기타"],
       "자동차": ["자동차보험", "운전자보험", "할부금", "주차비", "기타"],
       "구독": ["OTT", "AI", "쇼핑", "기타"],
-      "가족": ["가족", "명절", "생일"],
-      "저축·투자": ["저축", "투자"]
+      "가족": ["가족", "명절", "생일", "기타"],
+      "저축·투자": ["저축", "투자", "기타"]
     }
   },
   "보라": BORA_TAXONOMY,
@@ -1357,6 +1359,8 @@ function renderMonth(ym){
     const scTx = tx.filter(t=>t.scope===sc);
     return { scope:sc, income: sumBy(scTx,'수입'), expense: sumBy(scTx,'지출') };
   });
+  const totalSummary = { scope:'전체', income: sumBy(tx,'수입'), expense: sumBy(tx,'지출') };
+  const kpiCards = [totalSummary, ...scopeSummary];
   const unassignedCount = tx.filter(t=>!t.scope).length;
 
   document.getElementById('view').innerHTML = `
@@ -1366,14 +1370,17 @@ function renderMonth(ym){
       <button class="move" onclick="location.hash='#/${nextYm(ym)}'">다음 달 ›</button>
     </div>
 
-    <div class="grid kpis" style="grid-template-columns:repeat(3,1fr);">
-      ${scopeSummary.map(s=>`
-        <div class="card kpi">
-          <div class="label">${SCOPE_LABEL[s.scope]}</div>
+    <div class="grid kpis" style="grid-template-columns:repeat(4,1fr);">
+      ${kpiCards.map(s=>{
+        const balance = s.income - s.expense;
+        return `
+        <div class="card kpi ${s.scope==='전체'?'kpi-total':''}">
+          <div class="label">${s.scope}</div>
           <div class="value mono" style="color:var(--income);font-size:15px;">수입 ${won(s.income)}</div>
           <div class="value mono" style="color:var(--expense);font-size:15px;margin-top:2px;">지출 ${won(s.expense)}</div>
+          <div class="value mono" style="color:${balance>=0?'var(--income)':'var(--expense)'};font-size:13px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);">잔액 ${won(balance)}</div>
         </div>
-      `).join('')}
+      `;}).join('')}
     </div>
     ${unassignedCount ? `
     <div class="pill-note" style="cursor:pointer;" onclick="quickFilterUnassigned()">
