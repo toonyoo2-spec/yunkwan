@@ -556,9 +556,18 @@ function authShow(){ document.getElementById('authOverlay').classList.add('open'
 function authHide(){ document.getElementById('authOverlay').classList.remove('open'); }
 
 let _appBooted = false;
-function bootApp(){
+async function bootApp(){
   if(_appBooted) return;
   _appBooted = true;
+  document.getElementById('app').innerHTML = '<div style="padding:60px 0;text-align:center;color:var(--muted);">데이터를 불러오는 중...</div>';
+  try{
+    await migrateLocalStorageToSupabase();
+    await DB.init();
+  }catch(err){
+    console.error('데이터 로드 실패:', err);
+    document.getElementById('app').innerHTML = `<div style="padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;">데이터를 불러오지 못했어요.<br>${err.message||err}<br><br>새로고침해보세요.</div>`;
+    return;
+  }
   seedIfEmpty();
   initRecurringTemplatesIfEmpty();
   migrateFamilyCategory();
@@ -676,109 +685,228 @@ const DEFAULT_RECURRING_TEMPLATES = [
 ];
 
 /* =================================================================================
-   1. DB 레이어
+   1. DB 레이어 (Supabase 연동)
    ---------------------------------------------------------------------------------
-   지금은 localStorage 로만 저장됩니다. 나중에 Supabase 로 옮길 때는
-   아래 DB 객체의 메서드 내부만 supabase-js 호출로 교체하면 되도록
-   (화면 코드는 DB.* 메서드만 호출) 설계했습니다.
-
-   예상 Supabase 테이블 스키마 (참고용):
-     transactions (
-       id uuid primary key default gen_random_uuid(),
-       date date not null,
-       type text not null,          -- 수입/지출/저축/투자
-       main text not null,          -- 대분류
-       category text not null,      -- 중분류
-       note text,                   -- 세부내용
-       amount integer not null,
-       user_name text,              -- 사용자
-       payment text,                -- 결제수단
-       created_at timestamptz default now()
-     )
-     monthly_reviews (
-       month text primary key,      -- 'YYYY-MM'
-       memo text,
-       updated_at timestamptz default now()
-     )
+   부팅 시 DB.init()이 transactions/monthly_reviews/budgets/recurring_templates/
+   recurring_skips를 한 번에 불러와 메모리 캐시에 저장합니다. 화면 코드는 이전과
+   동일하게 DB.list()/getBudgets()/getRecurringTemplates() 등을 "동기"로 호출하고
+   (캐시를 읽는 것뿐이라 즉시 반환됩니다), add/update/remove/saveXxx 는 캐시를 먼저
+   바꿔 화면에 즉시 반영한 뒤, Supabase에는 결과를 기다리지 않고 던져놓습니다
+   (optimistic update). 로그인에 쓰는 Supabase 클라이언트(sb)를 데이터에도 그대로
+   재사용합니다 — 별도 설정이 필요 없습니다.
    ================================================================================= */
 const DB = {
-  TX_KEY: "gagyebu_v1_transactions",
-  REVIEW_KEY_PREFIX: "gagyebu_v1_review_",
+  _cache: [],          // transactions
+  _reviewCache: {},     // { 'YYYY-MM': memo }
+  _budgetCache: {},     // { year: { '대분류|카테고리': amount } }
+  _recurringCache: null, // [{key,day,scope,main,category,note,amount,payment,endYm}] | null(미초기화)
+  _skipCache: [],        // ['key|ym', ...]
 
-  // TODO[Supabase]: `return (await supabase.from('transactions').select('*')).data`
-  list(){
-    const raw = localStorage.getItem(this.TX_KEY);
-    return raw ? JSON.parse(raw) : [];
+  async init(){
+    const [txRes, reviewRes, budgetRes, recurRes, skipRes] = await Promise.all([
+      sb.from('transactions').select('*').order('date'),
+      sb.from('monthly_reviews').select('*'),
+      sb.from('budgets').select('*'),
+      sb.from('recurring_templates').select('*'),
+      sb.from('recurring_skips').select('*'),
+    ]);
+
+    if(!txRes.error && txRes.data){
+      this._cache = txRes.data.map(r => ({
+        id: r.id, date: r.date, type: r.type, scope: r.scope || '',
+        main: r.main || '', category: r.category || '', note: r.note || '',
+        amount: r.amount, user: r.user_name || '', payment: r.payment || '',
+        recurringKey: r.recurring_key || undefined, manualKey: r.manual_key || undefined
+      }));
+    } else if(txRes.error){ console.error('거래내역 로드 실패:', txRes.error); throw txRes.error; }
+
+    if(!reviewRes.error && reviewRes.data){
+      reviewRes.data.forEach(r => { this._reviewCache[r.month] = r.memo || ""; });
+    }
+
+    if(!budgetRes.error && budgetRes.data){
+      budgetRes.data.forEach(r => {
+        if(!this._budgetCache[r.year]) this._budgetCache[r.year] = {};
+        this._budgetCache[r.year][r.category] = r.amount;
+      });
+    }
+
+    if(!recurRes.error && recurRes.data){
+      this._recurringCache = recurRes.data.length ? recurRes.data.map(r => ({
+        key: r.key, day: r.day, scope: r.scope, main: r.main, category: r.category,
+        note: r.note || '', amount: r.amount, payment: r.payment || '',
+        endYm: r.end_ym || undefined
+      })) : []; // 빈 배열: "초기화는 됐지만 아직 항목 없음" — null(미초기화)과 구분
+    } else if(recurRes.error){ console.error('정기 자동이체 로드 실패:', recurRes.error); }
+
+    if(!skipRes.error && skipRes.data){
+      this._skipCache = skipRes.data.map(r => r.token);
+    }
   },
-  _save(list){
-    localStorage.setItem(this.TX_KEY, JSON.stringify(list));
-  },
-  // TODO[Supabase]: `await supabase.from('transactions').insert(tx)`
+
+  list(){ return this._cache; },
+
+  // TODO[대용량 시]: 배치 insert로 바꾸면 더 빠름 (지금은 항목 하나씩)
   add(tx){
-    const list = this.list();
-    tx.id = tx.id || (Date.now().toString(36) + Math.random().toString(36).slice(2,7));
-    list.push(tx);
-    this._save(list);
-    return tx;
+    const optimisticId = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    const localTx = { ...tx, id: optimisticId };
+    this._cache.push(localTx);
+    sb.from('transactions').insert({
+      date: tx.date, type: tx.type, scope: tx.scope || null, main: tx.main || null,
+      category: tx.category || null, note: tx.note || null, amount: tx.amount,
+      user_name: tx.user || null, payment: tx.payment || null,
+      recurring_key: tx.recurringKey || null, manual_key: tx.manualKey || null
+    }).select().single().then(({data, error})=>{
+      if(error){ console.error('거래 추가 실패:', error); return; }
+      const row = this._cache.find(t=>t.id===optimisticId);
+      if(row) row.id = data.id;
+    });
+    return localTx;
   },
-  // TODO[Supabase]: `await supabase.from('transactions').update(patch).eq('id', id)`
+
   update(id, patch){
-    const list = this.list();
-    const idx = list.findIndex(t => t.id === id);
-    if(idx > -1){ list[idx] = {...list[idx], ...patch}; this._save(list); }
+    const row = this._cache.find(t => t.id === id);
+    if(row) Object.assign(row, patch);
+    const dbPatch = {};
+    if('date' in patch) dbPatch.date = patch.date;
+    if('type' in patch) dbPatch.type = patch.type;
+    if('scope' in patch) dbPatch.scope = patch.scope || null;
+    if('main' in patch) dbPatch.main = patch.main || null;
+    if('category' in patch) dbPatch.category = patch.category || null;
+    if('note' in patch) dbPatch.note = patch.note || null;
+    if('amount' in patch) dbPatch.amount = patch.amount;
+    if('user' in patch) dbPatch.user_name = patch.user || null;
+    if('payment' in patch) dbPatch.payment = patch.payment || null;
+    sb.from('transactions').update(dbPatch).eq('id', id).then(({error})=>{
+      if(error) console.error('거래 수정 실패:', error);
+    });
   },
-  // TODO[Supabase]: `await supabase.from('transactions').delete().eq('id', id)`
+
   remove(id){
-    this._save(this.list().filter(t => t.id !== id));
+    this._cache = this._cache.filter(t => t.id !== id);
+    sb.from('transactions').delete().eq('id', id).then(({error})=>{
+      if(error) console.error('거래 삭제 실패:', error);
+    });
   },
-  // TODO[Supabase]: `await supabase.from('monthly_reviews').select('memo').eq('month', ym)`
+
   getReview(ym){
-    return localStorage.getItem(this.REVIEW_KEY_PREFIX + ym) || "";
+    return this._reviewCache[ym] || "";
   },
-  // TODO[Supabase]: `await supabase.from('monthly_reviews').upsert({month: ym, memo})`
   saveReview(ym, memo){
-    localStorage.setItem(this.REVIEW_KEY_PREFIX + ym, memo);
+    this._reviewCache[ym] = memo;
+    sb.from('monthly_reviews').upsert({ month: ym, memo }).then(({error})=>{
+      if(error) console.error('리뷰 저장 실패:', error);
+    });
   },
 
-  BUDGET_KEY_PREFIX: "gagyebu_v1_budget_",
-  // TODO[Supabase]: `await supabase.from('budgets').select('category,amount').eq('year', year)` → map으로 변환
   getBudgets(year){
-    const raw = localStorage.getItem(this.BUDGET_KEY_PREFIX + year);
-    return raw ? JSON.parse(raw) : {};
+    return this._budgetCache[year] || {};
   },
-  // TODO[Supabase]: 카테고리별로 `await supabase.from('budgets').upsert({year, category, amount})`
   saveBudgets(year, map){
-    localStorage.setItem(this.BUDGET_KEY_PREFIX + year, JSON.stringify(map));
+    this._budgetCache[year] = map;
+    sb.from('budgets').delete().eq('year', year).then(({error})=>{
+      if(error){ console.error('예산 저장 실패(삭제 단계):', error); return; }
+      const rows = Object.entries(map).map(([category, amount]) => ({ year, category, amount }));
+      if(rows.length) sb.from('budgets').insert(rows).then(({error})=>{ if(error) console.error('예산 저장 실패:', error); });
+    });
   },
 
-  RECURRING_KEY: "gagyebu_v1_recurring_templates",
-  RECURRING_SKIP_KEY: "gagyebu_v1_recurring_skips",
-  // TODO[Supabase]: `await supabase.from('recurring_templates').select('*')`
   getRecurringTemplates(){
-    const raw = localStorage.getItem(this.RECURRING_KEY);
-    return raw ? JSON.parse(raw) : null; // null = 아직 초기화 안 됨
+    return this._recurringCache;
   },
-  // TODO[Supabase]: 통째로 upsert 하거나 diff 계산해서 반영
   saveRecurringTemplates(list){
-    localStorage.setItem(this.RECURRING_KEY, JSON.stringify(list));
+    this._recurringCache = list;
+    sb.from('recurring_templates').delete().neq('key', '__none__').then(({error})=>{
+      if(error){ console.error('정기 자동이체 저장 실패(삭제 단계):', error); return; }
+      const rows = list.map(t => ({
+        key: t.key, day: t.day, scope: t.scope, main: t.main, category: t.category,
+        note: t.note || null, amount: t.amount, payment: t.payment || null, end_ym: t.endYm || null
+      }));
+      if(rows.length) sb.from('recurring_templates').insert(rows).then(({error})=>{ if(error) console.error('정기 자동이체 저장 실패:', error); });
+    });
   },
-  // TODO[Supabase]: `await supabase.from('recurring_skips').select('token')`
+
   getRecurringSkips(){
-    const raw = localStorage.getItem(this.RECURRING_SKIP_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return this._skipCache;
   },
-  // TODO[Supabase]: `await supabase.from('recurring_skips').insert({token})`
   addRecurringSkip(key, ym){
-    const skips = this.getRecurringSkips();
     const token = key + '|' + ym;
-    if(!skips.includes(token)){ skips.push(token); localStorage.setItem(this.RECURRING_SKIP_KEY, JSON.stringify(skips)); }
+    if(!this._skipCache.includes(token)){
+      this._skipCache.push(token);
+      sb.from('recurring_skips').insert({ token }).then(({error})=>{
+        if(error) console.error('정기 자동이체 건너뛰기 저장 실패:', error);
+      });
+    }
   },
 
   reset(){
-    localStorage.removeItem(this.TX_KEY);
-    Object.keys(localStorage).filter(k=>k.startsWith(this.REVIEW_KEY_PREFIX)||k.startsWith(this.BUDGET_KEY_PREFIX)).forEach(k=>localStorage.removeItem(k));
+    // 화면 캐시만 비웁니다. 실제 Supabase 데이터를 지우려면 대시보드에서 직접 삭제하세요.
+    this._cache = [];
   }
 };
+
+/* =================================================================================
+   1-1. 로컬(localStorage) → Supabase 1회 이전
+   ---------------------------------------------------------------------------------
+   이 브라우저에 예전 버전(localStorage 저장 방식)에서 쌓인 데이터가 있는데
+   아직 Supabase의 transactions 테이블이 비어있다면, 딱 한 번 그대로 클라우드로
+   올려줍니다. 이미 Supabase에 데이터가 있으면(다른 기기에서 먼저 이전했거나,
+   이미 이 브라우저에서 한 번 이전한 경우) 아무 것도 하지 않습니다.
+   ================================================================================= */
+async function migrateLocalStorageToSupabase(){
+  const { count, error: countErr } = await sb.from('transactions').select('*', { count:'exact', head:true });
+  if(countErr){ console.error('마이그레이션 확인 실패:', countErr); return; }
+  if(count && count > 0) return; // 이미 클라우드에 데이터가 있으면 건너뜀
+
+  const localTx = JSON.parse(localStorage.getItem('gagyebu_v1_transactions') || '[]');
+  if(localTx.length){
+    const rows = localTx.map(t => ({
+      date: t.date, type: t.type, scope: t.scope || null, main: t.main || null,
+      category: t.category || null, note: t.note || null, amount: t.amount,
+      user_name: t.user || null, payment: t.payment || null,
+      recurring_key: t.recurringKey || null, manual_key: t.manualKey || null
+    }));
+    for(let i=0; i<rows.length; i+=200){
+      const { error } = await sb.from('transactions').insert(rows.slice(i, i+200));
+      if(error){ console.error('거래내역 이전 실패:', error); }
+    }
+  }
+
+  const localTemplates = JSON.parse(localStorage.getItem('gagyebu_v1_recurring_templates') || 'null');
+  if(localTemplates && localTemplates.length){
+    const rows = localTemplates.map(t => ({
+      key: t.key, day: t.day, scope: t.scope, main: t.main, category: t.category,
+      note: t.note || null, amount: t.amount, payment: t.payment || null, end_ym: t.endYm || null
+    }));
+    const { error } = await sb.from('recurring_templates').upsert(rows);
+    if(error) console.error('정기 자동이체 이전 실패:', error);
+  }
+
+  const localSkips = JSON.parse(localStorage.getItem('gagyebu_v1_recurring_skips') || '[]');
+  if(localSkips.length){
+    const { error } = await sb.from('recurring_skips').upsert(localSkips.map(token => ({ token })));
+    if(error) console.error('건너뛰기 목록 이전 실패:', error);
+  }
+
+  const budgetRows = [];
+  Object.keys(localStorage).filter(k => k.startsWith('gagyebu_v1_budget_')).forEach(k => {
+    const year = Number(k.replace('gagyebu_v1_budget_', ''));
+    try{
+      const map = JSON.parse(localStorage.getItem(k) || '{}');
+      Object.entries(map).forEach(([category, amount]) => budgetRows.push({ year, category, amount }));
+    }catch(e){}
+  });
+  if(budgetRows.length){
+    const { error } = await sb.from('budgets').upsert(budgetRows);
+    if(error) console.error('예산 이전 실패:', error);
+  }
+
+  Object.keys(localStorage).filter(k => k.startsWith('gagyebu_v1_review_')).forEach(async k => {
+    const month = k.replace('gagyebu_v1_review_', '');
+    const memo = localStorage.getItem(k);
+    if(memo) await sb.from('monthly_reviews').upsert({ month, memo });
+  });
+}
 
 /* =================================================================================
    2. 유틸
@@ -938,7 +1066,8 @@ function seedIfEmpty(){
    연도·월과 무관하게 항상 동작하므로, 어느 달을 처음 열어도 자동으로 반영됩니다.
    주의: 자동으로 생성된 거래를 지우면, 그 달을 다시 열 때 같은 항목이 다시 채워질 수 있어요. */
 function initRecurringTemplatesIfEmpty(){
-  if(DB.getRecurringTemplates() === null){
+  const cur = DB.getRecurringTemplates();
+  if(!cur || cur.length === 0){
     DB.saveRecurringTemplates(DEFAULT_RECURRING_TEMPLATES);
   }
 }
@@ -1058,7 +1187,7 @@ function render(){
         <div>
           <a href="./index.html" class="home-btn">← 홈</a>
           <h1>우리집 가계부</h1>
-          <div class="sub">구조 설계 단계 · 로컬 저장 (Supabase 연동 예정)</div>
+          <div class="sub">Supabase에 저장됩니다 · 기기 간 자동 동기화</div>
         </div>
       </div>
     </div>
@@ -1072,7 +1201,7 @@ function render(){
       </div>
     </div>
     <div id="view"></div>
-    <footer class="foot">yunkwan.cloud · 가계부.html — 현재 데이터는 브라우저(localStorage)에 저장됩니다. Supabase 연동 시 자동으로 클라우드 동기화됩니다.</footer>
+    <footer class="foot">yunkwan.cloud · ledger.html — 데이터는 Supabase에 저장되며 로그인한 모든 기기에서 동기화됩니다.</footer>
   `;
 
   if(state.view === 'summary') renderSummary();
