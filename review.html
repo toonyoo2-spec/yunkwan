@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>체험단 당첨 관리</title>
 <link rel="stylesheet" href="./common.css">
+<link rel="stylesheet" href="./panel-common.css">
 <style>
   header{
     display:flex;
@@ -14,25 +15,7 @@
     gap:16px;
     margin-bottom:24px;
   }
-  h1{
-    font-size:26px;
-    letter-spacing:-0.02em;
-    margin:0 0 4px;
-  }
-  .home-btn{
-    display:inline-block;
-    font-size:12.5px;
-    color:var(--sub);
-    text-decoration:none;
-    margin-bottom:8px;
-  }
-  .home-btn:hover{color:var(--accent);}
-  header p{
-    margin:0;
-    color:var(--sub);
-    font-size:13.5px;
-  }
-
+        
   .summary{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -59,33 +42,14 @@
     padding:20px;
     margin-bottom:20px;
   }
-  .panel h2{
-    font-size:15px;
-    margin:0 0 14px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-  .panel h2::before{
-    content:"";
-    width:6px;height:6px;border-radius:50%;
-    background:var(--accent);
-    display:inline-block;
-  }
-
+    
   .form-grid{
     display:grid;
     grid-template-columns:90px 1.2fr 1.5fr 1fr 1fr 110px 105px 115px;
     gap:10px;
     align-items:end;
   }
-  .field label{
-    display:block;
-    font-size:12px;
-    color:var(--sub);
-    margin-bottom:5px;
-  }
-  input,select{
+    input,select{
     width:100%;
     padding:9px 10px;
     border:1px solid var(--line);
@@ -274,14 +238,7 @@
   }
   .del-btn:hover{color:#b3452f;}
 
-  .empty{
-    text-align:center;
-    padding:50px 0;
-    color:var(--sub);
-    font-size:13.5px;
-  }
-  #appContent{display:none;}
-
+    
 /* ============================================================
    📱 모바일 반응형 최적화
    ============================================================ */
@@ -488,6 +445,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
+<script src="./panel-common.js"></script>
 <script>
 /* ===========================================================
    Supabase 연동 설정 (campaigns 테이블)
@@ -761,9 +719,6 @@ function hourOptions(selected){
   return opts;
 }
 
-function escapeHtml(str){
-  return (str||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
 
 async function loadInitialData(){
   const { data, error } = await sb.from('campaigns').select('*').order('id');
