@@ -680,12 +680,15 @@ const PAYMENT_META = {
   "하나[보라]":     { person:"보라", type:"체크카드", desc:"보라 수입에서 즉시 빠져나가요." },
   "농협[관]":       { person:"관",   type:"체크카드", desc:"관 수입에서 즉시 빠져나가요." },
 };
+/* 하나/농협 카드는 실제 통장 잔고를 그대로 추적합니다. 2026-08-01 이전 거래는 이미
+   아래 시작 잔고에 녹아있는 걸로 보고 계산에서 제외하고, 이 날짜 이후 새로 기록되는
+   거래만 잔고에서 가감합니다. 보고 있는 달이 바뀌어도 이 잔고는 계속 이어집니다. */
+const CARD_BALANCE_ANCHOR = '2026-08-01';
+const CARD_STARTING_BALANCE = {
+  "하나[보라]": 5116513,
+  "농협[관]": 1130746,
+};
 
-/* 실제 돈이 오가는 주체를 계산합니다.
-   - 결제수단이 지정된 거래는 결제수단의 실소유자(person) 계좌에서 실제로 빠져나가거나 들어옵니다.
-     (거래에 적힌 구분(공동/보라/관)과 무관하게, 실제 카드/계좌의 주인 기준으로 반영)
-   - 단, 신용카드(현대카드[보라])는 사용 시점에는 반영하지 않고 익월 12일 결제일에 별도로 누적 반영합니다. → 'CARD' 반환
-   - 결제수단이 지정되지 않은 거래는 기존처럼 구분(scope) 기준으로 반영합니다. */
 /* ---- 미지정(구분 없음) 거래 일괄 자동 분류 ----
    완벽하진 않을 수 있어 1차 정리용입니다. 실행 후 사람이 직접 확인/수정하는 걸 전제로 합니다. */
 function guessScope(t){
@@ -759,18 +762,9 @@ function bulkAutoAssignCategory(){
   render();
 }
 
-function realCashOwner(t){
-  const meta = t.payment ? PAYMENT_META[t.payment] : null;
-  if(meta){
-    if(meta.type === '신용카드') return 'CARD';
-    return meta.person;
-  }
-  return t.scope;
-}
-
 /* ym월에 신용카드로 쓴 지출을 실소유자(person) 기준으로 합산합니다.
-   (익월 12일 청구일에 "잔액"에서만 차감할 때 씀 — realCashOwner 기준과 동일하게
-   PAYMENT_META의 type을 보고 판단하므로, 신용카드가 늘어도 이름을 따로 하드코딩할 필요 없음) */
+   (익월 12일 청구일에 "전체" 잔액에서만 차감할 때 씀 — PAYMENT_META의 type을 보고
+   판단하므로, 신용카드가 늘어도 이름을 따로 하드코딩할 필요 없음) */
 function creditCardExpenseByScope(list, ym){
   const result = {};
   monthTx(list, ym).forEach(t=>{
@@ -782,50 +776,44 @@ function creditCardExpenseByScope(list, ym){
   return result;
 }
 
-/* 결제수단 현황 위젯: 체크카드는 이번 달 사용/입금을 즉시 보여주고,
-   신용카드(현대카드[보라])는 (1) 이번 달 지금까지 쌓인 누적 사용액과 다음 청구일,
-   (2) 이번 달에 실제로 청구된 금액(전월 사용분)을 함께 보여줍니다. */
+/* 결제수단 카드형 위젯: 신용카드(현대카드)는 지금까지 기록된 전체 누적 지출을,
+   체크카드(하나/농협)는 CARD_BALANCE_ANCHOR 이후 거래만 반영한 실제 잔고를
+   보여줍니다. 보고 있는 달(ym) 말일까지 누적된 값이라, 다음 달로 넘어가도
+   이 값이 그대로 이어져서 다음 달 거래만큼만 더 반영됩니다. */
 function renderCardStatus(ym){
   const wrap = document.getElementById('cardStatusWrap');
   if(!wrap) return;
   const all = DB.list();
-  const today = todayStr();
-  const isLiveMonth = ym === today.slice(0,7);
+  const cutoffExclusive = shiftYm(ym,1) + '-01'; // 보고 있는 달 말일까지만 포함(다음 달 1일 미만)
 
-  const debitRows = PAYMENT_METHODS.filter(p => PAYMENT_META[p].type === '체크카드').map(p=>{
-    const tx = monthTx(all, ym).filter(t => t.payment === p);
-    const out = tx.filter(t=>t.type==='지출').reduce((s,t)=>s+Number(t.amount||0),0);
-    const inc = tx.filter(t=>t.type==='수입').reduce((s,t)=>s+Number(t.amount||0),0);
-    return `<div class="cat-row">
-      <div class="top"><span class="name">${p}<span class="sub">체크카드 · 즉시 반영</span></span><span class="amt">지출 ${won(out)}${inc?` · 입금 ${won(inc)}`:''}</span></div>
+  const cardsHtml = PAYMENT_METHODS.map(p=>{
+    const meta = PAYMENT_META[p];
+
+    if(meta.type === '신용카드'){
+      const totalSpent = all
+        .filter(t=>t.payment===p && t.type==='지출' && t.date < cutoffExclusive)
+        .reduce((s,t)=>s+Number(t.amount||0), 0);
+      return `<div class="card kpi">
+        <div class="label">${p}</div>
+        <div class="value mono" style="color:var(--expense);">누적지출 ${won(totalSpent)}</div>
+      </div>`;
+    }
+
+    const netChange = all
+      .filter(t=>t.payment===p && t.date >= CARD_BALANCE_ANCHOR && t.date < cutoffExclusive)
+      .reduce((s,t)=>{
+        if(t.type==='지출') return s - Number(t.amount||0);
+        if(t.type==='수입') return s + Number(t.amount||0);
+        return s;
+      }, 0);
+    const balance = (CARD_STARTING_BALANCE[p]||0) + netChange;
+    return `<div class="card kpi">
+      <div class="label">${p}</div>
+      <div class="value mono" style="color:${balance>=0?'var(--income)':'var(--expense)'};">잔고 ${won(balance)}</div>
     </div>`;
   }).join('');
 
-  const creditRows = PAYMENT_METHODS.filter(p => PAYMENT_META[p].type === '신용카드').map(p=>{
-    const accruedTx = monthTx(all, ym).filter(t=>t.type==='지출' && t.payment===p);
-    const accrued = accruedTx.reduce((s,t)=>s+Number(t.amount||0),0);
-    const nextBillYm = shiftYm(ym,1);
-    const [by,bm] = nextBillYm.split('-');
-    const accruedLabel = isLiveMonth ? `1일~오늘(${Number(today.split('-')[2])}일)까지 누적` : `${Number(ym.split('-')[1])}월 전체 사용액`;
-
-    const prevYmVal = shiftYm(ym,-1);
-    const billedNow = monthTx(all, prevYmVal).filter(t=>t.type==='지출' && t.payment===p).reduce((s,t)=>s+Number(t.amount||0),0);
-    const [py,pm] = prevYmVal.split('-');
-
-    return `
-      <div class="cat-row" style="margin-top:4px;">
-        <div class="top"><span class="name">${p}<span class="sub">신용카드</span></span><span class="amt">${won(accrued)}</span></div>
-        <div style="font-size:11.5px;color:var(--muted);margin-top:3px;">${accruedLabel} · <b style="color:var(--ink);">${by}년 ${Number(bm)}월 12일</b> 청구 예정</div>
-      </div>
-      ${billedNow ? `
-      <div class="cat-row" style="background:var(--invest-soft);border-radius:10px;padding:10px 12px;margin-top:8px;">
-        <div class="top"><span class="name" style="color:var(--invest);">이번 달 12일 청구됨</span><span class="amt" style="color:var(--invest);">${won(billedNow)}</span></div>
-        <div style="font-size:11.5px;color:var(--muted);margin-top:3px;">${py}년 ${Number(pm)}월 사용분</div>
-      </div>` : ''}
-    `;
-  }).join('');
-
-  wrap.innerHTML = debitRows + creditRows;
+  wrap.innerHTML = `<div class="grid kpis" style="grid-template-columns:repeat(${PAYMENT_METHODS.length},1fr);">${cardsHtml}</div>`;
 }
 
 /* =================================================================================
@@ -1701,18 +1689,15 @@ function renderMonth(ym){
   const all = DB.list();
   const tx = monthTx(all, ym).sort((a,b)=> a.date < b.date ? 1 : -1);
 
+  // 공동/보라/관은 결제수단(카드)과 무관하게, 거래 입력할 때 직접 고른 구분(scope)만 기준으로 지출을 누적.
   const scopeSummary = SCOPES.map(sc=>{
-    const scTx = tx.filter(t=>realCashOwner(t)===sc);
-    const expense = sumBy(scTx,'지출');
-    // scTx는 realCashOwner 기준이라 신용카드 지출이 애초에 빠져 있음 -> 이미 "현금 기준" 지출.
-    return { scope:sc, income: sumBy(scTx,'수입'), expense, cashExpense: expense };
+    const scTx = tx.filter(t=>t.scope===sc);
+    return { scope:sc, expense: sumBy(scTx,'지출') };
   });
-  /* 신용카드(예: 현대카드[보라])는 쓴 달에는 "지출" 집계에 안 잡히고(realCashOwner가 'CARD'
-     반환) 카테고리 목록에만 남습니다. 실제 현금은 청구일(익월 12일)에 한 번에 빠져나가므로,
-     "잔액"에서만 그 시점에 별도로 차감합니다 — 지출(분류용) 숫자는 절대 건드리지 않아요.
+  /* "전체"만 수입/지출/잔액을 계속 보여줍니다. 신용카드(예: 현대카드[보라])는 쓴 달에는
+     잔액 계산에서 빠지고, 실제 현금이 나가는 청구일(익월 12일)에 한 번에 반영됩니다 —
      오늘 날짜가 아직 그 청구일 전이면(예: 8월 페이지를 미리 봐도) 차감하지 않습니다. */
   const cardBillMap = (todayStr() >= `${ym}-12`) ? creditCardExpenseByScope(all, shiftYm(ym,-1)) : {};
-  scopeSummary.forEach(s=>{ s.cardBill = cardBillMap[s.scope] || 0; });
   const totalSummary = { scope:'전체', income: sumBy(tx,'수입'), expense: sumBy(tx,'지출') };
   // "전체"의 지출 표시는 그대로 두되(카드 포함, 쓴 달 기준), 잔액 계산용 현금 지출은
   // 스코프별과 똑같이 신용카드분을 제외해서 계산 — 그래야 전체 잔액과 부분(공동+보라+관)
@@ -1736,9 +1721,17 @@ function renderMonth(ym){
 
     <div class="grid kpis">
       ${kpiCards.map(s=>{
+        if(s.scope !== '전체'){
+          return `
+          <div class="card kpi">
+            <div class="label">${s.scope}</div>
+            <div class="value mono" style="color:var(--expense);">지출 ${won(s.expense)}</div>
+          </div>
+        `;
+        }
         const balance = s.income - s.cashExpense - s.cardBill;
         return `
-        <div class="card kpi ${s.scope==='전체'?'kpi-total':''}">
+        <div class="card kpi kpi-total">
           <div class="label">${s.scope}</div>
           <div class="value mono kpi-subline" style="color:var(--income);">수입 ${won(s.income)}</div>
           <div class="value mono kpi-subline" style="color:var(--expense);">지출 ${won(s.expense)}</div>
@@ -1752,8 +1745,8 @@ function renderMonth(ym){
     </div>` : ''}
 
     <div class="section">
-      <div class="section-head"><h2>결제수단 현황</h2><span class="hint">체크카드는 즉시 반영, 신용카드는 익월 12일 청구</span></div>
-      <div class="card cat-list-card" id="cardStatusWrap"></div>
+      <div class="section-head"><h2>결제수단 현황</h2><span class="hint">하나·농협은 8/1부터 반영된 실제 잔고, 현대카드는 전체 누적 지출</span></div>
+      <div id="cardStatusWrap"></div>
     </div>
 
     <div class="grid two-col section">
