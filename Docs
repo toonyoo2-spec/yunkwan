@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>중요 문서함</title>
+<style>
+  :root{
+    --bg:#f6f5f1;
+    --ink:#22221f;
+    --sub:#6b6a63;
+    --line:#e1dfd6;
+    --card:#ffffff;
+    --accent:#3a5a52;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:1000px;margin:0 auto;}
+
+  header{margin-bottom:20px;}
+  .home-btn{
+    display:inline-block;
+    font-size:12.5px;
+    color:var(--sub);
+    text-decoration:none;
+    margin-bottom:8px;
+  }
+  .home-btn:hover{color:var(--accent);}
+  h1{
+    font-size:26px;
+    letter-spacing:-0.02em;
+    margin:0 0 4px;
+  }
+  header p{
+    margin:0;
+    color:var(--sub);
+    font-size:13.5px;
+  }
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:20px;
+  }
+  .panel h2{
+    font-size:15px;
+    margin:0 0 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel h2::before{
+    content:"";
+    width:6px;height:6px;border-radius:50%;
+    background:var(--accent);
+    display:inline-block;
+  }
+
+  .form-grid{
+    display:grid;
+    grid-template-columns:1.3fr 1fr 1.3fr;
+    gap:10px;
+  }
+  .field{margin-bottom:0;}
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--sub);
+    margin-bottom:5px;
+  }
+  input[type=text], select, textarea{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:13.5px;
+    background:#fff;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:44px;}
+  input:focus, select:focus, textarea:focus{
+    outline:none;
+    border-color:var(--accent);
+  }
+
+  .file-drop{
+    grid-column:1/-1;
+    border:1.5px dashed var(--line);
+    border-radius:10px;
+    padding:14px;
+    text-align:center;
+    cursor:pointer;
+    color:var(--sub);
+    font-size:12.5px;
+    position:relative;
+    background:#fafaf8;
+  }
+  .file-drop input[type=file]{
+    position:absolute;
+    inset:0;
+    opacity:0;
+    cursor:pointer;
+  }
+  .file-drop .picked{color:var(--ink);font-weight:600;}
+
+  .save-btn{
+    grid-column:1/-1;
+    justify-self:start;
+    margin-top:4px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:10px 22px;
+    border-radius:7px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .save-btn:hover{opacity:0.9;}
+  .save-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .status-msg{
+    grid-column:1/-1;
+    font-size:11.5px;
+    color:var(--sub);
+  }
+
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+  .tab{
+    border:1px solid var(--line);
+    background:#fff;
+    padding:7px 14px;
+    border-radius:20px;
+    font-size:13px;
+    cursor:pointer;
+    color:var(--sub);
+  }
+  .tab.active{
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+
+  .doc-list{display:flex;flex-direction:column;gap:10px;}
+  .doc-row{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .doc-row .icon{
+    width:38px;height:38px;flex-shrink:0;
+    border-radius:8px;
+    background:#eef0ec;
+    display:flex;align-items:center;justify-content:center;
+    font-size:17px;
+  }
+  .doc-row .body{flex:1;min-width:0;}
+  .doc-row .title{font-size:14.5px;font-weight:700;}
+  .doc-row .meta{font-size:12px;color:var(--sub);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;}
+  .doc-row .cat-badge{
+    font-size:11px;
+    padding:2px 8px;
+    border-radius:5px;
+    background:#eef0ec;
+    color:var(--sub);
+  }
+  .doc-row .memo{font-size:12px;color:var(--sub);margin-top:4px;white-space:pre-wrap;}
+  .doc-row .actions{display:flex;gap:8px;flex-shrink:0;}
+  .dl-btn{
+    background:#eef0ec;
+    color:var(--ink);
+    border:none;
+    font-size:12.5px;
+    font-weight:600;
+    padding:8px 12px;
+    border-radius:7px;
+    cursor:pointer;
+  }
+  .dl-btn:hover{background:#e2e6de;}
+  .del-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--sub);
+    cursor:pointer;
+    font-size:12.5px;
+    padding:8px 12px;
+    border-radius:7px;
+  }
+  .del-btn:hover{border-color:#b3452f;color:#b3452f;}
+
+  .empty{
+    text-align:center;
+    padding:50px 0;
+    color:var(--sub);
+    font-size:13.5px;
+  }
+
+  #appContent{display:none;}
+
+  @media (max-width:640px){
+    .form-grid{grid-template-columns:1fr;}
+    .doc-row{flex-wrap:wrap;}
+    .doc-row .actions{width:100%;justify-content:flex-end;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="appContent">
+
+  <header>
+    <a href="./index.html" class="home-btn">← 홈</a>
+    <h1>중요 문서함</h1>
+    <p>보험증서, 계약서 등 스캔/사진을 안전하게 보관합니다. 로그인한 사람만 보고 받을 수 있어요.</p>
+  </header>
+
+  <div class="panel">
+    <h2>새 문서 등록</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>제목</label>
+        <input type="text" id="in-title" placeholder="예: 자동차 보험증권">
+      </div>
+      <div class="field">
+        <label>카테고리</label>
+        <select id="in-category">
+          <option value="보험">보험</option>
+          <option value="계약서">계약서</option>
+          <option value="신분증">신분증</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>메모 (선택)</label>
+        <input type="text" id="in-memo" placeholder="갱신일, 관련 연락처 등">
+      </div>
+      <div class="file-drop" id="dropZone">
+        <span id="dropLabel">클릭해서 파일 선택 (이미지, PDF 등)</span>
+        <input type="file" id="in-file" accept="image/*,application/pdf">
+      </div>
+      <button class="save-btn" id="saveBtn" onclick="uploadDoc()">+ 등록하기</button>
+      <div class="status-msg" id="uploadStatus"></div>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="doc-list" id="docList"></div>
+  <div class="empty" id="emptyMsg" style="display:none;">등록된 문서가 없습니다.</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script>
+/* ===========================================================
+   Supabase 연동 (documents 테이블 + documents 스토리지 버킷, 비공개)
+   =========================================================== */
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+window.sb = sb; // auth-gate.js가 같은 클라이언트를 재사용하도록 공유
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    sb.auth.startAutoRefresh();
+  } else {
+    sb.auth.stopAutoRefresh();
+  }
+});
+
+const CATEGORIES = ["보험","계약서","신분증","기타"];
+let docs = [];
+let filter = "all";
+let pickedFile = null;
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function escapeHtml(str){
+  return (str||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function iconFor(fileName){
+  const ext = (fileName||"").split('.').pop().toLowerCase();
+  if(ext === 'pdf') return '📄';
+  if(['jpg','jpeg','png','gif','webp','heic'].includes(ext)) return '🖼️';
+  return '📁';
+}
+
+document.getElementById('in-file').addEventListener('change', function(e){
+  pickedFile = e.target.files[0] || null;
+  document.getElementById('dropLabel').innerHTML = pickedFile
+    ? `<span class="picked">${escapeHtml(pickedFile.name)}</span>`
+    : '클릭해서 파일 선택 (이미지, PDF 등)';
+});
+
+/* ---- 목록 로드 ---- */
+async function loadDocs(){
+  const { data, error } = await sb.from('documents').select('*').order('uploadedAt', { ascending:false });
+  if(error){
+    console.error("문서 목록 로드 실패:", error);
+  } else {
+    docs = data || [];
+  }
+  render();
+}
+
+function setFilter(f){
+  filter = f;
+  render();
+}
+
+function render(){
+  const counts = { 보험:0, 계약서:0, 신분증:0, 기타:0 };
+  docs.forEach(d => { if(counts[d.category] !== undefined) counts[d.category]++; });
+
+  const tabDefs = [
+    { key:"all", label:`전체 (${docs.length})` },
+    ...CATEGORIES.map(c => ({ key:c, label:`${c} (${counts[c]})` }))
+  ];
+  document.getElementById('tabs').innerHTML = tabDefs.map(t =>
+    `<button class="tab ${filter===t.key?'active':''}" onclick="setFilter('${t.key}')">${t.label}</button>`
+  ).join('');
+
+  const list = filter === "all" ? docs : docs.filter(d => d.category === filter);
+  const listEl = document.getElementById('docList');
+  const emptyMsg = document.getElementById('emptyMsg');
+
+  if(list.length === 0){
+    listEl.innerHTML = "";
+    emptyMsg.style.display = "block";
+    return;
+  }
+  emptyMsg.style.display = "none";
+
+  listEl.innerHTML = list.map(d => `
+    <div class="doc-row">
+      <div class="icon">${iconFor(d.fileName)}</div>
+      <div class="body">
+        <div class="title">${escapeHtml(d.title)}</div>
+        <div class="meta">
+          <span class="cat-badge">${escapeHtml(d.category)}</span>
+          <span>${escapeHtml(d.fileName)}</span>
+          <span>${escapeHtml((d.uploadedAt||"").slice(0,10))}</span>
+        </div>
+        ${d.memo ? `<div class="memo">${escapeHtml(d.memo)}</div>` : ''}
+      </div>
+      <div class="actions">
+        <button class="dl-btn" onclick="downloadDoc('${d.id}')">다운로드</button>
+        <button class="del-btn" onclick="deleteDoc('${d.id}')">삭제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ---- 업로드 ---- */
+async function uploadDoc(){
+  const title = document.getElementById('in-title').value.trim();
+  const category = document.getElementById('in-category').value;
+  const memo = document.getElementById('in-memo').value.trim();
+  const statusEl = document.getElementById('uploadStatus');
+  const saveBtn = document.getElementById('saveBtn');
+
+  if(!title){ alert('제목을 입력해주세요.'); return; }
+  if(!pickedFile){ alert('파일을 선택해주세요.'); return; }
+
+  saveBtn.disabled = true;
+  statusEl.textContent = "업로드 중...";
+
+  const storagePath = `${uid()}_${pickedFile.name}`;
+
+  const { error: uploadError } = await sb.storage
+    .from('documents')
+    .upload(storagePath, pickedFile, { contentType: pickedFile.type, upsert: false });
+
+  if(uploadError){
+    statusEl.textContent = "업로드 실패: " + uploadError.message;
+    saveBtn.disabled = false;
+    return;
+  }
+
+  const newDoc = {
+    id: uid(),
+    title, category, memo,
+    fileName: pickedFile.name,
+    storagePath,
+    uploadedAt: new Date().toISOString()
+  };
+
+  const { error: insertError } = await sb.from('documents').insert(newDoc);
+  saveBtn.disabled = false;
+
+  if(insertError){
+    statusEl.textContent = "저장 실패: " + insertError.message;
+    // 이미 올라간 파일은 정리
+    await sb.storage.from('documents').remove([storagePath]);
+    return;
+  }
+
+  statusEl.textContent = "등록 완료 ✓";
+  document.getElementById('in-title').value = "";
+  document.getElementById('in-memo').value = "";
+  document.getElementById('in-category').value = "보험";
+  document.getElementById('in-file').value = "";
+  document.getElementById('dropLabel').textContent = "클릭해서 파일 선택 (이미지, PDF 등)";
+  pickedFile = null;
+
+  await loadDocs();
+}
+
+/* ---- 다운로드 (비공개 버킷 → 서명 URL로 60초간 유효한 링크 발급) ---- */
+async function downloadDoc(id){
+  const doc = docs.find(d => d.id === id);
+  if(!doc) return;
+  const { data, error } = await sb.storage.from('documents').createSignedUrl(doc.storagePath, 60);
+  if(error){ alert("다운로드 링크 생성 실패: " + error.message); return; }
+  window.open(data.signedUrl, '_blank');
+}
+
+async function deleteDoc(id){
+  const doc = docs.find(d => d.id === id);
+  if(!doc) return;
+  if(!confirm('이 문서를 삭제할까요?')) return;
+
+  const { error: storageError } = await sb.storage.from('documents').remove([doc.storagePath]);
+  if(storageError){ alert("파일 삭제 실패: " + storageError.message); return; }
+
+  const { error } = await sb.from('documents').delete().eq('id', id);
+  if(error){ alert("삭제 실패: " + error.message); return; }
+
+  await loadDocs();
+}
+
+loadDocs();
+</script>
+<script src="./auth-gate.js"></script>
+</body>
+</html>
