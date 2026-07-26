@@ -157,6 +157,9 @@ button{font-family:inherit;}
 .kpi-row .k{display:flex;align-items:center;gap:7px;color:var(--ink-soft);font-weight:600;}
 .kpi-row .k .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .kpi-row .v{font-family:var(--font);font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;}
+.kpi-row-clickable{cursor:pointer;border-radius:8px;margin:0 -8px;padding-left:8px;padding-right:8px;transition:background .12s ease;}
+.kpi-row-clickable:hover{background:var(--paper);}
+.kpi-row-clickable:active{background:var(--line);}
 
 @media (max-width:800px){
   .kpi .value{font-size:19px;}
@@ -165,6 +168,8 @@ button{font-family:inherit;}
   .kpi{padding:14px 14px 12px;}
   .kpi .value{font-size:16px;}
   .kpi-row{font-size:12.5px;padding:6px 0;}
+  /* 터치 탭 대상은 44px 이상 권장 — 좌우 패딩은 유지하되 위아래 여백을 늘려 탭하기 쉽게 함 */
+  .kpi-row-clickable{padding-top:9px;padding-bottom:9px;}
 }
 
 .section{margin-bottom:26px;}
@@ -801,6 +806,25 @@ function creditCardExpenseByScope(list, ym){
   return result;
 }
 
+/* "전체" 카드(수입/지출/잔액)의 숫자를 계산합니다. renderMonth와 잔액 팝업(openTotalBalanceModal)이
+   똑같은 계산식을 공유해야 서로 어긋나지 않아서 여기 한 곳으로 모았습니다. */
+function computeTotalSummary(ym){
+  const all = DB.list();
+  const tx = monthTx(all, ym);
+  const income = sumBy(tx,'수입');
+  const expense = sumBy(tx,'지출');
+  const cashExpense = tx.reduce((s,t)=>{
+    if(t.type !== '지출') return s;
+    const meta = t.payment ? PAYMENT_META[t.payment] : null;
+    if(meta && meta.type === '신용카드') return s;
+    return s + Number(t.amount||0);
+  }, 0);
+  const cardBillMap = (todayStr() >= `${ym}-12`) ? creditCardExpenseByScope(all, shiftYm(ym,-1)) : {};
+  const cardBill = Object.values(cardBillMap).reduce((a,b)=>a+b, 0);
+  const balance = income - cashExpense - cardBill;
+  return { income, expense, cashExpense, cardBill, balance };
+}
+
 /* 결제수단별 현황 줄을 계산합니다(DOM 조작 없이 데이터만 반환 — "카드 현황" 카드의
    서브라인으로 씀). 신용카드(현대카드)는 지금까지 기록된 전체 누적 지출을,
    체크카드(하나/농협)는 CARD_BALANCE_ANCHOR 이후 거래만 반영한 실제 잔고를
@@ -820,7 +844,7 @@ function buildCardStatusLines(ym){
       const totalSpent = all
         .filter(t=>t.payment===p && t.type==='지출' && t.date < cutoffExclusive)
         .reduce((s,t)=>s+Number(t.amount||0), 0);
-      return { name:`${name} 누적 지출`, value: won(totalSpent), dotColor: SCOPE_COLOR[meta.person], valueColor:'var(--expense)' };
+      return { name, value: won(totalSpent), dotColor: SCOPE_COLOR[meta.person], valueColor:'var(--expense)', payment:p, kind:'card-history' };
     }
 
     const netChange = all
@@ -831,7 +855,7 @@ function buildCardStatusLines(ym){
         return s;
       }, 0);
     const balance = (CARD_STARTING_BALANCE[p]||0) + netChange;
-    return { name:`${name} 통장 잔고`, value: won(balance), dotColor: SCOPE_COLOR[meta.person], valueColor: balance>=0?'var(--income)':'var(--expense)' };
+    return { name, value: won(balance), dotColor: SCOPE_COLOR[meta.person], valueColor: balance>=0?'var(--income)':'var(--expense)', payment:p, kind:'card-balance' };
   });
 }
 
@@ -1718,31 +1742,19 @@ function renderMonth(ym){
   /* "전체"만 수입/지출/잔액을 계속 보여줍니다. 신용카드(예: 현대카드[보라])는 쓴 달에는
      잔액 계산에서 빠지고, 실제 현금이 나가는 청구일(익월 12일)에 한 번에 반영됩니다 —
      오늘 날짜가 아직 그 청구일 전이면(예: 8월 페이지를 미리 봐도) 차감하지 않습니다. */
-  const cardBillMap = (todayStr() >= `${ym}-12`) ? creditCardExpenseByScope(all, shiftYm(ym,-1)) : {};
-  const totalSummary = { scope:'전체', income: sumBy(tx,'수입'), expense: sumBy(tx,'지출') };
-  // "전체"의 지출 표시는 그대로 두되(카드 포함, 쓴 달 기준), 잔액 계산용 현금 지출은
-  // 스코프별과 똑같이 신용카드분을 제외해서 계산 — 그래야 전체 잔액과 부분(공동+보라+관)
-  // 잔액 합이 어긋나지 않음.
-  totalSummary.cashExpense = tx.reduce((s,t)=>{
-    if(t.type !== '지출') return s;
-    const meta = t.payment ? PAYMENT_META[t.payment] : null;
-    if(meta && meta.type === '신용카드') return s;
-    return s + Number(t.amount||0);
-  }, 0);
-  totalSummary.cardBill = Object.values(cardBillMap).reduce((a,b)=>a+b, 0);
+  const totalSummary = computeTotalSummary(ym);
   const unassignedCount = tx.filter(t=>!t.scope).length;
 
   // 상단 3개 카드: ① 전체(수입/지출/잔액) ② 지출(공동/보라/관이) ③ 카드 현황(현대/하나/농협)
   // 지출 카드의 이름은 전부 2글자로("관"->"관이") 맞춰서 나란히 봤을 때 정돈되어 보이게 함.
   const SCOPE_LABEL = { "공동":"공동", "보라":"보라", "관":"과니" };
-  const totalBalance = totalSummary.income - totalSummary.cashExpense - totalSummary.cardBill;
   const kpiBlocks = [
     {
       label: '전체', extraClass: 'kpi-total',
       lines: [
-        { name:'수입', value: won(totalSummary.income), dotColor:'var(--income)', valueColor:'var(--income)' },
-        { name:'지출', value: won(totalSummary.expense), dotColor:'var(--expense)', valueColor:'var(--expense)' },
-        { name:'잔액', value: won(totalBalance), dotColor: totalBalance>=0?'var(--income)':'var(--expense)', valueColor: totalBalance>=0?'var(--income)':'var(--expense)' },
+        { name:'수입', value: won(totalSummary.income), dotColor:'var(--income)', valueColor:'var(--income)', onclick:`openTotalIncomeModal('${ym}')` },
+        { name:'지출', value: won(totalSummary.expense), dotColor:'var(--expense)', valueColor:'var(--expense)', onclick:`openTotalExpenseModal('${ym}')` },
+        { name:'잔액', value: won(totalSummary.balance), dotColor: totalSummary.balance>=0?'var(--income)':'var(--expense)', valueColor: totalSummary.balance>=0?'var(--income)':'var(--expense)', onclick:`openTotalBalanceModal('${ym}')` },
       ],
     },
     {
@@ -1750,11 +1762,17 @@ function renderMonth(ym){
       lines: scopeSummary.map(s => ({
         name: SCOPE_LABEL[s.scope], value: won(s.expense),
         dotColor: SCOPE_COLOR[s.scope], valueColor:'var(--ink)',
+        onclick:`openScopeExpenseModal('${ym}','${s.scope}')`,
       })),
     },
     {
       label: '카드 현황',
-      lines: buildCardStatusLines(ym),
+      lines: buildCardStatusLines(ym).map(line => ({
+        ...line,
+        onclick: line.kind === 'card-history'
+          ? `openCardHistoryModal('${ym}','${line.payment}')`
+          : `openCardBalanceModal('${ym}','${line.payment}')`,
+      })),
     },
   ];
 
@@ -1771,7 +1789,7 @@ function renderMonth(ym){
           <div class="label">${block.label}</div>
           <div class="kpi-rows">
             ${block.lines.map(line => `
-              <div class="kpi-row">
+              <div class="kpi-row${line.onclick?' kpi-row-clickable':''}" ${line.onclick?`onclick="${line.onclick}"`:''}>
                 <span class="k"><i class="dot" style="background:${line.dotColor};"></i>${line.name}</span>
                 <span class="v mono" style="color:${line.valueColor};">${line.value}</span>
               </div>
@@ -2014,6 +2032,146 @@ function openDayModal(ym, day){
     <h3 class="display">${mm}월 ${day}일</h3>
     <div class="modal-sub">지출 합계 ${won(total)} · 총 ${items.length}건</div>
     ${listHtml}
+  `);
+}
+
+/* 여러 날에 걸친 거래 목록을 모달로 보여줄 때 공통으로 쓰는 <li> 렌더러 —
+   (day, category, note, amount)만 필요해서 openDayModal의 한 줄짜리 항목과는
+   살짝 다르게 날짜를 같이 보여줍니다. */
+function txListItemsHtml(items){
+  if(!items.length) return '';
+  return `<ul class="modal-tx-list">${items.map(t=>`
+    <li>
+      <span class="badge ${TYPE_KEY[t.type]}">${t.date.slice(5)}</span>
+      <span class="n">${t.category||''}${t.note?` · ${t.note}`:''}</span>
+      <span class="a amt ${TYPE_KEY[t.type]}">${Number(t.amount).toLocaleString('ko-KR')}원</span>
+    </li>
+  `).join('')}</ul>`;
+}
+
+/* ---- 상단 "전체" 카드 팝업 ---- */
+function openTotalIncomeModal(ym){
+  const [yy,mm] = ym.split('-').map(Number);
+  const items = monthTx(DB.list(), ym).filter(t=>t.type==='수입').sort((a,b)=> a.date < b.date ? 1 : -1);
+  const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
+  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 수입 내역이 없어요.</div>`;
+  openModal(`
+    <h3 class="display">${mm}월 수입</h3>
+    <div class="modal-sub">합계 ${won(total)} · 총 ${items.length}건</div>
+    ${listHtml}
+  `);
+}
+
+function openTotalExpenseModal(ym){
+  const [yy,mm] = ym.split('-').map(Number);
+  const items = monthTx(DB.list(), ym).filter(t=>t.type==='지출').sort((a,b)=> a.date < b.date ? 1 : -1);
+  const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
+  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 지출 내역이 없어요.</div>`;
+  openModal(`
+    <h3 class="display">${mm}월 지출</h3>
+    <div class="modal-sub">합계 ${won(total)} · 총 ${items.length}건</div>
+    ${listHtml}
+  `);
+}
+
+function openTotalBalanceModal(ym){
+  const [yy,mm] = ym.split('-').map(Number);
+  const s = computeTotalSummary(ym);
+  const rows = [
+    { label:'수입', value: s.income, sign:'+' },
+    { label:'현금성 지출', value: s.cashExpense, sign:'-' },
+    { label:'카드 청구액(전월 사용분)', value: s.cardBill, sign:'-' },
+  ];
+  const rowsHtml = rows.map(r=>`
+    <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px;">
+      <span style="color:var(--ink-soft);">${r.label}</span>
+      <span class="mono" style="font-weight:600;">${r.sign}${won(r.value)}</span>
+    </div>
+  `).join('');
+  openModal(`
+    <h3 class="display">${mm}월 잔액</h3>
+    <div class="modal-sub">수입에서 현금성 지출과 이번 달 청구된 카드 대금을 뺀 값이에요.</div>
+    ${rowsHtml}
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;">
+      <span style="font-weight:700;">잔액</span>
+      <span class="mono" style="font-weight:700;font-size:16px;color:${s.balance>=0?'var(--income)':'var(--expense)'};">${won(s.balance)}</span>
+    </div>
+  `);
+}
+
+/* ---- "지출"(공동/보라/과니) 카드 팝업 ---- */
+function openScopeExpenseModal(ym, scope){
+  const [yy,mm] = ym.split('-').map(Number);
+  const label = { "공동":"공동", "보라":"보라", "관":"과니" }[scope] || scope;
+  const items = monthTx(DB.list(), ym)
+    .filter(t=>t.type==='지출' && t.scope===scope)
+    .sort((a,b)=> a.date < b.date ? 1 : -1);
+  const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
+  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 ${label} 지출 내역이 없어요.</div>`;
+  openModal(`
+    <h3 class="display">${mm}월 ${label} 지출</h3>
+    <div class="modal-sub">합계 ${won(total)} · 총 ${items.length}건</div>
+    ${listHtml}
+  `);
+}
+
+/* ---- "카드 현황" 팝업 ---- */
+function openCardHistoryModal(ym, payment){
+  const [yy,mm] = ym.split('-').map(Number);
+  const cutoffExclusive = shiftYm(ym,1) + '-01';
+  const name = payment.replace(/\[.*?\]/, '');
+  const items = DB.list()
+    .filter(t=>t.payment===payment && t.type==='지출' && t.date < cutoffExclusive)
+    .sort((a,b)=> a.date < b.date ? 1 : -1);
+  const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
+  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">아직 기록된 지출 내역이 없어요.</div>`;
+  openModal(`
+    <h3 class="display">${name} 누적 지출 내역</h3>
+    <div class="modal-sub">${mm}월 말 기준 누적 ${won(total)} · 총 ${items.length}건</div>
+    ${listHtml}
+  `);
+}
+
+function openCardBalanceModal(ym, payment){
+  const [yy,mm] = ym.split('-').map(Number);
+  const name = payment.replace(/\[.*?\]/, '');
+  const all = DB.list();
+  const thisMonthStart = ym + '-01';
+  const nextMonthStart = shiftYm(ym,1) + '-01';
+  const monthLowerBound = CARD_BALANCE_ANCHOR > thisMonthStart ? CARD_BALANCE_ANCHOR : thisMonthStart;
+
+  const netChange = txs => txs.reduce((s,t)=>{
+    if(t.type==='지출') return s - Number(t.amount||0);
+    if(t.type==='수입') return s + Number(t.amount||0);
+    return s;
+  }, 0);
+
+  const beforeTx = all.filter(t=>t.payment===payment && t.date >= CARD_BALANCE_ANCHOR && t.date < monthLowerBound);
+  const prevBalance = (CARD_STARTING_BALANCE[payment]||0) + netChange(beforeTx);
+
+  const monthItems = all
+    .filter(t=>t.payment===payment && t.date >= monthLowerBound && t.date < nextMonthStart)
+    .sort((a,b)=> a.date < b.date ? 1 : -1);
+  const nowBalance = prevBalance + netChange(monthItems);
+
+  const listHtml = monthItems.length ? `<ul class="modal-tx-list">${monthItems.map(t=>{
+    const signed = t.type==='지출' ? -Number(t.amount||0) : Number(t.amount||0);
+    return `
+    <li>
+      <span class="badge ${TYPE_KEY[t.type]}">${t.date.slice(5)}</span>
+      <span class="n">${t.category||''}${t.note?` · ${t.note}`:''}</span>
+      <span class="a amt ${TYPE_KEY[t.type]}">${signed>=0?'+':''}${signed.toLocaleString('ko-KR')}원</span>
+    </li>
+  `;}).join('')}</ul>` : `<div style="color:var(--muted);font-size:13px;">이번 달 반영된 거래가 없어요.</div>`;
+
+  openModal(`
+    <h3 class="display">${name} 통장 잔고</h3>
+    <div class="modal-sub">${mm}월 시작 잔고 ${won(prevBalance)}</div>
+    ${listHtml}
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;">
+      <span style="font-weight:700;">현재 잔고</span>
+      <span class="mono" style="font-weight:700;font-size:16px;color:${nowBalance>=0?'var(--income)':'var(--expense)'};">${won(nowBalance)}</span>
+    </div>
   `);
 }
 
