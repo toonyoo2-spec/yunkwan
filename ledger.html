@@ -45,6 +45,7 @@
 }
 
 *{box-sizing:border-box;}
+html,body{overflow-x:hidden;max-width:100%;}
 body{
   -webkit-font-smoothing:antialiased;
   min-height:100vh;
@@ -131,8 +132,10 @@ button{font-family:inherit;}
   border:1px solid var(--line);
   border-radius:var(--radius-m);
   box-shadow:var(--shadow-card);
+  min-width:0;
 }
-.grid{display:grid;gap:16px;}
+.grid{display:grid;gap:16px;min-width:0;}
+.grid > *{min-width:0;}
 .kpis{grid-template-columns:repeat(4,1fr);margin-bottom:18px;}
 @media (max-width:800px){.kpis{grid-template-columns:repeat(2,1fr);}}
 
@@ -181,20 +184,28 @@ button{font-family:inherit;}
 /* =========================================================
    달력 (지출 히트맵)
    ========================================================= */
-.cal-card{padding:18px;}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px;}
+.cal-card{padding:18px;min-width:0;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:10px;min-width:0;}
 .cal-dow{font-size:11px;color:var(--muted);text-align:center;font-weight:700;padding-bottom:4px;}
 .cal-cell{
   aspect-ratio:1/0.82;border-radius:8px;border:1px solid var(--line);
   padding:6px 7px;position:relative;background:var(--paper);
   display:flex;flex-direction:column;justify-content:space-between;
+  min-width:0;overflow:hidden;
 }
 .cal-cell.empty{border:none;background:transparent;}
 .cal-cell .d{font-size:11px;color:var(--muted);font-weight:600;}
-.cal-cell .amt{font-size:10.5px;font-weight:700;color:var(--expense);word-break:keep-all;}
+.cal-cell .amt{font-size:10.5px;font-weight:700;color:var(--expense);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .cal-cell.today{border:1.5px solid var(--ink);}
 .cal-legend{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:var(--muted);}
 .cal-legend .sw{width:12px;height:12px;border-radius:3px;}
+@media (max-width:480px){
+  .cal-grid{gap:3px;}
+  .cal-cell{padding:4px 2px;}
+  .cal-cell .d{font-size:10px;}
+  .cal-cell .amt{font-size:9px;}
+  .cal-dow{font-size:10px;}
+}
 
 /* =========================================================
    카테고리 리스트업 (바 형태)
@@ -207,10 +218,10 @@ button{font-family:inherit;}
 }
 .cat-tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 .cat-row{margin-bottom:10px;}
-.cat-row .top{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;}
-.cat-row .top .name{font-weight:600;}
+.cat-row .top{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;margin-bottom:4px;}
+.cat-row .top .name{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cat-row .top .name .sub{color:var(--muted);font-weight:400;margin-left:4px;}
-.cat-row .top .amt{font-family:var(--font);}
+.cat-row .top .amt{font-family:var(--font);white-space:nowrap;flex-shrink:0;}
 .bar-track{height:7px;border-radius:100px;background:var(--line);overflow:hidden;}
 .bar-fill{height:100%;border-radius:100px;}
 
