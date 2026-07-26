@@ -452,6 +452,14 @@
         <div class="icon">✅</div>
         <div class="title">Task</div>
       </a>
+      <a class="card" href="./trip.html">
+        <div class="icon">✈️</div>
+        <div class="title">여행</div>
+      </a>
+      <a class="card" href="./docs.html">
+        <div class="icon">📁</div>
+        <div class="title">문서함</div>
+      </a>
     </div>
   </header>
 
@@ -550,6 +558,7 @@
 const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
   auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
 });
+window.sb = sb; // 다른 스크립트(auth-gate.js 등)가 같은 클라이언트를 재사용하도록 공유
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
