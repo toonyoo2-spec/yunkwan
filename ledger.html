@@ -140,13 +140,24 @@ button{font-family:inherit;}
 .kpi.kpi-total{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
 .kpi.kpi-total .label{color:var(--accent);font-weight:700;}
 .kpi .label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em;}
-.kpi .value{font-family:var(--font);font-size:25px;font-weight:600;margin-top:6px;}
+.kpi .value{font-family:var(--font);font-size:25px;font-weight:600;margin-top:6px;white-space:nowrap;}
 .kpi .delta{font-size:12px;margin-top:6px;font-weight:600;}
 .kpi .delta.up{color:var(--expense);}
 .kpi .delta.down{color:var(--income);}
 .kpi.income .value{color:var(--income);}
 .kpi.expense .value{color:var(--expense);}
 .kpi.saving .value{color:var(--saving);}
+.kpi-subline{font-size:15px;margin-top:2px;white-space:nowrap;}
+.kpi-subline-balance{font-size:13px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);}
+@media (max-width:800px){
+  .kpi .value{font-size:19px;}
+}
+@media (max-width:480px){
+  .kpi{padding:14px 12px 12px;}
+  .kpi .value{font-size:16px;}
+  .kpi-subline{font-size:12px;}
+  .kpi-subline-balance{font-size:11px;}
+}
 
 .section{margin-bottom:26px;}
 .section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
@@ -1386,8 +1397,8 @@ function renderSummary(){
     </div>` : ''}
 
     <div class="grid kpis">
-      <div class="card kpi income"><div class="label">연간 총수입</div><div class="value mono">${wonShort(income)}</div></div>
-      <div class="card kpi expense"><div class="label">연간 총지출</div><div class="value mono">${wonShort(expense)}</div></div>
+      <div class="card kpi income"><div class="label">연간 총수입</div><div class="value mono">${won(income)}</div></div>
+      <div class="card kpi expense"><div class="label">연간 총지출</div><div class="value mono">${won(expense)}</div></div>
       <div class="card kpi saving">
         <div class="label">저축(수입-지출)</div>
         <div class="value mono" style="color:${net>=0?'var(--income)':'var(--expense)'};">${won(net)}</div>
@@ -1690,15 +1701,15 @@ function renderMonth(ym){
       <button class="move" onclick="location.hash='#/${nextYm(ym)}'">다음 달 ›</button>
     </div>
 
-    <div class="grid kpis" style="grid-template-columns:repeat(4,1fr);">
+    <div class="grid kpis">
       ${kpiCards.map(s=>{
         const balance = s.income - s.expense;
         return `
         <div class="card kpi ${s.scope==='전체'?'kpi-total':''}">
           <div class="label">${s.scope}</div>
-          <div class="value mono" style="color:var(--income);font-size:15px;">수입 ${won(s.income)}</div>
-          <div class="value mono" style="color:var(--expense);font-size:15px;margin-top:2px;">지출 ${won(s.expense)}</div>
-          <div class="value mono" style="color:${balance>=0?'var(--income)':'var(--expense)'};font-size:13px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);">잔액 ${won(balance)}</div>
+          <div class="value mono kpi-subline" style="color:var(--income);">수입 ${won(s.income)}</div>
+          <div class="value mono kpi-subline" style="color:var(--expense);">지출 ${won(s.expense)}</div>
+          <div class="value mono kpi-subline kpi-subline-balance" style="color:${balance>=0?'var(--income)':'var(--expense)'};">잔액 ${won(balance)}</div>
         </div>
       `;}).join('')}
     </div>
