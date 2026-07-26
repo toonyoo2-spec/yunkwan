@@ -3,24 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>여행 계획표</title>
+<title>Task · 포트폴리오</title>
+<link rel="stylesheet" href="./common.css">
 <style>
-  :root{
-    --bg:#f6f5f1;
-    --ink:#22221f;
-    --sub:#6b6a63;
-    --line:#e1dfd6;
-    --card:#ffffff;
-    --accent:#3a5a52;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
-    background:var(--bg);
-    color:var(--ink);
-    padding:32px 20px 80px;
-  }
   .wrap{max-width:1180px;margin:0 auto;}
 
   header{margin-bottom:20px;}
@@ -42,6 +27,30 @@
     color:var(--sub);
     font-size:13.5px;
   }
+
+  /* ---- 상태 요약 카드 ---- */
+  .summary{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-bottom:22px;
+  }
+  .sum-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    cursor:pointer;
+    transition:border-color .12s ease;
+  }
+  .sum-card:hover{border-color:var(--accent);}
+  .sum-card.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(58,90,82,0.15);}
+  .sum-card .num{font-size:22px;font-weight:700;}
+  .sum-card .lbl{font-size:12.5px;color:var(--sub);margin-top:2px;}
+  .sum-card.idea .num{color:var(--wait-ink);}
+  .sum-card.doing .num{color:var(--conf-ink);}
+  .sum-card.done .num{color:var(--done-ink);}
+  .sum-card.hold .num{color:var(--end-ink);}
 
   .panel{
     background:var(--card);
@@ -82,17 +91,18 @@
 
   .form-grid{
     display:grid;
-    grid-template-columns:1.4fr 1fr 1fr 1fr;
-    gap:10px;
-    align-items:end;
+    grid-template-columns:1fr 1.4fr;
+    gap:16px;
   }
+  .field{margin-bottom:12px;}
   .field label{
     display:block;
     font-size:12px;
     color:var(--sub);
     margin-bottom:5px;
   }
-  input[type=text], input[type=date], textarea{
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  input[type=text], input[type=url], select, textarea{
     width:100%;
     padding:9px 10px;
     border:1px solid var(--line);
@@ -103,14 +113,47 @@
     font-family:inherit;
   }
   textarea{resize:vertical;min-height:60px;}
-  input:focus, textarea:focus{
+  input:focus, select:focus, textarea:focus{
     outline:none;
     border-color:var(--accent);
   }
+
+  .image-drop{
+    border:1.5px dashed var(--line);
+    border-radius:10px;
+    padding:14px;
+    text-align:center;
+    cursor:pointer;
+    color:var(--sub);
+    font-size:12.5px;
+    position:relative;
+    min-height:160px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    background:#fafaf8;
+  }
+  .image-drop img{
+    max-width:100%;
+    max-height:220px;
+    border-radius:6px;
+    object-fit:cover;
+  }
+  .image-drop input[type=file]{
+    position:absolute;
+    inset:0;
+    opacity:0;
+    cursor:pointer;
+  }
+  .upload-status{
+    font-size:11.5px;
+    color:var(--sub);
+    margin-top:6px;
+  }
+
   .save-btn{
-    grid-column:1/-1;
-    justify-self:start;
-    margin-top:4px;
+    margin-top:6px;
     background:var(--accent);
     color:#fff;
     border:none;
@@ -123,58 +166,138 @@
   .save-btn:hover{opacity:0.9;}
   .save-btn:disabled{opacity:0.5;cursor:not-allowed;}
 
+  /* ---- 필터 탭 ---- */
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+  .tab{
+    border:1px solid var(--line);
+    background:#fff;
+    padding:7px 14px;
+    border-radius:20px;
+    font-size:13px;
+    cursor:pointer;
+    color:var(--sub);
+  }
+  .tab.active{
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+  .cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;}
+  .cat-tab{
+    border:1px dashed var(--line);
+    background:#fff;
+    padding:5px 12px;
+    border-radius:20px;
+    font-size:12px;
+    cursor:pointer;
+    color:var(--sub);
+  }
+  .cat-tab.active{
+    background:#eef0ec;
+    border-style:solid;
+    border-color:var(--accent);
+    color:var(--accent);
+    font-weight:600;
+  }
+
+  /* ---- 프로젝트 카드 ---- */
   .grid{
     display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
     gap:16px;
   }
-  .trip-card{
+  .project-card{
     background:var(--card);
     border:1px solid var(--line);
     border-radius:12px;
-    padding:18px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .project-card .thumb{
+    width:100%;
+    aspect-ratio:16/10;
+    background:#eef0ec;
+    overflow:hidden;
+  }
+  .project-card .thumb img{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .project-card .body{
+    padding:16px;
     display:flex;
     flex-direction:column;
     gap:8px;
-    cursor:pointer;
-    transition:border-color .12s ease, transform .12s ease;
+    flex:1;
   }
-  .trip-card:hover{border-color:var(--accent);transform:translateY(-2px);}
-  .trip-card.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(58,90,82,0.15);}
-  .trip-card .dday{
-    align-self:flex-start;
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .status-select{
     font-size:11px;
-    font-weight:700;
-    padding:3px 9px;
+    padding:4px 8px;
     border-radius:20px;
-    background:#eef0ec;
-    color:var(--accent);
+    border:1px solid transparent;
+    font-weight:700;
+    cursor:pointer;
   }
-  .trip-card .title{font-size:16px;font-weight:700;}
-  .trip-card .dates{font-size:12.5px;color:var(--sub);}
-  .trip-card .budget{font-size:12.5px;color:var(--sub);}
-  .trip-card .memo{
-    font-size:12px;
+  .status-select.idea{background:var(--wait-bg);color:var(--wait-ink);}
+  .status-select.doing{background:var(--conf-bg);color:var(--conf-ink);}
+  .status-select.done{background:var(--done-bg);color:var(--done-ink);}
+  .status-select.hold{background:var(--end-bg);color:var(--end-ink);}
+  .cat-badge{
+    font-size:11px;
+    padding:3px 9px;
+    border-radius:5px;
+    background:#eef0ec;
+    color:var(--sub);
+    white-space:nowrap;
+  }
+  .project-card .title{font-size:15.5px;font-weight:700;}
+  .project-card .period{font-size:11.5px;color:var(--sub);}
+  .project-card .desc{
+    font-size:12.5px;
     color:var(--sub);
     line-height:1.5;
     white-space:pre-wrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    display:-webkit-box;
-    -webkit-line-clamp:2;
-    -webkit-box-orient:vertical;
   }
-  .trip-card .del-btn{
-    align-self:flex-end;
+  .impact-box{
+    background:#f5f7f0;
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:8px 10px;
+    font-size:12px;
+    color:var(--ink);
+    line-height:1.5;
+    white-space:pre-wrap;
+  }
+  .impact-box .lbl{font-size:10.5px;font-weight:700;color:var(--accent);display:block;margin-bottom:3px;}
+  .card-actions{
+    display:flex;
+    gap:8px;
+    margin-top:auto;
+    padding-top:8px;
+  }
+  .ext-link{
+    flex:1;
+    text-align:center;
+    background:#eef0ec;
+    color:var(--ink);
+    text-decoration:none;
+    font-size:12px;
+    font-weight:600;
+    padding:8px 10px;
+    border-radius:7px;
+  }
+  .ext-link:hover{background:#e2e6de;}
+  .del-btn{
     background:none;
     border:1px solid var(--line);
     color:var(--sub);
     cursor:pointer;
-    font-size:12px;
-    padding:5px 10px;
+    font-size:13px;
+    padding:8px 12px;
     border-radius:7px;
   }
-  .trip-card .del-btn:hover{border-color:#b3452f;color:#b3452f;}
+  .del-btn:hover{border-color:#b3452f;color:#b3452f;}
 
   .empty{
     text-align:center;
@@ -183,140 +306,12 @@
     font-size:13.5px;
   }
 
-  /* ---- 일정 상세 ---- */
-  .itinerary-panel{display:none;}
-  .itinerary-panel.open{display:block;}
-  .itinerary-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    flex-wrap:wrap;
-    gap:10px;
-    margin-bottom:16px;
-  }
-  .itinerary-header .info h2{
-    font-size:18px;
-    margin:0 0 4px;
-    display:block;
-  }
-  .itinerary-header .info h2::before{display:none;}
-  .itinerary-header .info .sub{font-size:12.5px;color:var(--sub);}
-  .back-btn{
-    border:1px solid var(--line);
-    background:#fff;
-    color:var(--sub);
-    padding:7px 14px;
-    border-radius:20px;
-    font-size:12.5px;
-    cursor:pointer;
-  }
-  .back-btn:hover{border-color:var(--accent);color:var(--accent);}
-
-  .item-form-grid{
-    display:grid;
-    grid-template-columns:60px 90px 110px 1.4fr 90px;
-    gap:10px;
-    align-items:end;
-    margin-bottom:10px;
-  }
-  .item-form-grid2{
-    display:grid;
-    grid-template-columns:1.2fr 1fr 1fr 1fr 90px;
-    gap:10px;
-    align-items:end;
-    margin-bottom:18px;
-  }
-  .item-form-grid .add-item-btn, .item-form-grid2 .add-item-btn{
-    background:var(--accent);
-    color:#fff;
-    border:none;
-    padding:9px 0;
-    border-radius:7px;
-    font-size:13px;
-    font-weight:600;
-    cursor:pointer;
-  }
-  .item-form-grid .add-item-btn:hover, .item-form-grid2 .add-item-btn:hover{opacity:0.9;}
-  select#item-category{
-    width:100%;
-    padding:9px 10px;
-    border:1px solid var(--line);
-    border-radius:7px;
-    font-size:13.5px;
-    background:#fff;
-    color:var(--ink);
-    font-family:inherit;
-  }
-
-  .day-group{margin-bottom:18px;}
-  .day-group-title{
-    font-size:13px;
-    font-weight:700;
-    color:var(--accent);
-    margin-bottom:8px;
-    padding-bottom:6px;
-    border-bottom:1px solid var(--line);
-  }
-  .item-row{
-    display:flex;
-    align-items:flex-start;
-    gap:12px;
-    padding:10px 0;
-    border-bottom:1px dashed var(--line);
-  }
-  .item-row:last-child{border-bottom:none;}
-  .item-row .time{
-    flex:0 0 56px;
-    font-size:12.5px;
-    font-weight:700;
-    color:var(--sub);
-    padding-top:1px;
-  }
-  .item-row .cat-icon{
-    flex:0 0 30px;
-    width:30px;height:30px;
-    border-radius:8px;
-    background:#eef0ec;
-    display:flex;align-items:center;justify-content:center;
-    font-size:14px;
-  }
-  .item-row .body{flex:1;min-width:0;}
-  .item-row .item-title{font-size:14px;font-weight:600;}
-  .item-row .item-memo{font-size:12px;color:var(--sub);margin-top:2px;white-space:pre-wrap;}
-  .item-row .item-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
-  .item-row .item-meta a{
-    font-size:11.5px;
-    color:var(--accent);
-    text-decoration:none;
-    background:#eef0ec;
-    padding:3px 9px;
-    border-radius:20px;
-  }
-  .item-row .item-meta a:hover{background:#e2e6de;}
-  .item-row .cost{
-    flex:0 0 auto;
-    font-size:12.5px;
-    color:var(--accent);
-    font-weight:600;
-    padding-top:1px;
-  }
-  .item-row .del-item-btn{
-    flex:0 0 auto;
-    background:none;
-    border:none;
-    color:#b7b5ac;
-    cursor:pointer;
-    font-size:15px;
-    line-height:1;
-  }
-  .item-row .del-item-btn:hover{color:#b3452f;}
-
   #appContent{display:none;}
 
-  @media (max-width:820px){
-    .form-grid{grid-template-columns:1fr 1fr;}
-    .item-form-grid{grid-template-columns:1fr 1fr;}
-    .item-form-grid2{grid-template-columns:1fr 1fr;}
+  @media (max-width:720px){
+    .form-grid{grid-template-columns:1fr;}
+    .field-row{grid-template-columns:1fr;}
+    .summary{grid-template-columns:repeat(2,1fr);}
   }
 </style>
 </head>
@@ -325,102 +320,77 @@
 
   <header>
     <a href="./index.html" class="home-btn">← 홈</a>
-    <h1>여행 계획표</h1>
-    <p>여행을 등록하고, 날짜별 일정과 예산을 정리하세요.</p>
+    <h1>Task · 포트폴리오</h1>
+    <p>이직을 준비하며 만들고 있는 프로젝트를 정리합니다. 상태와 성과를 같이 기록해두면 나중에 이력서 쓸 때 바로 꺼내 쓸 수 있어요.</p>
   </header>
 
+  <div class="summary" id="summary"></div>
+
   <div class="panel">
-    <h2>새 여행 추가</h2>
+    <h2>새 프로젝트 추가</h2>
     <div class="form-grid">
-      <div class="field">
-        <label>여행 제목</label>
-        <input type="text" id="in-title" placeholder="예: 오사카 3박4일">
+      <div>
+        <div class="field">
+          <label>썸네일 이미지 (선택)</label>
+          <div class="image-drop" id="dropZone">
+            <span id="dropLabel">클릭해서 이미지 선택</span>
+            <input type="file" accept="image/*" id="in-image">
+          </div>
+          <div class="upload-status" id="uploadStatus"></div>
+        </div>
       </div>
-      <div class="field">
-        <label>시작일</label>
-        <input type="date" id="in-startDate">
+      <div>
+        <div class="field">
+          <label>프로젝트 제목</label>
+          <input type="text" id="in-title" placeholder="예: 위베베 시즌3 캠페인">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>상태</label>
+            <select id="in-status">
+              <option value="idea">아이디어</option>
+              <option value="doing" selected>진행중</option>
+              <option value="done">완료</option>
+              <option value="hold">보류</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>카테고리 (선택)</label>
+            <input type="text" id="in-category" placeholder="예: 마케팅, 데이터분석">
+          </div>
+        </div>
+        <div class="field">
+          <label>기간 (선택)</label>
+          <input type="text" id="in-period" placeholder="예: 2025.03 ~ 2025.06">
+        </div>
+        <div class="field">
+          <label>설명 / 내가 한 일</label>
+          <textarea id="in-description" placeholder="어떤 배경에서, 무엇을, 어떻게 했는지 적어주세요"></textarea>
+        </div>
+        <div class="field">
+          <label>성과 (선택)</label>
+          <textarea id="in-impact" placeholder="예: 전환율 18% 개선, 재구매율 12%p 상승 등 — 가능하면 숫자로"></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>노션 링크 (선택)</label>
+            <input type="url" id="in-notion" placeholder="https://notion.so/...">
+          </div>
+          <div class="field">
+            <label>결과물 링크 (선택)</label>
+            <input type="url" id="in-result" placeholder="배포 사이트, PDF 등">
+          </div>
+        </div>
+        <button class="save-btn" id="saveBtn" onclick="addProject()">+ 추가하기</button>
       </div>
-      <div class="field">
-        <label>종료일</label>
-        <input type="date" id="in-endDate">
-      </div>
-      <div class="field">
-        <label>예산</label>
-        <input type="text" id="in-budget" placeholder="예: 150만원">
-      </div>
-      <div class="field" style="grid-column:1/-1;">
-        <label>메모</label>
-        <textarea id="in-memo" placeholder="숙소, 항공편, 준비물 등"></textarea>
-      </div>
-      <button class="save-btn" id="saveTripBtn" onclick="addTrip()">+ 여행 추가</button>
     </div>
   </div>
 
-  <div class="section-title">등록된 여행</div>
-  <div class="grid" id="tripGrid"></div>
-  <div class="empty" id="emptyMsg" style="display:none;">아직 등록된 여행이 없어요.</div>
+  <div class="tabs" id="statusTabs"></div>
+  <div class="cat-tabs" id="catTabs"></div>
 
-  <div class="panel itinerary-panel" id="itineraryPanel">
-    <div class="itinerary-header">
-      <div class="info">
-        <h2 id="itTitle"></h2>
-        <div class="sub" id="itSub"></div>
-      </div>
-      <button class="back-btn" onclick="closeItinerary()">✕ 목록으로</button>
-    </div>
-
-    <div class="item-form-grid">
-      <div class="field">
-        <label>Day</label>
-        <input type="text" id="item-day" placeholder="1">
-      </div>
-      <div class="field">
-        <label>시간</label>
-        <input type="text" id="item-time" placeholder="14:00">
-      </div>
-      <div class="field">
-        <label>유형</label>
-        <select id="item-category">
-          <option value="이동">🚗 이동</option>
-          <option value="식사">🍽️ 식사</option>
-          <option value="숙소">🏨 숙소</option>
-          <option value="관광">📍 관광</option>
-          <option value="쇼핑">🛍️ 쇼핑</option>
-          <option value="기타">📝 기타</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>장소/활동</label>
-        <input type="text" id="item-title" placeholder="예: 도톤보리 저녁 산책">
-      </div>
-      <div class="field">
-        <label>비용</label>
-        <input type="text" id="item-cost" placeholder="선택">
-      </div>
-    </div>
-    <div class="item-form-grid2">
-      <div class="field">
-        <label>주소 (선택)</label>
-        <input type="text" id="item-address" placeholder="예: 오사카부 오사카시...">
-      </div>
-      <div class="field">
-        <label>전화번호 (선택)</label>
-        <input type="text" id="item-phone" placeholder="예: 06-1234-5678">
-      </div>
-      <div class="field">
-        <label>지도 링크 (선택)</label>
-        <input type="text" id="item-mapurl" placeholder="구글맵 URL">
-      </div>
-      <div class="field">
-        <label>메모 (선택)</label>
-        <input type="text" id="item-memo" placeholder="선택">
-      </div>
-      <button class="add-item-btn" onclick="addTripItem()">+ 추가</button>
-    </div>
-
-    <div id="itineraryBody"></div>
-    <div class="empty" id="itineraryEmptyMsg" style="display:none;">아직 등록된 일정이 없어요.</div>
-  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="emptyMsg" style="display:none;">아직 등록된 프로젝트가 없어요.</div>
 
 </div>
 
@@ -428,7 +398,7 @@
 <script src="./supabase-config.js"></script>
 <script>
 /* ===========================================================
-   Supabase 연동 (trips + trip_items 테이블)
+   Supabase 연동 설정 (tasks 테이블 + task-images 스토리지)
    =========================================================== */
 const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
   auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
@@ -443,9 +413,18 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-let trips = [];
-let tripItems = [];
-let selectedTripId = null;
+const STATUS_META = {
+  idea:  { label:"아이디어", cls:"idea" },
+  doing: { label:"진행중",   cls:"doing" },
+  done:  { label:"완료",     cls:"done" },
+  hold:  { label:"보류",     cls:"hold" },
+};
+const STATUS_ORDER = ["idea","doing","done","hold"];
+
+let projects = [];
+let statusFilter = "all";
+let categoryFilter = "all";
+let pendingImageUrl = "";
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -453,233 +432,201 @@ function escapeHtml(str){
   return (str||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-function formatDateShort(v){
-  if(!v) return "";
-  const d = new Date(v + "T00:00:00");
-  if(isNaN(d.getTime())) return v;
-  return `${d.getMonth()+1}.${d.getDate()}`;
-}
-
-function tripDayCount(startDate, endDate){
-  if(!startDate || !endDate) return "";
-  const s = new Date(startDate + "T00:00:00");
-  const e = new Date(endDate + "T00:00:00");
-  const nights = Math.round((e - s) / 86400000);
-  if(nights <= 0) return "당일";
-  return `${nights}박${nights+1}일`;
-}
-
-function tripDday(startDate){
-  if(!startDate) return "";
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const s = new Date(startDate + "T00:00:00");
-  const diff = Math.round((s - today) / 86400000);
-  if(diff > 0) return `D-${diff}`;
-  if(diff === 0) return "D-DAY";
-  return `여행 중/완료`;
-}
-
-/* ---- 여행 목록 ---- */
-async function loadTrips(){
-  const { data, error } = await sb.from('trips').select('*').order('startDate');
-  if(error){
-    console.error("여행 목록 로드 실패:", error);
+async function loadProjects(){
+  const { data, error } = await sb.from('tasks').select('*');
+  if (error) {
+    console.error("불러오기 실패:", error);
   } else {
-    trips = data || [];
+    projects = data || [];
   }
-  renderTrips();
+  render();
 }
 
-function renderTrips(){
-  const grid = document.getElementById('tripGrid');
+function setStatusFilter(f){ statusFilter = f; render(); }
+function setCategoryFilter(f){ categoryFilter = f; render(); }
+
+function render(){
+  renderSummary();
+  renderTabs();
+
+  let list = projects.slice();
+  if(statusFilter !== "all") list = list.filter(p => p.status === statusFilter);
+  if(categoryFilter !== "all") list = list.filter(p => (p.category||"").trim() === categoryFilter);
+  list.sort((a,b) => (b.updatedAt||"").localeCompare(a.updatedAt||""));
+
+  const grid = document.getElementById('grid');
   const emptyMsg = document.getElementById('emptyMsg');
 
-  if(trips.length === 0){
+  if(list.length === 0){
     grid.innerHTML = "";
     emptyMsg.style.display = "block";
     return;
   }
   emptyMsg.style.display = "none";
 
-  grid.innerHTML = trips.map(t => `
-    <div class="trip-card ${t.id===selectedTripId?'selected':''}" onclick="openItinerary('${t.id}')">
-      <span class="dday">${escapeHtml(tripDday(t.startDate))}</span>
-      <div class="title">${escapeHtml(t.title)}</div>
-      <div class="dates">${formatDateShort(t.startDate)} ~ ${formatDateShort(t.endDate)} · ${tripDayCount(t.startDate, t.endDate)}</div>
-      ${t.budget ? `<div class="budget">예산 ${escapeHtml(t.budget)}</div>` : ''}
-      ${t.memo ? `<div class="memo">${escapeHtml(t.memo)}</div>` : ''}
-      <button class="del-btn" onclick="event.stopPropagation(); deleteTrip('${t.id}')">삭제</button>
-    </div>
-  `).join('');
-}
-
-async function addTrip(){
-  const title = document.getElementById('in-title').value.trim();
-  const startDate = document.getElementById('in-startDate').value;
-  const endDate = document.getElementById('in-endDate').value;
-  const budget = document.getElementById('in-budget').value.trim();
-  const memo = document.getElementById('in-memo').value.trim();
-
-  if(!title){ alert('여행 제목을 입력해주세요.'); return; }
-  if(!startDate){ alert('시작일을 선택해주세요.'); return; }
-  if(endDate && endDate < startDate){ alert('종료일은 시작일보다 빠를 수 없어요.'); return; }
-
-  const saveBtn = document.getElementById('saveTripBtn');
-  saveBtn.disabled = true;
-
-  const newTrip = {
-    id: uid(),
-    title, startDate, endDate, budget, memo,
-    createdAt: new Date().toISOString()
-  };
-
-  const { error } = await sb.from('trips').insert(newTrip);
-  saveBtn.disabled = false;
-  if(error){ alert("저장 실패: " + error.message); return; }
-
-  document.getElementById('in-title').value = "";
-  document.getElementById('in-startDate').value = "";
-  document.getElementById('in-endDate').value = "";
-  document.getElementById('in-budget').value = "";
-  document.getElementById('in-memo').value = "";
-
-  await loadTrips();
-}
-
-async function deleteTrip(id){
-  if(!confirm('이 여행을 삭제할까요? 등록된 일정도 함께 삭제됩니다.')) return;
-  const { error } = await sb.from('trips').delete().eq('id', id);
-  if(error){ alert("삭제 실패: " + error.message); return; }
-  if(selectedTripId === id) closeItinerary();
-  await loadTrips();
-}
-
-/* ---- 일정(itinerary) ---- */
-async function openItinerary(id){
-  selectedTripId = id;
-  const trip = trips.find(t => t.id === id);
-  if(!trip) return;
-
-  document.getElementById('itTitle').textContent = trip.title;
-  document.getElementById('itSub').textContent =
-    `${formatDateShort(trip.startDate)} ~ ${formatDateShort(trip.endDate)} · ${tripDayCount(trip.startDate, trip.endDate)}`;
-  document.getElementById('itineraryPanel').classList.add('open');
-  document.getElementById('itineraryPanel').scrollIntoView({ behavior:'smooth', block:'start' });
-
-  renderTrips();
-  await loadTripItems();
-}
-
-function closeItinerary(){
-  selectedTripId = null;
-  tripItems = [];
-  document.getElementById('itineraryPanel').classList.remove('open');
-  renderTrips();
-}
-
-async function loadTripItems(){
-  if(!selectedTripId) return;
-  const { data, error } = await sb.from('trip_items').select('*').eq('tripId', selectedTripId);
-  if(error){
-    console.error("일정 로드 실패:", error);
-  } else {
-    tripItems = data || [];
-  }
-  renderItinerary();
-}
-
-const CATEGORY_ICON = { "이동":"🚗", "식사":"🍽️", "숙소":"🏨", "관광":"📍", "쇼핑":"🛍️", "기타":"📝" };
-
-function renderItinerary(){
-  const body = document.getElementById('itineraryBody');
-  const emptyMsg = document.getElementById('itineraryEmptyMsg');
-
-  if(tripItems.length === 0){
-    body.innerHTML = "";
-    emptyMsg.style.display = "block";
-    return;
-  }
-  emptyMsg.style.display = "none";
-
-  const byDay = {};
-  tripItems.forEach(it => {
-    const d = it.day || 1;
-    (byDay[d] = byDay[d] || []).push(it);
-  });
-  Object.values(byDay).forEach(list => list.sort((a,b) => (a.time||"").localeCompare(b.time||"")));
-
-  const days = Object.keys(byDay).map(Number).sort((a,b) => a-b);
-
-  body.innerHTML = days.map(day => `
-    <div class="day-group">
-      <div class="day-group-title">Day ${day}</div>
-      ${byDay[day].map(it => `
-        <div class="item-row">
-          <div class="time">${escapeHtml(it.time || '')}</div>
-          <div class="cat-icon" title="${escapeHtml(it.category||'기타')}">${CATEGORY_ICON[it.category] || '📝'}</div>
-          <div class="body">
-            <div class="item-title">${escapeHtml(it.title)}</div>
-            ${it.address ? `<div class="item-memo">${escapeHtml(it.address)}</div>` : ''}
-            ${it.memo ? `<div class="item-memo">${escapeHtml(it.memo)}</div>` : ''}
-            <div class="item-meta">
-              ${it.phone ? `<a href="tel:${escapeHtml(it.phone)}">📞 ${escapeHtml(it.phone)}</a>` : ''}
-              ${it.mapUrl ? `<a href="${escapeHtml(it.mapUrl)}" target="_blank" rel="noopener">🗺️ 지도 열기</a>` : (it.address ? `<a href="https://maps.google.com/?q=${encodeURIComponent(it.address)}" target="_blank" rel="noopener">🗺️ 지도 열기</a>` : '')}
-            </div>
-          </div>
-          ${it.cost ? `<div class="cost">${escapeHtml(it.cost)}</div>` : ''}
-          <button class="del-item-btn" onclick="deleteTripItem('${it.id}')">✕</button>
+  grid.innerHTML = list.map(p => {
+    const meta = STATUS_META[p.status] || STATUS_META.idea;
+    return `
+    <div class="project-card">
+      <div class="thumb">
+        ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="">` : ''}
+      </div>
+      <div class="body">
+        <div class="card-top">
+          <select class="status-select ${meta.cls}" onchange="updateStatus('${p.id}', this.value)">
+            ${STATUS_ORDER.map(s => `<option value="${s}" ${s===p.status?'selected':''}>${STATUS_META[s].label}</option>`).join('')}
+          </select>
+          ${p.category ? `<span class="cat-badge">${escapeHtml(p.category)}</span>` : ''}
         </div>
-      `).join('')}
+        <div class="title">${escapeHtml(p.title)}</div>
+        ${p.period ? `<div class="period">${escapeHtml(p.period)}</div>` : ''}
+        ${p.description ? `<div class="desc">${escapeHtml(p.description)}</div>` : ''}
+        ${p.impact ? `<div class="impact-box"><span class="lbl">성과</span>${escapeHtml(p.impact)}</div>` : ''}
+        <div class="card-actions">
+          ${p.notionUrl ? `<a class="ext-link" href="${escapeHtml(p.notionUrl)}" target="_blank" rel="noopener">노션 →</a>` : ''}
+          ${p.resultUrl ? `<a class="ext-link" href="${escapeHtml(p.resultUrl)}" target="_blank" rel="noopener">결과물 →</a>` : ''}
+          <button class="del-btn" onclick="deleteProject('${p.id}')">삭제</button>
+        </div>
+      </div>
+    </div>
+  `;}).join('');
+}
+
+function renderSummary(){
+  const counts = { idea:0, doing:0, done:0, hold:0 };
+  projects.forEach(p => { if(counts[p.status] !== undefined) counts[p.status]++; });
+  const defs = [
+    { key:"idea", label:"아이디어", cls:"idea" },
+    { key:"doing", label:"진행중", cls:"doing" },
+    { key:"done", label:"완료", cls:"done" },
+    { key:"hold", label:"보류", cls:"hold" },
+  ];
+  document.getElementById('summary').innerHTML = defs.map(d => `
+    <div class="sum-card ${d.cls} ${statusFilter===d.key?'active':''}" onclick="setStatusFilter('${statusFilter===d.key?'all':d.key}')">
+      <div class="num">${counts[d.key]}</div>
+      <div class="lbl">${d.label}</div>
     </div>
   `).join('');
 }
 
-async function addTripItem(){
-  if(!selectedTripId) return;
-  const day = parseInt(document.getElementById('item-day').value, 10) || 1;
-  const time = document.getElementById('item-time').value.trim();
-  const category = document.getElementById('item-category').value;
-  const title = document.getElementById('item-title').value.trim();
-  const cost = document.getElementById('item-cost').value.trim();
-  const address = document.getElementById('item-address').value.trim();
-  const phone = document.getElementById('item-phone').value.trim();
-  const mapUrl = document.getElementById('item-mapurl').value.trim();
-  const memo = document.getElementById('item-memo').value.trim();
+function renderTabs(){
+  const statusTabs = ["all", ...STATUS_ORDER];
+  document.getElementById('statusTabs').innerHTML = statusTabs.map(s => `
+    <button class="tab ${statusFilter===s?'active':''}" onclick="setStatusFilter('${s}')">${s==='all'?'전체':STATUS_META[s].label}</button>
+  `).join('');
 
-  if(!title){ alert('장소/활동을 입력해주세요.'); return; }
+  const cats = Array.from(new Set(projects.map(p => (p.category||"").trim()).filter(Boolean)));
+  const catTabsEl = document.getElementById('catTabs');
+  if(cats.length === 0){ catTabsEl.innerHTML = ""; return; }
+  catTabsEl.innerHTML = ["all", ...cats].map(c => `
+    <button class="cat-tab ${categoryFilter===c?'active':''}" onclick="setCategoryFilter('${escapeHtml(c)}')">${c==='all'?'전체 카테고리':escapeHtml(c)}</button>
+  `).join('');
+}
+
+async function updateStatus(id, status){
+  const { error } = await sb.from('tasks').update({ status, updatedAt: new Date().toISOString().slice(0,10) }).eq('id', id);
+  if(error){ alert("상태 변경 실패: " + error.message); return; }
+  const p = projects.find(x => x.id === id);
+  if(p) p.status = status;
+  render();
+}
+
+// 이미지 선택 → 미리보기 + Supabase Storage 업로드
+function bindImageInput(){
+  const input = document.getElementById('in-image');
+  input.addEventListener('change', async function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const statusEl = document.getElementById('uploadStatus');
+    const saveBtn = document.getElementById('saveBtn');
+
+    const reader = new FileReader();
+    reader.onload = async function(evt){
+      const dataUrl = evt.target.result;
+      document.getElementById('dropZone').innerHTML =
+        `<img src="${dataUrl}" alt=""><input type="file" accept="image/*" id="in-image">`;
+      bindImageInput();
+
+      statusEl.textContent = "업로드 중...";
+      saveBtn.disabled = true;
+
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      const path = `${uid()}.${ext}`;
+
+      const { error: uploadError } = await sb.storage
+        .from('task-images')
+        .upload(path, file, { contentType: file.type, upsert: false });
+
+      if(uploadError){
+        statusEl.textContent = "업로드 실패: " + uploadError.message;
+        pendingImageUrl = "";
+      } else {
+        const { data: pub } = sb.storage.from('task-images').getPublicUrl(path);
+        pendingImageUrl = pub.publicUrl;
+        statusEl.textContent = "업로드 완료 ✓";
+      }
+      saveBtn.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+bindImageInput();
+
+async function addProject(){
+  const title = document.getElementById('in-title').value.trim();
+  const status = document.getElementById('in-status').value;
+  const category = document.getElementById('in-category').value.trim();
+  const period = document.getElementById('in-period').value.trim();
+  const description = document.getElementById('in-description').value.trim();
+  const impact = document.getElementById('in-impact').value.trim();
+  const notionUrl = document.getElementById('in-notion').value.trim();
+  const resultUrl = document.getElementById('in-result').value.trim();
+
+  if(!title){ alert('프로젝트 제목을 입력해주세요.'); return; }
 
   const newItem = {
     id: uid(),
-    tripId: selectedTripId,
-    day, time, category, title, address, phone, mapUrl, memo, cost,
-    createdAt: new Date().toISOString()
+    title, status, category, period, description, impact, notionUrl, resultUrl,
+    imageUrl: pendingImageUrl,
+    updatedAt: new Date().toISOString().slice(0,10)
   };
 
-  const { error } = await sb.from('trip_items').insert(newItem);
-  if(error){ alert("저장 실패: " + error.message); return; }
+  const { error } = await sb.from('tasks').insert(newItem);
+  if (error) {
+    alert("저장 실패: " + error.message);
+    return;
+  }
+  await loadProjects();
 
-  document.getElementById('item-day').value = "";
-  document.getElementById('item-time').value = "";
-  document.getElementById('item-category').value = "이동";
-  document.getElementById('item-title').value = "";
-  document.getElementById('item-cost').value = "";
-  document.getElementById('item-address').value = "";
-  document.getElementById('item-phone').value = "";
-  document.getElementById('item-mapurl').value = "";
-  document.getElementById('item-memo').value = "";
+  document.getElementById('in-title').value = "";
+  document.getElementById('in-status').value = "doing";
+  document.getElementById('in-category').value = "";
+  document.getElementById('in-period').value = "";
+  document.getElementById('in-description').value = "";
+  document.getElementById('in-impact').value = "";
+  document.getElementById('in-notion').value = "";
+  document.getElementById('in-result').value = "";
+  document.getElementById('uploadStatus').textContent = "";
+  pendingImageUrl = "";
+  document.getElementById('dropZone').innerHTML =
+    `<span id="dropLabel">클릭해서 이미지 선택</span><input type="file" accept="image/*" id="in-image">`;
+  bindImageInput();
 
-  await loadTripItems();
+  render();
 }
 
-async function deleteTripItem(id){
-  if(!confirm('이 일정을 삭제할까요?')) return;
-  const { error } = await sb.from('trip_items').delete().eq('id', id);
-  if(error){ alert("삭제 실패: " + error.message); return; }
-  await loadTripItems();
+async function deleteProject(id){
+  if(!confirm('이 프로젝트를 삭제할까요?')) return;
+  const { error } = await sb.from('tasks').delete().eq('id', id);
+  if (error) {
+    alert("삭제 실패: " + error.message);
+    return;
+  }
+  await loadProjects();
 }
 
-loadTrips();
+loadProjects();
 </script>
 <script src="./auth-gate.js"></script>
 </body>
