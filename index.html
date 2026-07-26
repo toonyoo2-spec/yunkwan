@@ -211,6 +211,73 @@
   .cal-event.owner-common{background:var(--owner-common-bg);color:var(--owner-common-ink);font-weight:600;}
   .cal-event-time{font-weight:700;margin-right:3px;}
 
+  /* ---- 운동 트래커 ---- */
+  .workout-panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 20px;
+    margin-top:16px;
+  }
+  .workout-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .workout-title{font-size:14.5px;font-weight:700;}
+  .workout-summary{
+    display:flex;
+    gap:12px;
+    font-size:12px;
+    color:var(--sub);
+  }
+  .workout-summary b{font-weight:700;}
+  .workout-summary .owner-gwan-txt{color:var(--owner-gwan-ink);}
+  .workout-summary .owner-bora-txt{color:var(--owner-bora-ink);}
+  .workout-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .workout-row + .workout-row{margin-top:10px;}
+  .workout-label{
+    flex:0 0 32px;
+    font-size:12.5px;
+    font-weight:700;
+    text-align:center;
+  }
+  .workout-label.owner-gwan{color:var(--owner-gwan-ink);}
+  .workout-label.owner-bora{color:var(--owner-bora-ink);}
+  .workout-cells{
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    padding-bottom:2px;
+    flex:1;
+  }
+  .workout-cell{
+    flex:0 0 auto;
+    width:22px;height:22px;
+    border-radius:5px;
+    border:1px solid var(--line);
+    background:#fdfcfa;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:9px;
+    color:var(--sub);
+    transition:transform .08s ease;
+    user-select:none;
+  }
+  .workout-cell:hover{transform:translateY(-1px);}
+  .workout-cell.today{border-color:var(--accent);border-width:1.5px;}
+  .workout-cell.done.owner-gwan{background:var(--owner-gwan-bg);color:var(--owner-gwan-ink);border-color:var(--owner-gwan-bg);font-weight:700;}
+  .workout-cell.done.owner-bora{background:var(--owner-bora-bg);color:var(--owner-bora-ink);border-color:var(--owner-bora-bg);font-weight:700;}
+
   /* ---- 이벤트 상세 팝업 ---- */
   .cal-modal-overlay{
     position:fixed;inset:0;
@@ -431,6 +498,11 @@
       border-bottom-right-radius: 0;
       margin-top: auto;
     }
+
+    .workout-panel{padding:12px 10px;margin-top:12px;}
+    .workout-header{flex-direction:column;align-items:flex-start;}
+    .workout-label{flex:0 0 26px;font-size:11px;}
+    .workout-cell{width:18px;height:18px;font-size:8px;border-radius:4px;}
   }
 </style>
 </head>
@@ -479,6 +551,21 @@
     <div class="cal-grid-wrap">
       <div class="cal-grid" id="calGrid"></div>
       <div class="cal-bars-layer" id="calBarsLayer"></div>
+    </div>
+  </div>
+
+  <div class="workout-panel">
+    <div class="workout-header">
+      <div class="workout-title">🏃 이번 달 운동</div>
+      <div class="workout-summary" id="workoutSummary"></div>
+    </div>
+    <div class="workout-row">
+      <div class="workout-label owner-gwan">관</div>
+      <div class="workout-cells" id="workoutCells-관"></div>
+    </div>
+    <div class="workout-row">
+      <div class="workout-label owner-bora">보라</div>
+      <div class="workout-cells" id="workoutCells-보라"></div>
     </div>
   </div>
 
@@ -573,6 +660,7 @@ let coupleItems = [];    // 부부 일정 항목
 let coupleEditId = null; // 수정 중인 부부 일정 id
 let coupleSelectedOwner = "관";
 let coupleLoggedIn = false;
+let workoutItems = [];  // 운동 체크 항목 { id, date, owner, done }
 let calCursor = new Date();
 calCursor.setDate(1);
 
@@ -810,6 +898,7 @@ function calRender(){
     rowSegments[rowKey].forEach(seg => calCurrentSegments.push(seg));
   });
   calPositionBars();
+  workoutRender();
 }
 
 function calDateRowCol(dateStr, y, m){
@@ -881,6 +970,69 @@ async function coupleLoad(){
   calRender();
 }
 
+/* ---- 운동 트래커 데이터 로드 ---- */
+async function workoutLoad(){
+  if(!coupleLoggedIn) return;
+  const { data, error } = await sb.from('workouts').select('*');
+  if(error){
+    console.error("운동 트래커 데이터 로드 실패:", error);
+  } else {
+    workoutItems = data || [];
+  }
+  workoutRender();
+}
+
+function workoutRender(){
+  const summaryEl = document.getElementById('workoutSummary');
+  const gwanCells = document.getElementById('workoutCells-관');
+  const boraCells = document.getElementById('workoutCells-보라');
+  if(!summaryEl || !gwanCells || !boraCells) return;
+  if(!coupleLoggedIn) return;
+
+  const y = calCursor.getFullYear();
+  const m = calCursor.getMonth();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const now = new Date();
+  const isCurrentMonth = (now.getFullYear() === y && now.getMonth() === m);
+  const elapsedDays = isCurrentMonth ? now.getDate() : daysInMonth;
+  const todayStr = calNormalizeDate(now);
+
+  const doneSet = new Set(workoutItems.map(w => `${w.date}_${w.owner}`));
+  const counts = { '관':0, '보라':0 };
+
+  ['관','보라'].forEach(owner => {
+    const ownerClass = owner === '관' ? 'owner-gwan' : 'owner-bora';
+    let html = '';
+    for(let d = 1; d <= daysInMonth; d++){
+      const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isDone = doneSet.has(`${dateStr}_${owner}`);
+      const isToday = dateStr === todayStr;
+      if(isDone && d <= elapsedDays) counts[owner]++;
+      html += `<div class="workout-cell ${isDone ? 'done '+ownerClass : ''} ${isToday ? 'today' : ''}" onclick="workoutToggle('${dateStr}','${owner}')" title="${dateStr} · ${calEscapeHtml(owner)}${isDone ? ' (운동함)' : ''}">${d}</div>`;
+    }
+    (owner === '관' ? gwanCells : boraCells).innerHTML = html;
+  });
+
+  summaryEl.innerHTML = `
+    <span class="owner-gwan-txt">관 <b>${counts['관']}</b>/${elapsedDays}일</span>
+    <span class="owner-bora-txt">보라 <b>${counts['보라']}</b>/${elapsedDays}일</span>
+  `;
+}
+
+async function workoutToggle(dateStr, owner){
+  if(!coupleLoggedIn){ alert('로그인 후 이용해주세요.'); coupleShowLogin(); return; }
+  const id = `${dateStr}_${owner}`;
+  const existing = workoutItems.find(w => w.date === dateStr && w.owner === owner);
+  if(existing){
+    const { error } = await sb.from('workouts').delete().eq('id', id);
+    if(error){ alert("체크 해제 실패: " + error.message); return; }
+  } else {
+    const { error } = await sb.from('workouts').insert({ id, date: dateStr, owner, done: true });
+    if(error){ alert("체크 실패: " + error.message); return; }
+  }
+  await workoutLoad();
+}
+
 /* ---- Supabase 로그인 및 게이트 ---- */
 function coupleShowLogin(){
   document.getElementById('coupleLoginOverlay').classList.add('open');
@@ -913,6 +1065,7 @@ async function coupleInitAuth(){
     coupleLoggedIn = true;
     coupleHideLogin();
     await coupleLoad();
+    await workoutLoad();
   } else {
     coupleLoggedIn = false;
     coupleShowLogin();
@@ -922,9 +1075,11 @@ async function coupleInitAuth(){
       coupleLoggedIn = true;
       coupleHideLogin();
       await coupleLoad();
+      await workoutLoad();
     } else {
       coupleLoggedIn = false;
       coupleItems = [];
+      workoutItems = [];
       calRender();
     }
   });
@@ -934,6 +1089,7 @@ calLoad();
 setInterval(calLoad, 30000);
 coupleInitAuth();
 setInterval(() => { if(coupleLoggedIn) coupleLoad(); }, 30000);
+setInterval(() => { if(coupleLoggedIn) workoutLoad(); }, 30000);
 
 // 다른 사람이 데이터를 수정하면(다른 탭/기기 포함) 실시간으로 반영
 // (실시간 이벤트를 놓치는 경우를 대비해 위 setInterval 폴링도 그대로 유지)
@@ -946,6 +1102,12 @@ sb.channel('campaigns-changes')
 sb.channel('couple-events-changes')
   .on('postgres_changes', { event: '*', schema: 'public', table: 'couple_events' }, () => {
     if(coupleLoggedIn) coupleLoad();
+  })
+  .subscribe();
+
+sb.channel('workouts-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'workouts' }, () => {
+    if(coupleLoggedIn) workoutLoad();
   })
   .subscribe();
 
