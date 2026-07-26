@@ -228,6 +228,24 @@
   .save-btn:hover{opacity:0.9;}
   .save-btn:disabled{opacity:0.5;cursor:not-allowed;}
 
+  .hint{font-weight:400;color:var(--sub);}
+  .recurring-field{display:flex;align-items:flex-end;}
+  .checkbox-label{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:13px;
+    color:var(--ink);
+    cursor:pointer;
+    padding-bottom:9px;
+  }
+  .checkbox-label input[type=checkbox]{width:auto;flex-shrink:0;}
+  .recur-badge{
+    display:inline-block;
+    font-size:11px;
+    margin-left:4px;
+  }
+
   /* ---- 프로젝트 시트(표) ---- */
   .sheet-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;}
   table.sheet{width:100%;border-collapse:collapse;font-size:13px;min-width:820px;}
@@ -245,6 +263,28 @@
   .proj-title-cell{display:flex;align-items:center;gap:8px;}
   .proj-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
   .proj-title{font-weight:700;}
+  .settle-cell{display:flex;align-items:center;gap:6px;}
+  .settle-cell input[type=date]{width:130px;padding:6px 8px;font-size:12.5px;}
+  .tbd-badge{
+    font-size:11px;
+    font-weight:700;
+    color:var(--sub);
+    background:#eef0ec;
+    padding:3px 8px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .settle-clear{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--sub);
+    cursor:pointer;
+    font-size:11px;
+    padding:4px 8px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .settle-clear:hover{border-color:var(--accent);color:var(--accent);}
   .del-btn{
     background:none;
     border:1px solid var(--line);
@@ -393,12 +433,18 @@
         <input type="date" id="in-endDate">
       </div>
       <div class="field">
-        <label>정산 예정일</label>
+        <label>정산 예정일 <span class="hint">(비워두면 미정)</span></label>
         <input type="date" id="in-settlementDate">
       </div>
       <div class="field">
         <label>비용</label>
         <input type="number" id="in-cost" placeholder="예: 3000000">
+      </div>
+      <div class="field recurring-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="in-recurring">
+          🔁 매월 반복 등록 <span class="hint">(정산 여부와 상관없이 매달 새 회차가 자동으로 쌓여요)</span>
+        </label>
       </div>
       <div class="field" style="grid-column:1/-1;">
         <label>메모</label>
@@ -532,6 +578,63 @@ function projStyle(hue){
   };
 }
 
+/* ---- 반복(정기) 프로젝트 자동 생성 ----
+   "🔁 매월 반복 등록"으로 만든 프로젝트는 정산 여부와 상관없이 달이 바뀌면
+   같은 그룹(recurringGroupId)의 최신 회차를 복제해 다음 달 회차를 자동으로 만듭니다.
+   (정산이 늦어져 정산예정일을 뒤로 미뤄도, 새 달의 회차는 그와 별개로 계속 쌓입니다.) */
+function ymOf(dateStr){ return dateStr.slice(0, 7); }
+
+function addMonthYm(ym, delta){
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function monthStartEnd(ym){
+  const [y, m] = ym.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return { start: `${ym}-01`, end: `${ym}-${String(lastDay).padStart(2,'0')}` };
+}
+
+async function ensureRecurringPeriods(){
+  const todayYm = ymOf(todayStr());
+  const groups = {};
+  projects.forEach(p => {
+    if(p.isRecurring && p.recurringGroupId){
+      (groups[p.recurringGroupId] = groups[p.recurringGroupId] || []).push(p);
+    }
+  });
+
+  const newRows = [];
+  Object.values(groups).forEach(group => {
+    const latest = group.slice().sort((a, b) => b.startDate.localeCompare(a.startDate))[0];
+    let cursorYm = addMonthYm(ymOf(latest.startDate), 1);
+    while(cursorYm <= todayYm){
+      const { start, end } = monthStartEnd(cursorYm);
+      newRows.push({
+        id: uid(),
+        title: latest.title, manager: latest.manager, contact: latest.contact,
+        paymentMethod: latest.paymentMethod,
+        startDate: start, endDate: end, settlementDate: end,
+        cost: latest.cost, memo: latest.memo,
+        status: '시작전',
+        colorHue: latest.colorHue,
+        ledgerSynced: false,
+        isRecurring: true,
+        recurringGroupId: latest.recurringGroupId,
+        createdAt: new Date().toISOString()
+      });
+      cursorYm = addMonthYm(cursorYm, 1);
+    }
+  });
+
+  if(newRows.length === 0) return;
+  const { error } = await sb.from('projects').insert(newRows);
+  if(error){ console.error('반복 프로젝트 자동 생성 실패:', error); return; }
+  projects = projects.concat(newRows);
+  renderAll();
+}
+
 /* ---- 데이터 로드 ---- */
 async function loadProjects(){
   const { data, error } = await sb.from('projects').select('*').order('createdAt', { ascending:false });
@@ -541,6 +644,7 @@ async function loadProjects(){
     projects = data || [];
   }
   renderAll();
+  await ensureRecurringPeriods();
 }
 
 function renderAll(){
@@ -777,13 +881,21 @@ function renderSheet(){
           <div class="proj-title-cell" title="${escapeHtml(p.memo||'')}">
             <span class="proj-dot" style="background:${st.dot};"></span>
             <span class="proj-title">${escapeHtml(p.title)}</span>
+            ${p.isRecurring ? '<span class="recur-badge" title="매월 반복 등록되는 프로젝트">🔁</span>' : ''}
           </div>
         </td>
         <td data-label="담당자">${escapeHtml(contactLine)}</td>
         <td data-label="기간">${period}</td>
         <td data-label="비용" class="amt">${won(p.cost)}</td>
         <td data-label="결제방식"><span class="pay-badge">${escapeHtml(p.paymentMethod)}</span></td>
-        <td data-label="정산일">${p.settlementDate ? formatDateShort(p.settlementDate) : '-'}</td>
+        <td data-label="정산일">
+          <div class="settle-cell">
+            <input type="date" value="${p.settlementDate || ''}" onchange="onSettlementDateChange('${p.id}', this.value)">
+            ${p.settlementDate
+              ? `<button type="button" class="settle-clear" onclick="onSettlementDateChange('${p.id}', '')">미정으로</button>`
+              : `<span class="tbd-badge">미정</span>`}
+          </div>
+        </td>
         <td data-label="상태">
           <select class="status-select ${STATUS_CLASS[p.status]}" onchange="onStatusChange('${p.id}', this.value)">
             ${STATUS_LIST.map(s => `<option value="${s}" ${s===p.status?'selected':''}>${s}</option>`).join('')}
@@ -806,6 +918,7 @@ async function addProject(){
   const settlementDate = document.getElementById('in-settlementDate').value;
   const cost = Number(document.getElementById('in-cost').value) || 0;
   const memo = document.getElementById('in-memo').value.trim();
+  const isRecurring = document.getElementById('in-recurring').checked;
 
   if(!title){ alert('프로젝트명을 입력해주세요.'); return; }
   if(!startDate){ alert('시작일을 선택해주세요.'); return; }
@@ -817,11 +930,13 @@ async function addProject(){
   const newProject = {
     id: uid(),
     title, manager, contact, paymentMethod,
-    startDate, endDate: endDate || null, settlementDate: settlementDate || null,
+    startDate, endDate: endDate || startDate, settlementDate: settlementDate || null,
     cost, memo,
     status: '시작전',
     colorHue: Math.floor(Math.random() * 360),
     ledgerSynced: false,
+    isRecurring,
+    recurringGroupId: isRecurring ? uid() : null,
     createdAt: new Date().toISOString()
   };
 
@@ -833,6 +948,7 @@ async function addProject(){
     document.getElementById(id).value = "";
   });
   document.getElementById('in-payment').value = "하나은행";
+  document.getElementById('in-recurring').checked = false;
 
   await loadProjects();
 }
@@ -891,6 +1007,22 @@ async function onStatusChange(id, newStatus){
   }
 }
 
+/* ---- 정산 예정일 변경 (빈 값으로 두면 "미정") ---- */
+async function onSettlementDateChange(id, value){
+  const p = projects.find(x => x.id === id);
+  if(!p) return;
+  const prevSettlementDate = p.settlementDate;
+  p.settlementDate = value || null;
+  renderAll();
+
+  const { error } = await sb.from('projects').update({ settlementDate: p.settlementDate }).eq('id', id);
+  if(error){
+    alert('정산 예정일 저장 실패: ' + error.message);
+    p.settlementDate = prevSettlementDate;
+    renderAll();
+  }
+}
+
 /* ---- 상세 팝업 ---- */
 function showDetail(id){
   const p = projects.find(x => x.id === id);
@@ -900,14 +1032,22 @@ function showDetail(id){
     : p.startDate;
 
   document.getElementById('calModalBody').innerHTML = `
-    <div class="cal-modal-title">${escapeHtml(p.title)}</div>
+    <div class="cal-modal-title">${escapeHtml(p.title)} ${p.isRecurring ? '<span class="recur-badge" title="매월 반복 등록되는 프로젝트">🔁</span>' : ''}</div>
     <span class="status-badge ${STATUS_CLASS[p.status]}">${p.status}</span>
     <div class="cal-modal-row"><span class="k">담당자</span><span class="v">${escapeHtml(p.manager || '-')}</span></div>
     <div class="cal-modal-row"><span class="k">연락처</span><span class="v">${escapeHtml(p.contact || '-')}</span></div>
     <div class="cal-modal-row"><span class="k">일정</span><span class="v">${period}</span></div>
     <div class="cal-modal-row"><span class="k">비용</span><span class="v">${won(p.cost)}</span></div>
     <div class="cal-modal-row"><span class="k">결제방식</span><span class="v">${escapeHtml(p.paymentMethod)}</span></div>
-    <div class="cal-modal-row"><span class="k">정산일</span><span class="v">${p.settlementDate || '-'}</span></div>
+    <div class="cal-modal-row">
+      <span class="k">정산일</span>
+      <span class="v settle-cell">
+        <input type="date" value="${p.settlementDate || ''}" onchange="onSettlementDateChange('${p.id}', this.value); showDetail('${p.id}');">
+        ${p.settlementDate
+          ? `<button type="button" class="settle-clear" onclick="onSettlementDateChange('${p.id}', ''); showDetail('${p.id}');">미정으로</button>`
+          : `<span class="tbd-badge">미정</span>`}
+      </span>
+    </div>
     ${p.memo ? `<div class="cal-modal-row"><span class="k">메모</span><span class="v">${escapeHtml(p.memo)}</span></div>` : ''}
     <div class="cal-modal-actions">
       <select onchange="onStatusChange('${p.id}', this.value); showDetail('${p.id}');">
@@ -922,6 +1062,18 @@ function showDetail(id){
 function closeDetail(){
   document.getElementById('calModalOverlay').classList.remove('open');
 }
+
+// 시작일을 고르면 종료일도 일단 같은 날짜로 맞춰둡니다(하루짜리 프로젝트가 기본값).
+// 필요하면 종료일을 나중에 따로 바꾸면 됩니다.
+document.getElementById('in-startDate').addEventListener('change', function(){
+  const start = this.value;
+  const endInput = document.getElementById('in-endDate');
+  if(!start) return;
+  endInput.min = start;
+  if(!endInput.value || endInput.value < start){
+    endInput.value = start;
+  }
+});
 
 loadProjects();
 </script>
