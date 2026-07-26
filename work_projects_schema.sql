@@ -19,8 +19,18 @@ create table if not exists public.projects (
   memo text,
   "colorHue" integer not null default 200,
   "ledgerSynced" boolean not null default false,
+  "isRecurring" boolean not null default false,
+  "recurringGroupId" text,
   "createdAt" timestamptz not null default now()
 );
+
+-- 매달 반복 등록되는 프로젝트("🔁 매월 반복 등록")를 위한 컬럼입니다.
+-- 같은 recurringGroupId를 가진 행들이 한 반복 그룹이고, work.html이 매달
+-- 최신 회차를 복제해 다음 달 회차를 자동으로 추가합니다(정산 여부와 무관).
+-- 기존에 만든 테이블에 나중에 추가하는 경우:
+--   alter table public.projects
+--     add column if not exists "isRecurring" boolean not null default false,
+--     add column if not exists "recurringGroupId" text;
 
 alter table public.projects enable row level security;
 
