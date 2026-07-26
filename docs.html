@@ -274,6 +274,72 @@
   .preview-msg{padding:40px;text-align:center;color:var(--sub);font-size:13.5px;}
   .preview-msg a{color:var(--accent);font-weight:600;}
 
+  .type-toggle{
+    grid-column:1/-1;
+    display:flex;
+    gap:8px;
+    margin-bottom:2px;
+  }
+  .type-btn{
+    flex:1;
+    border:1.5px solid var(--line);
+    background:#fff;
+    padding:10px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--sub);
+    cursor:pointer;
+  }
+  .type-btn.active{
+    border-color:var(--accent);
+    background:#eef4ee;
+    color:var(--accent);
+  }
+
+  .cred-grid{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-top:6px;
+  }
+  .cred-item{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12.5px;
+  }
+  .cred-label{color:var(--sub);}
+  .cred-value{
+    font-weight:700;
+    color:var(--ink);
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:#f4f4f2;
+    padding:2px 8px;
+    border-radius:5px;
+  }
+
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:28px;
+    transform:translateX(-50%) translateY(10px);
+    background:var(--ink);
+    color:#fff;
+    padding:10px 18px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:600;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease;
+    z-index:2000;
+  }
+  .toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
   #appContent{display:none;}
 
   @media (max-width:640px){
@@ -295,6 +361,10 @@
   <div class="panel">
     <h2>새 문서 등록</h2>
     <div class="form-grid">
+      <div class="type-toggle" id="typeToggle">
+        <button type="button" class="type-btn active" data-type="file" onclick="setEntryType('file')">📁 파일 추가</button>
+        <button type="button" class="type-btn" data-type="credential" onclick="setEntryType('credential')">🔑 ID 공유</button>
+      </div>
       <div class="field">
         <label>제목</label>
         <input type="text" id="in-title" placeholder="예: 자동차 보험증권">
@@ -307,7 +377,7 @@
           <option value="관">관</option>
         </select>
       </div>
-      <div class="field">
+      <div class="field" id="categoryField">
         <label>카테고리</label>
         <select id="in-category">
           <option value="보험">보험</option>
@@ -316,8 +386,25 @@
           <option value="기타">기타</option>
         </select>
       </div>
+      <div class="field" id="credCategoryField" style="display:none;">
+        <label>구분</label>
+        <select id="in-cred-category">
+          <option value="사이트">사이트</option>
+          <option value="OTT">OTT</option>
+          <option value="쇼핑">쇼핑</option>
+          <option value="WIFI">WIFI</option>
+        </select>
+      </div>
+      <div class="field" id="credIdField" style="display:none;">
+        <label>아이디</label>
+        <input type="text" id="in-cred-id" placeholder="예: hong1234">
+      </div>
+      <div class="field" id="credPwField" style="display:none;">
+        <label>비밀번호</label>
+        <input type="text" id="in-cred-pw" placeholder="예: mypassword123">
+      </div>
       <div class="field" style="grid-column:1/-1;">
-        <label>메모 (선택)</label>
+        <label>메모 (선택, 내용/기타 정보)</label>
         <input type="text" id="in-memo" placeholder="갱신일, 관련 연락처 등">
       </div>
       <div class="file-drop" id="dropZone">
@@ -336,6 +423,8 @@
   <div class="empty" id="emptyMsg" style="display:none;">등록된 문서가 없습니다.</div>
 
 </div>
+
+<div class="toast" id="toast"></div>
 
 <div class="preview-overlay" id="previewOverlay" onclick="if(event.target===this) closePreview();">
   <div class="preview-box">
@@ -366,12 +455,14 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-const CATEGORIES = ["보험","계약서","신분증","기타"];
+const CATEGORIES = ["보험","계약서","신분증","사이트","OTT","쇼핑","WIFI","기타"];
+const CRED_CATEGORIES = ["사이트","OTT","쇼핑","WIFI"];
 const OWNERS = ["공동","보라","관"];
 let docs = [];
 let filter = "all";
 let ownerFilter = "all";
 let pickedFile = null;
+let entryType = "file"; // 'file' | 'credential'
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -392,6 +483,20 @@ document.getElementById('in-file').addEventListener('change', function(e){
     ? `<span class="picked">${escapeHtml(pickedFile.name)}</span>`
     : '클릭해서 파일 선택 (이미지, PDF 등)';
 });
+
+function setEntryType(type){
+  entryType = type;
+  document.querySelectorAll('#typeToggle .type-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === type);
+  });
+  const isFile = type === 'file';
+  document.getElementById('categoryField').style.display = isFile ? '' : 'none';
+  document.getElementById('dropZone').style.display = isFile ? '' : 'none';
+  document.getElementById('credCategoryField').style.display = isFile ? 'none' : '';
+  document.getElementById('credIdField').style.display = isFile ? 'none' : '';
+  document.getElementById('credPwField').style.display = isFile ? 'none' : '';
+  document.getElementById('uploadStatus').textContent = '';
+}
 
 /* ---- 목록 로드 ---- */
 async function loadDocs(){
@@ -414,6 +519,11 @@ function setOwnerFilter(o){
 }
 
 function docRowHtml(d){
+  if(d.type === 'credential') return credentialRowHtml(d);
+  return fileRowHtml(d);
+}
+
+function fileRowHtml(d){
   return `
     <div class="doc-row" onclick="previewDoc('${d.id}')">
       <div class="icon">${iconFor(d.fileName)}</div>
@@ -435,6 +545,40 @@ function docRowHtml(d){
   `;
 }
 
+function credentialRowHtml(d){
+  const cidId = `cred-id-${d.id}`;
+  const cpwId = `cred-pw-${d.id}`;
+  return `
+    <div class="doc-row" style="cursor:default;">
+      <div class="icon">🔑</div>
+      <div class="body">
+        <div class="title">${escapeHtml(d.title)}</div>
+        <div class="meta">
+          <span class="owner-badge">${escapeHtml(d.owner||'공동')}</span>
+          <span class="cat-badge">${escapeHtml(d.category||'기타')}</span>
+          <span>${escapeHtml((d.uploadedAt||"").slice(0,10))}</span>
+        </div>
+        <div class="cred-grid">
+          <div class="cred-item">
+            <span class="cred-label">아이디</span>
+            <span class="cred-value" id="${cidId}">${escapeHtml(d.accountId||'')}</span>
+          </div>
+          <div class="cred-item">
+            <span class="cred-label">비밀번호</span>
+            <span class="cred-value" id="${cpwId}">${escapeHtml(d.accountPw||'')}</span>
+          </div>
+        </div>
+        ${d.memo ? `<div class="memo">${escapeHtml(d.memo)}</div>` : ''}
+      </div>
+      <div class="actions">
+        <button class="dl-btn" onclick="copyText('${cidId}','아이디')">ID 복사</button>
+        <button class="dl-btn" onclick="copyText('${cpwId}','비밀번호')">PW 복사</button>
+        <button class="del-btn" onclick="deleteDoc('${d.id}')">삭제</button>
+      </div>
+    </div>
+  `;
+}
+
 function render(){
   /* 등록자 탭 */
   const ownerCounts = { 공동:0, 보라:0, 관:0 };
@@ -449,7 +593,7 @@ function render(){
 
   /* 카테고리 탭 (등록자 필터가 걸린 상태 기준으로 개수 표시) */
   const ownerScoped = ownerFilter === "all" ? docs : docs.filter(d => (d.owner||'공동') === ownerFilter);
-  const counts = { 보험:0, 계약서:0, 신분증:0, 기타:0 };
+  const counts = Object.fromEntries(CATEGORIES.map(c => [c, 0]));
   ownerScoped.forEach(d => { if(counts[d.category] !== undefined) counts[d.category]++; });
   const tabDefs = [
     { key:"all", label:`전체 (${ownerScoped.length})` },
@@ -490,12 +634,53 @@ function render(){
 async function uploadDoc(){
   const title = document.getElementById('in-title').value.trim();
   const owner = document.getElementById('in-owner').value;
-  const category = document.getElementById('in-category').value;
   const memo = document.getElementById('in-memo').value.trim();
   const statusEl = document.getElementById('uploadStatus');
   const saveBtn = document.getElementById('saveBtn');
 
   if(!title){ alert('제목을 입력해주세요.'); return; }
+
+  if(entryType === 'credential'){
+    const credCategory = document.getElementById('in-cred-category').value;
+    const accountId = document.getElementById('in-cred-id').value.trim();
+    const accountPw = document.getElementById('in-cred-pw').value.trim();
+    if(!accountId || !accountPw){ alert('아이디와 비밀번호를 입력해주세요.'); return; }
+
+    saveBtn.disabled = true;
+    statusEl.textContent = "저장 중...";
+
+    const newDoc = {
+      id: uid(),
+      title, owner, memo,
+      type: 'credential',
+      category: credCategory,
+      accountId, accountPw,
+      fileName: null,
+      storagePath: null,
+      uploadedAt: new Date().toISOString()
+    };
+
+    const { error: insertError } = await sb.from('documents').insert(newDoc);
+    saveBtn.disabled = false;
+
+    if(insertError){
+      statusEl.textContent = "저장 실패: " + insertError.message;
+      return;
+    }
+
+    statusEl.textContent = "등록 완료 ✓";
+    document.getElementById('in-title').value = "";
+    document.getElementById('in-memo').value = "";
+    document.getElementById('in-owner').value = "공동";
+    document.getElementById('in-cred-category').value = "사이트";
+    document.getElementById('in-cred-id').value = "";
+    document.getElementById('in-cred-pw').value = "";
+
+    await loadDocs();
+    return;
+  }
+
+  const category = document.getElementById('in-category').value;
   if(!pickedFile){ alert('파일을 선택해주세요.'); return; }
 
   saveBtn.disabled = true;
@@ -520,6 +705,7 @@ async function uploadDoc(){
   const newDoc = {
     id: uid(),
     title, owner, category, memo,
+    type: 'file',
     fileName: pickedFile.name,
     storagePath,
     uploadedAt: new Date().toISOString()
@@ -599,6 +785,48 @@ document.addEventListener('keydown', (e) => {
   if(e.key === 'Escape') closePreview();
 });
 
+/* ---- ID/PW 복사 ---- */
+function showToast(msg){
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove('show'), 1600);
+}
+
+function copyText(elId, label){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const text = el.textContent;
+
+  const done = () => showToast(`${label} 복사됨`);
+  const fail = () => showToast(`${label} 복사 실패`);
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(() => {
+      legacyCopy(text) ? done() : fail();
+    });
+  } else {
+    legacyCopy(text) ? done() : fail();
+  }
+}
+
+function legacyCopy(text){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch(e){
+    return false;
+  }
+}
+
 /* ---- 다운로드 (비공개 버킷 → 서명 URL로 60초간 유효한 링크 발급) ---- */
 async function downloadDoc(id){
   const doc = docs.find(d => d.id === id);
@@ -613,8 +841,10 @@ async function deleteDoc(id){
   if(!doc) return;
   if(!confirm('이 문서를 삭제할까요?')) return;
 
-  const { error: storageError } = await sb.storage.from('documents').remove([doc.storagePath]);
-  if(storageError){ alert("파일 삭제 실패: " + storageError.message); return; }
+  if(doc.storagePath){
+    const { error: storageError } = await sb.storage.from('documents').remove([doc.storagePath]);
+    if(storageError){ alert("파일 삭제 실패: " + storageError.message); return; }
+  }
 
   const { error } = await sb.from('documents').delete().eq('id', id);
   if(error){ alert("삭제 실패: " + error.message); return; }
