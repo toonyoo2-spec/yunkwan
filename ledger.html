@@ -1410,10 +1410,10 @@ function renderSummary(){
       <div class="card kpi income"><div class="label">연간 총수입</div><div class="value mono">${won(income)}</div></div>
       <div class="card kpi expense"><div class="label">연간 총지출</div><div class="value mono">${won(expense)}</div></div>
       <div class="card kpi saving">
-        <div class="label">저축(수입-지출)</div>
+        <div class="label">연간 총저축</div>
         <div class="value mono" style="color:${net>=0?'var(--income)':'var(--expense)'};">${won(net)}</div>
       </div>
-      <div class="card kpi"><div class="label">순저축률 (수입-지출)</div><div class="value mono">${pct(rate)}</div></div>
+      <div class="card kpi"><div class="label">연간 순저축률</div><div class="value mono">${pct(rate)}</div></div>
     </div>
 
     <div class="section">
