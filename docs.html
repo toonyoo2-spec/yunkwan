@@ -426,7 +426,11 @@ async function uploadDoc(){
   saveBtn.disabled = true;
   statusEl.textContent = "업로드 중...";
 
-  const storagePath = `${uid()}_${pickedFile.name}`;
+  // Supabase Storage 키에는 한글 등 비ASCII 문자가 들어가면 "Invalid key" 에러가 나서,
+  // 실제 저장 경로는 영문/숫자로만 만들고(uid+확장자), 원본 파일명은 fileName 컬럼에 따로 저장합니다.
+  const extMatch = pickedFile.name.match(/\.[A-Za-z0-9]+$/);
+  const ext = extMatch ? extMatch[0] : '';
+  const storagePath = `${uid()}${ext}`;
 
   const { error: uploadError } = await sb.storage
     .from('documents')
