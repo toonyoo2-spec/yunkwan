@@ -677,6 +677,7 @@ function calRender(){
   calItems.forEach(it => {
     const dateStr = calEventDate(it);
     if(!dateStr) return;
+    if(it.status === 'wait') return; // 예약대기는 캘린더에 표시하지 않음
     const [ey, em] = dateStr.split('-').map(Number);
     if(ey === y && em === m+1){
       (byDate[dateStr] = byDate[dateStr] || []).push({ kind:'campaign', data: it });
