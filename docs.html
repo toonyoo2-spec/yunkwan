@@ -209,6 +209,71 @@
     font-size:13.5px;
   }
 
+  .doc-row{cursor:pointer;}
+  .doc-row .actions{position:relative;z-index:2;}
+
+  .preview-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.6);
+    z-index:1000;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .preview-overlay.open{display:flex;}
+  .preview-box{
+    background:#fff;
+    border-radius:12px;
+    width:100%;
+    max-width:860px;
+    max-height:90vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .preview-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 18px;
+    border-bottom:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .preview-head .name{
+    font-size:14px;
+    font-weight:700;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .preview-head .close-btn{
+    background:none;
+    border:none;
+    font-size:20px;
+    line-height:1;
+    cursor:pointer;
+    color:var(--sub);
+    padding:4px 8px;
+    flex-shrink:0;
+  }
+  .preview-head .close-btn:hover{color:var(--ink);}
+  .preview-body{
+    flex:1;
+    overflow:auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#f4f4f2;
+    min-height:200px;
+  }
+  .preview-body img{max-width:100%;max-height:80vh;display:block;}
+  .preview-body video{max-width:100%;max-height:80vh;display:block;}
+  .preview-body iframe{width:100%;height:80vh;border:none;}
+  .preview-msg{padding:40px;text-align:center;color:var(--sub);font-size:13.5px;}
+  .preview-msg a{color:var(--accent);font-weight:600;}
+
   #appContent{display:none;}
 
   @media (max-width:640px){
@@ -270,6 +335,16 @@
   <div id="docListWrap"></div>
   <div class="empty" id="emptyMsg" style="display:none;">등록된 문서가 없습니다.</div>
 
+</div>
+
+<div class="preview-overlay" id="previewOverlay" onclick="if(event.target===this) closePreview();">
+  <div class="preview-box">
+    <div class="preview-head">
+      <span class="name" id="previewName"></span>
+      <button class="close-btn" onclick="closePreview()">✕</button>
+    </div>
+    <div class="preview-body" id="previewBody"></div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -340,7 +415,7 @@ function setOwnerFilter(o){
 
 function docRowHtml(d){
   return `
-    <div class="doc-row">
+    <div class="doc-row" onclick="previewDoc('${d.id}')">
       <div class="icon">${iconFor(d.fileName)}</div>
       <div class="body">
         <div class="title">${escapeHtml(d.title)}</div>
@@ -353,8 +428,8 @@ function docRowHtml(d){
         ${d.memo ? `<div class="memo">${escapeHtml(d.memo)}</div>` : ''}
       </div>
       <div class="actions">
-        <button class="dl-btn" onclick="downloadDoc('${d.id}')">다운로드</button>
-        <button class="del-btn" onclick="deleteDoc('${d.id}')">삭제</button>
+        <button class="dl-btn" onclick="event.stopPropagation();downloadDoc('${d.id}')">다운로드</button>
+        <button class="del-btn" onclick="event.stopPropagation();deleteDoc('${d.id}')">삭제</button>
       </div>
     </div>
   `;
@@ -471,6 +546,58 @@ async function uploadDoc(){
 
   await loadDocs();
 }
+
+/* ---- 미리보기 (비공개 버킷 → 서명 URL로 5분간 유효한 링크 발급, 팝업으로 표시) ---- */
+function fileKindFor(fileName){
+  const ext = (fileName||"").split('.').pop().toLowerCase();
+  if(['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) return 'image';
+  if(ext === 'pdf') return 'pdf';
+  if(['mp4','mov','webm','ogg','m4v'].includes(ext)) return 'video';
+  return 'other';
+}
+
+async function previewDoc(id){
+  const doc = docs.find(d => d.id === id);
+  if(!doc) return;
+
+  const overlay = document.getElementById('previewOverlay');
+  const body = document.getElementById('previewBody');
+  const nameEl = document.getElementById('previewName');
+
+  nameEl.textContent = doc.title || doc.fileName;
+  body.innerHTML = `<div class="preview-msg">불러오는 중...</div>`;
+  overlay.classList.add('open');
+
+  const { data, error } = await sb.storage.from('documents').createSignedUrl(doc.storagePath, 300);
+  if(error){
+    body.innerHTML = `<div class="preview-msg">미리보기 링크 생성 실패: ${escapeHtml(error.message)}</div>`;
+    return;
+  }
+
+  const url = data.signedUrl;
+  const kind = fileKindFor(doc.fileName);
+
+  if(kind === 'image'){
+    body.innerHTML = `<img src="${url}" alt="${escapeHtml(doc.fileName)}">`;
+  } else if(kind === 'pdf'){
+    body.innerHTML = `<iframe src="${url}"></iframe>`;
+  } else if(kind === 'video'){
+    body.innerHTML = `<video src="${url}" controls autoplay></video>`;
+  } else {
+    body.innerHTML = `<div class="preview-msg">이 파일 형식은 미리보기를 지원하지 않습니다.<br><a href="${url}" target="_blank">새 탭에서 열기</a></div>`;
+  }
+}
+
+function closePreview(){
+  const overlay = document.getElementById('previewOverlay');
+  const body = document.getElementById('previewBody');
+  overlay.classList.remove('open');
+  body.innerHTML = ""; // 영상 재생 중지 등을 위해 비워줌
+}
+
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape') closePreview();
+});
 
 /* ---- 다운로드 (비공개 버킷 → 서명 URL로 60초간 유효한 링크 발급) ---- */
 async function downloadDoc(id){
