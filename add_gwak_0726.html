@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>곽현 프로젝트 0726 추가</title>
+</head>
+<body>
+<h1>곽현 프로젝트 0726 추가 중...</h1>
+<div id="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script>
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+async function addGwak0726(){
+  const statusDiv = document.getElementById('status');
+
+  try {
+    // 먼저 기존 곽현 프로젝트가 있는지 확인
+    const { data: existing, error: fetchError } = await sb
+      .from('projects')
+      .select('*')
+      .eq('title', '곽현')
+      .eq('startDate', '2026-07-26')
+      .eq('endDate', '2026-07-26');
+
+    if(fetchError){
+      statusDiv.innerHTML = '<p style="color:red;">조회 실패: ' + fetchError.message + '</p>';
+      return;
+    }
+
+    if(existing && existing.length > 0){
+      statusDiv.innerHTML = '<p style="color:orange;">2026-07-26에 이미 곽현 프로젝트가 있습니다.</p>';
+      return;
+    }
+
+    // 기존 곽현 프로젝트의 recurringGroupId 찾기
+    const { data: allGwak, error: groupError } = await sb
+      .from('projects')
+      .select('recurringGroupId')
+      .eq('title', '곽현')
+      .not('recurringGroupId', 'is', null)
+      .limit(1);
+
+    const groupId = (allGwak && allGwak.length > 0) ? allGwak[0].recurringGroupId : uid();
+
+    // 새 프로젝트 추가
+    const newProject = {
+      id: uid(),
+      title: '곽현',
+      manager: '곽현',
+      contact: '곽현',
+      paymentMethod: '현금',
+      startDate: '2026-07-26',
+      endDate: '2026-07-26',
+      settlementDate: '2026-08-31',
+      cost: 50000,
+      memo: '규칙적인 일 (자동 추가)',
+      status: '시작전',
+      colorHue: 200,
+      ledgerSynced: false,
+      isRecurring: true,
+      recurringGroupId: groupId,
+      createdAt: new Date().toISOString()
+    };
+
+    const { error: insertError } = await sb.from('projects').insert(newProject);
+
+    if(insertError){
+      statusDiv.innerHTML = '<p style="color:red;">추가 실패: ' + insertError.message + '</p>';
+      return;
+    }
+
+    statusDiv.innerHTML = '<p style="color:green;">✅ 곽현 프로젝트 (2026-07-26, 50,000원)가 추가되었습니다!</p>';
+
+  } catch(err){
+    statusDiv.innerHTML = '<p style="color:red;">오류: ' + err.message + '</p>';
+  }
+}
+
+// 페이지 로드 시 자동 실행
+addGwak0726();
+</script>
+</body>
+</html>

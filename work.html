@@ -401,6 +401,21 @@
     </div>
   </div>
 
+  <!-- 곽현 프로젝트 빠른 등록 -->
+  <div class="panel" style="background:#f0f9ff;border:2px solid #3b82f6;">
+    <h2>🔁 곽현 프로젝트 (규칙적인 일)</h2>
+    <div style="margin-bottom:12px;font-size:13px;color:var(--sub);">
+      매일 5만원 / 정산예정일: 2026-08-31 / 결제방식: 현금
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label>작업일</label>
+        <input type="date" id="quick-workDate">
+      </div>
+      <button class="save-btn" id="quickAddBtn" onclick="addQuickProject()" style="background:#3b82f6;">+ 빠른 등록</button>
+    </div>
+  </div>
+
   <div class="panel">
     <h2>새 프로젝트 등록</h2>
     <div class="form-grid">
@@ -433,7 +448,14 @@
         <input type="date" id="in-endDate">
       </div>
       <div class="field">
-        <label>정산 예정일 <span class="hint">(비워두면 미정)</span></label>
+        <label>정산 예정일</label>
+        <select id="in-settlementType" onchange="toggleSettlementDate()">
+          <option value="date">날짜 지정</option>
+          <option value="tbd">미정</option>
+        </select>
+      </div>
+      <div class="field" id="settlementDateField">
+        <label>정산 날짜</label>
         <input type="date" id="in-settlementDate">
       </div>
       <div class="field">
@@ -907,6 +929,74 @@ function renderSheet(){
   }).join('');
 }
 
+/* ---- 정산예정일 토글 ---- */
+function toggleSettlementDate(){
+  const type = document.getElementById('in-settlementType').value;
+  const field = document.getElementById('settlementDateField');
+  if(type === 'tbd'){
+    field.style.display = 'none';
+  } else {
+    field.style.display = 'block';
+  }
+}
+
+/* ---- 곽현 프로젝트 빠른 등록 ---- */
+async function addQuickProject(){
+  const workDate = document.getElementById('quick-workDate').value;
+  if(!workDate){ alert('작업일을 선택해주세요.'); return; }
+
+  const quickBtn = document.getElementById('quickAddBtn');
+  quickBtn.disabled = true;
+
+  // 곽현 프로젝트의 recurringGroupId 찾기 (이미 등록된 곽현 프로젝트가 있으면 같은 그룹으로)
+  const existingGwak = projects.find(p => p.title === '곽현' && p.recurringGroupId);
+  const groupId = existingGwak ? existingGwak.recurringGroupId : uid();
+
+  // 같은 날짜에 이미 등록된 곽현 프로젝트가 있는지 확인
+  const duplicate = projects.find(p =>
+    p.title === '곽현' &&
+    p.startDate === workDate &&
+    p.endDate === workDate
+  );
+
+  if(duplicate){
+    quickBtn.disabled = false;
+    alert('해당 날짜에 이미 곽현 프로젝트가 등록되어 있습니다.');
+    return;
+  }
+
+  const newProject = {
+    id: uid(),
+    title: '곽현',
+    manager: '곽현',
+    contact: '곽현',
+    paymentMethod: '현금',
+    startDate: workDate,
+    endDate: workDate,
+    settlementDate: '2026-08-31',
+    cost: 50000,
+    memo: '규칙적인 일 (빠른 등록)',
+    status: '시작전',
+    colorHue: 200,
+    ledgerSynced: false,
+    isRecurring: true,
+    recurringGroupId: groupId,
+    createdAt: new Date().toISOString()
+  };
+
+  const { error } = await sb.from('projects').insert(newProject);
+  quickBtn.disabled = false;
+
+  if(error){
+    alert("저장 실패: " + error.message);
+    return;
+  }
+
+  document.getElementById('quick-workDate').value = "";
+  await loadProjects();
+  alert('곽현 프로젝트가 등록되었습니다!');
+}
+
 /* ---- 등록 ---- */
 async function addProject(){
   const title = document.getElementById('in-title').value.trim();
@@ -915,7 +1005,8 @@ async function addProject(){
   const paymentMethod = document.getElementById('in-payment').value;
   const startDate = document.getElementById('in-startDate').value;
   const endDate = document.getElementById('in-endDate').value;
-  const settlementDate = document.getElementById('in-settlementDate').value;
+  const settlementType = document.getElementById('in-settlementType').value;
+  const settlementDate = settlementType === 'tbd' ? null : document.getElementById('in-settlementDate').value;
   const cost = Number(document.getElementById('in-cost').value) || 0;
   const memo = document.getElementById('in-memo').value.trim();
   const isRecurring = document.getElementById('in-recurring').checked;
@@ -948,7 +1039,9 @@ async function addProject(){
     document.getElementById(id).value = "";
   });
   document.getElementById('in-payment').value = "하나은행";
+  document.getElementById('in-settlementType').value = "date";
   document.getElementById('in-recurring').checked = false;
+  toggleSettlementDate();
 
   await loadProjects();
 }
@@ -1074,6 +1167,9 @@ document.getElementById('in-startDate').addEventListener('change', function(){
     endInput.value = start;
   }
 });
+
+// 초기화 시 정산예정일 필드 상태 설정
+toggleSettlementDate();
 
 loadProjects();
 </script>
