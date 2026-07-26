@@ -804,12 +804,10 @@ function calRender(){
     const boraPlanned = workoutItems.some(w => w.date === dateStr && w.owner === '보라');
     const isFuture = dateStr > todayStr;
 
-    if(gwanPlanned || boraPlanned){
-      workoutDotsHtml = `<div class="cal-workout-dots">
-        <span class="wo-dot gwan ${gwanPlanned?'done':''}" title="관 운동${isFuture?' 예정':(gwanPlanned?' 완료':' 안함')}"></span>
-        <span class="wo-dot bora ${boraPlanned?'done':''}" title="보라 운동${isFuture?' 예정':(boraPlanned?' 완료':' 안함')}"></span>
-      </div>`;
-    }
+    workoutDotsHtml = `<div class="cal-workout-dots">
+      <span class="wo-dot gwan ${gwanPlanned?'done':''}" title="관 운동${isFuture?' 예정':(gwanPlanned?' 완료':' 안함')}"></span>
+      <span class="wo-dot bora ${boraPlanned?'done':''}" title="보라 운동${isFuture?' 예정':(boraPlanned?' 완료':' 안함')}"></span>
+    </div>`;
 
     cells.push(`<div class="cal-cell ${isToday?'today':''}"><div class="cal-daynum-row"><div class="cal-daynum">${d}</div>${workoutDotsHtml}</div>${slotsHtml}${eventsHtml}</div>`);
   }
