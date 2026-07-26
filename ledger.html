@@ -1390,8 +1390,7 @@ function renderSummary(){
       <div class="card kpi expense"><div class="label">연간 총지출</div><div class="value mono">${wonShort(expense)}</div></div>
       <div class="card kpi saving">
         <div class="label">저축 + 투자</div>
-        <div class="value mono">${wonShort(savingInvest)}</div>
-        <div class="value mono" style="color:${net>=0?'var(--income)':'var(--expense)'};font-size:13px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);">저축(수입-지출) ${won(net)}</div>
+        <div class="value mono" style="color:${net>=0?'var(--income)':'var(--expense)'};">저축(수입-지출) ${won(net)}</div>
       </div>
       <div class="card kpi"><div class="label">순저축률 (수입-지출)</div><div class="value mono">${pct(rate)}</div></div>
     </div>
