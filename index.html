@@ -527,19 +527,19 @@
         <input type="date" id="couple-in-date">
       </div>
       <div class="couple-field">
-        <label>종료일 (선택 — 여러 날에 걸친 일정일 때만)</label>
+        <label>종료일</label>
         <input type="date" id="couple-in-endDate">
       </div>
       <div class="couple-field">
-        <label>시작 시간 (선택)</label>
+        <label>시작 시간</label>
         <input type="time" id="couple-in-time">
       </div>
       <div class="couple-field">
-        <label>종료 시간 (선택)</label>
+        <label>종료 시간</label>
         <input type="time" id="couple-in-endTime">
       </div>
       <div class="couple-field">
-        <label>메모 (선택)</label>
+        <label>메모</label>
         <textarea id="couple-in-memo" placeholder="장소, 준비물 등"></textarea>
       </div>
       <button class="couple-save-btn" id="coupleSaveBtn" onclick="coupleAddEvent()">저장</button>
@@ -1070,6 +1070,25 @@ function coupleOpenEdit(id){
 function coupleCloseAdd(){
   document.getElementById('coupleAddOverlay').classList.remove('open');
 }
+
+/* 시작일을 고르면 종료일도 같은 날짜로 자동 세팅합니다 (이미 그보다 늦은 종료일이
+   있으면 그대로 두어 여러 날짜 일정을 건드리지 않습니다). 시작 시간도 마찬가지입니다. */
+document.getElementById('couple-in-date').addEventListener('change', function(){
+  const start = this.value;
+  const endInput = document.getElementById('couple-in-endDate');
+  if(!start) return;
+  if(!endInput.value || endInput.value < start){
+    endInput.value = start;
+  }
+});
+document.getElementById('couple-in-time').addEventListener('change', function(){
+  const start = this.value;
+  const endInput = document.getElementById('couple-in-endTime');
+  if(!start) return;
+  if(!endInput.value || endInput.value < start){
+    endInput.value = start;
+  }
+});
 
 async function coupleAddEvent(){
   const title = document.getElementById('couple-in-title').value.trim();
