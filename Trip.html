@@ -1,83 +1,529 @@
--- ============================================================
--- Task / Docs / Trip 페이지용 Supabase 테이블 + 스토리지
--- Supabase 대시보드 → SQL Editor 에서 전체 실행하세요.
--- index.html / ledger.html과 같은 프로젝트, 같은 로그인 계정을 그대로 씁니다.
--- ============================================================
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task</title>
+<style>
+  :root{
+    --bg:#f6f5f1;
+    --ink:#22221f;
+    --sub:#6b6a63;
+    --line:#e1dfd6;
+    --card:#ffffff;
+    --accent:#3a5a52;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
 
--- ============ Task (포트폴리오 프로젝트) ============
-create table if not exists tasks (
-  id text primary key,
-  title text not null,
-  description text,
-  "notionUrl" text,
-  "imageUrl" text,
-  "updatedAt" text
-);
-alter table tasks enable row level security;
-create policy "authenticated full access" on tasks for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+  header{margin-bottom:20px;}
+  .home-btn{
+    display:inline-block;
+    font-size:12.5px;
+    color:var(--sub);
+    text-decoration:none;
+    margin-bottom:8px;
+  }
+  .home-btn:hover{color:var(--accent);}
+  h1{
+    font-size:26px;
+    letter-spacing:-0.02em;
+    margin:0 0 4px;
+  }
+  header p{
+    margin:0;
+    color:var(--sub);
+    font-size:13.5px;
+  }
 
--- task-images 버킷: 썸네일이라 공개로 두고(누구나 URL로 볼 수 있음), 업로드/삭제만 로그인 필요
-insert into storage.buckets (id, name, public)
-  values ('task-images', 'task-images', true)
-  on conflict (id) do nothing;
-create policy "public read task-images" on storage.objects for select
-  using (bucket_id = 'task-images');
-create policy "authenticated upload task-images" on storage.objects for insert
-  with check (bucket_id = 'task-images' and auth.role() = 'authenticated');
-create policy "authenticated delete task-images" on storage.objects for delete
-  using (bucket_id = 'task-images' and auth.role() = 'authenticated');
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:24px;
+  }
+  .panel h2{
+    font-size:15px;
+    margin:0 0 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel h2::before{
+    content:"";
+    width:6px;height:6px;border-radius:50%;
+    background:var(--accent);
+    display:inline-block;
+  }
 
--- ============ Docs (중요 문서함) ============
-create table if not exists documents (
-  id text primary key,
-  title text not null,
-  category text,
-  memo text,
-  "fileName" text,
-  "storagePath" text,
-  "uploadedAt" text
-);
-alter table documents enable row level security;
-create policy "authenticated full access" on documents for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+  .section-title{
+    font-size:13px;
+    font-weight:600;
+    color:var(--sub);
+    margin:28px 0 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .section-title::before{
+    content:"";
+    width:6px;height:6px;border-radius:50%;
+    background:var(--accent);
+    display:inline-block;
+  }
+  .notion-section-title{justify-content:space-between;}
+  .refresh-btn{
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--sub);
+    padding:5px 10px;
+    border-radius:20px;
+    font-size:11.5px;
+    cursor:pointer;
+  }
+  .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
 
--- documents 버킷: 보험증서 등 민감한 파일이라 비공개, 로그인 사용자만 전체 접근(서명 URL로 다운로드)
-insert into storage.buckets (id, name, public)
-  values ('documents', 'documents', false)
-  on conflict (id) do nothing;
-create policy "authenticated access documents" on storage.objects for all
-  using (bucket_id = 'documents' and auth.role() = 'authenticated')
-  with check (bucket_id = 'documents' and auth.role() = 'authenticated');
+  .form-grid{
+    display:grid;
+    grid-template-columns:1fr 1.4fr;
+    gap:16px;
+  }
+  .field{margin-bottom:12px;}
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--sub);
+    margin-bottom:5px;
+  }
+  input[type=text], input[type=url], textarea{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:13.5px;
+    background:#fff;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:80px;}
+  input:focus, textarea:focus{
+    outline:none;
+    border-color:var(--accent);
+  }
 
--- ============ Trip (여행 계획) ============
-create table if not exists trips (
-  id text primary key,
-  title text not null,
-  "startDate" date,
-  "endDate" date,
-  budget text,
-  memo text,
-  "createdAt" text
-);
-alter table trips enable row level security;
-create policy "authenticated full access" on trips for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+  .image-drop{
+    border:1.5px dashed var(--line);
+    border-radius:10px;
+    padding:14px;
+    text-align:center;
+    cursor:pointer;
+    color:var(--sub);
+    font-size:12.5px;
+    position:relative;
+    min-height:160px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    background:#fafaf8;
+  }
+  .image-drop img{
+    max-width:100%;
+    max-height:220px;
+    border-radius:6px;
+    object-fit:cover;
+  }
+  .image-drop input[type=file]{
+    position:absolute;
+    inset:0;
+    opacity:0;
+    cursor:pointer;
+  }
+  .upload-status{
+    font-size:11.5px;
+    color:var(--sub);
+    margin-top:6px;
+  }
 
-create table if not exists trip_items (
-  id text primary key,
-  "tripId" text not null,
-  day int,
-  time text,
-  title text,
-  category text,     -- 이동 / 식사 / 숙소 / 관광 / 쇼핑 / 기타
-  address text,
-  phone text,
-  "mapUrl" text,
-  memo text,
-  cost text,
-  "createdAt" text
-);
-alter table trip_items enable row level security;
-create policy "authenticated full access" on trip_items for all
-  using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+  .save-btn{
+    margin-top:6px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:10px 22px;
+    border-radius:7px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .save-btn:hover{opacity:0.9;}
+  .save-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+    gap:16px;
+  }
+  .project-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .project-card .thumb{
+    width:100%;
+    aspect-ratio:16/10;
+    background:#eef0ec;
+    overflow:hidden;
+  }
+  .project-card .thumb img{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .project-card .body{
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    flex:1;
+  }
+  .project-card .title{font-size:15.5px;font-weight:700;}
+  .project-card .desc{
+    font-size:12.5px;
+    color:var(--sub);
+    line-height:1.5;
+    white-space:pre-wrap;
+    flex:1;
+  }
+  .card-actions{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+  }
+  .notion-link{
+    flex:1;
+    text-align:center;
+    background:#eef0ec;
+    color:var(--ink);
+    text-decoration:none;
+    font-size:12.5px;
+    font-weight:600;
+    padding:8px 10px;
+    border-radius:7px;
+  }
+  .notion-link:hover{background:#e2e6de;}
+  .del-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--sub);
+    cursor:pointer;
+    font-size:13px;
+    padding:8px 12px;
+    border-radius:7px;
+  }
+  .del-btn:hover{border-color:#b3452f;color:#b3452f;}
+
+  .empty{
+    text-align:center;
+    padding:50px 0;
+    color:var(--sub);
+    font-size:13.5px;
+  }
+
+  #appContent{display:none;}
+
+  @media (max-width:720px){
+    .form-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="appContent">
+
+  <header>
+    <a href="./index.html" class="home-btn">← 홈</a>
+    <h1>Task</h1>
+    <p>진행한 프로젝트를 카드로 정리하고, 노션 상세 페이지로 연결합니다.</p>
+  </header>
+
+  <div class="panel">
+    <h2>새 프로젝트 추가</h2>
+    <div class="form-grid">
+      <div>
+        <div class="field">
+          <label>썸네일 이미지</label>
+          <div class="image-drop" id="dropZone">
+            <span id="dropLabel">클릭해서 이미지 선택</span>
+            <input type="file" accept="image/*" id="in-image">
+          </div>
+          <div class="upload-status" id="uploadStatus"></div>
+        </div>
+      </div>
+      <div>
+        <div class="field">
+          <label>프로젝트 제목</label>
+          <input type="text" id="in-title" placeholder="예: 위베베 시즌3 캠페인">
+        </div>
+        <div class="field">
+          <label>설명</label>
+          <textarea id="in-description" placeholder="어떤 일을 했는지 간단히 적어주세요"></textarea>
+        </div>
+        <div class="field">
+          <label>노션 링크</label>
+          <input type="url" id="in-notion" placeholder="https://notion.so/...">
+        </div>
+        <button class="save-btn" id="saveBtn" onclick="addProject()">+ 추가하기</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">직접 추가한 프로젝트</div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="emptyMsg" style="display:none;">아직 등록된 프로젝트가 없어요.</div>
+
+  <div class="section-title notion-section-title">
+    노션에서 가져온 프로젝트
+    <button class="refresh-btn" onclick="loadNotionProjects()">↻ 새로고침</button>
+  </div>
+  <div class="grid" id="notionGrid"></div>
+  <div class="empty" id="notionEmptyMsg" style="display:none;">아직 연결된 노션 항목이 없어요.</div>
+  <div class="empty" id="notionErrorMsg" style="display:none;color:#b3452f;"></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script>
+/* ===========================================================
+   Supabase 연동 설정 (tasks 테이블 + task-images 스토리지)
+   =========================================================== */
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+window.sb = sb; // auth-gate.js가 같은 클라이언트를 재사용하도록 공유
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    sb.auth.startAutoRefresh();
+  } else {
+    sb.auth.stopAutoRefresh();
+  }
+});
+
+/* 노션 연동만 기존 Apps Script 백엔드를 그대로 사용합니다.
+   (비밀 토큰이 필요해서 브라우저에서 직접 노션 API를 호출할 수 없음.
+    NOTION_TOKEN / NOTION_DATABASE_ID 스크립트 속성이 설정되어 있어야
+    아래에서 실제 항목이 보입니다. 설정 전이어도 페이지는 정상 동작합니다.) */
+const NOTION_API_URL = "https://script.google.com/macros/s/AKfycbzMSBUZ5hBbLR2T-lx7m0G2ODIcXKu7oUqvXbA9iiSL_QtJNcevO_aws-Jb1DhhOImX/exec";
+const NOTION_SITE_KEY = "130702";
+
+let projects = [];
+let pendingImageUrl = "";
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+async function loadProjects(){
+  const { data, error } = await sb.from('tasks').select('*');
+  if (error) {
+    console.error("불러오기 실패:", error);
+  } else {
+    projects = data || [];
+  }
+  render();
+}
+
+function escapeHtml(str){
+  return (str||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function render(){
+  const grid = document.getElementById('grid');
+  const emptyMsg = document.getElementById('emptyMsg');
+
+  if(projects.length === 0){
+    grid.innerHTML = "";
+    emptyMsg.style.display = "block";
+    return;
+  }
+  emptyMsg.style.display = "none";
+
+  const sorted = projects.slice().sort((a,b) => (b.updatedAt||"").localeCompare(a.updatedAt||""));
+
+  grid.innerHTML = sorted.map(p => `
+    <div class="project-card">
+      <div class="thumb">
+        ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="">` : ''}
+      </div>
+      <div class="body">
+        <div class="title">${escapeHtml(p.title)}</div>
+        <div class="desc">${escapeHtml(p.description)}</div>
+        <div class="card-actions">
+          ${p.notionUrl ? `<a class="notion-link" href="${escapeHtml(p.notionUrl)}" target="_blank" rel="noopener">노션에서 보기 →</a>` : ''}
+          <button class="del-btn" onclick="deleteProject('${p.id}')">삭제</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 이미지 선택 → 미리보기 + Supabase Storage 업로드
+function bindImageInput(){
+  const input = document.getElementById('in-image');
+  input.addEventListener('change', async function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+
+    const statusEl = document.getElementById('uploadStatus');
+    const saveBtn = document.getElementById('saveBtn');
+
+    const reader = new FileReader();
+    reader.onload = async function(evt){
+      const dataUrl = evt.target.result;
+      document.getElementById('dropZone').innerHTML =
+        `<img src="${dataUrl}" alt=""><input type="file" accept="image/*" id="in-image">`;
+      bindImageInput();
+
+      statusEl.textContent = "업로드 중...";
+      saveBtn.disabled = true;
+
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      const path = `${uid()}.${ext}`;
+
+      const { error: uploadError } = await sb.storage
+        .from('task-images')
+        .upload(path, file, { contentType: file.type, upsert: false });
+
+      if(uploadError){
+        statusEl.textContent = "업로드 실패: " + uploadError.message;
+        pendingImageUrl = "";
+      } else {
+        const { data: pub } = sb.storage.from('task-images').getPublicUrl(path);
+        pendingImageUrl = pub.publicUrl;
+        statusEl.textContent = "업로드 완료 ✓";
+      }
+      saveBtn.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+bindImageInput();
+
+async function addProject(){
+  const title = document.getElementById('in-title').value.trim();
+  const description = document.getElementById('in-description').value.trim();
+  const notionUrl = document.getElementById('in-notion').value.trim();
+
+  if(!title){ alert('프로젝트 제목을 입력해주세요.'); return; }
+
+  const newItem = {
+    id: uid(),
+    title, description, notionUrl,
+    imageUrl: pendingImageUrl,
+    updatedAt: new Date().toISOString().slice(0,10)
+  };
+
+  const { error } = await sb.from('tasks').insert(newItem);
+  if (error) {
+    alert("저장 실패: " + error.message);
+    return;
+  }
+  await loadProjects();
+
+  document.getElementById('in-title').value = "";
+  document.getElementById('in-description').value = "";
+  document.getElementById('in-notion').value = "";
+  document.getElementById('uploadStatus').textContent = "";
+  pendingImageUrl = "";
+  document.getElementById('dropZone').innerHTML =
+    `<span id="dropLabel">클릭해서 이미지 선택</span><input type="file" accept="image/*" id="in-image">`;
+  bindImageInput();
+
+  render();
+}
+
+async function deleteProject(id){
+  if(!confirm('이 프로젝트를 삭제할까요?')) return;
+  const { error } = await sb.from('tasks').delete().eq('id', id);
+  if (error) {
+    alert("삭제 실패: " + error.message);
+    return;
+  }
+  await loadProjects();
+}
+
+loadProjects();
+
+// ===========================================================
+// 노션에서 가져온 프로젝트 (읽기 전용, 노션이 원본)
+// ===========================================================
+let notionProjects = [];
+
+async function loadNotionProjects(){
+  const grid = document.getElementById('notionGrid');
+  const emptyMsg = document.getElementById('notionEmptyMsg');
+  const errorMsg = document.getElementById('notionErrorMsg');
+  errorMsg.style.display = "none";
+
+  try{
+    const res = await fetch(`${NOTION_API_URL}?key=${encodeURIComponent(NOTION_SITE_KEY)}&resource=notion`, { cache:"no-store" });
+    const data = await res.json();
+    if(!data.ok){
+      errorMsg.textContent = "노션 연결 실패: " + data.error;
+      errorMsg.style.display = "block";
+      grid.innerHTML = "";
+      emptyMsg.style.display = "none";
+      return;
+    }
+    notionProjects = Array.isArray(data.items) ? data.items : [];
+  }catch(e){
+    errorMsg.textContent = "노션 연결 실패: " + e.message;
+    errorMsg.style.display = "block";
+    return;
+  }
+  renderNotionProjects();
+}
+
+function renderNotionProjects(){
+  const grid = document.getElementById('notionGrid');
+  const emptyMsg = document.getElementById('notionEmptyMsg');
+
+  if(notionProjects.length === 0){
+    grid.innerHTML = "";
+    emptyMsg.style.display = "block";
+    return;
+  }
+  emptyMsg.style.display = "none";
+
+  const sorted = notionProjects.slice().sort((a,b) => (b.updatedAt||"").localeCompare(a.updatedAt||""));
+
+  grid.innerHTML = sorted.map(p => `
+    <div class="project-card">
+      <div class="thumb">
+        ${p.imageUrl ? `<img src="${escapeHtml(p.imageUrl)}" alt="">` : ''}
+      </div>
+      <div class="body">
+        <div class="title">${escapeHtml(p.title || '(제목 없음)')}</div>
+        <div class="desc">${escapeHtml(p.description)}</div>
+        <div class="card-actions">
+          ${p.notionUrl ? `<a class="notion-link" href="${escapeHtml(p.notionUrl)}" target="_blank" rel="noopener">노션에서 보기 →</a>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+loadNotionProjects();
+setInterval(loadNotionProjects, 120000); // 2분마다 자동 새로고침
+</script>
+<script src="./auth-gate.js"></script>
+</body>
+</html>
