@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Report · 포트폴리오</title>
+<link rel="stylesheet" href="./common.css">
+<link rel="stylesheet" href="./panel-common.css">
+<style>
+  .entry{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    margin-bottom:14px;
+    overflow:hidden;
+  }
+  .entry > summary{
+    list-style:none;
+    cursor:pointer;
+    padding:16px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    font-weight:700;
+    font-size:14.5px;
+  }
+  .entry > summary::-webkit-details-marker{ display:none; }
+  .entry > summary::after{
+    content:"펼치기";
+    font-size:12px;
+    font-weight:600;
+    color:var(--sub);
+    flex-shrink:0;
+  }
+  .entry[open] > summary::after{ content:"접기"; }
+  .entry .date{ color:var(--ink); }
+  .entry .title{ color:var(--sub); font-weight:500; }
+  .entry .frame-wrap{
+    border-top:1px solid var(--line);
+  }
+  .entry iframe{
+    width:100%;
+    height:75vh;
+    border:none;
+    display:block;
+    background:#fff;
+  }
+</style>
+</head>
+<body>
+<script src="./nav.js"></script>
+<div class="wrap" id="appContent">
+
+  <header>
+    <h1>Daily Report</h1>
+    <p>매일 오전 6시 30분에 자동으로 생성되는 데일리 리포트가 여기에 쌓입니다.</p>
+  </header>
+
+  <div id="list"></div>
+  <div class="empty" id="emptyMsg" style="display:none;">아직 쌓인 리포트가 없어요. 다음 스케줄 실행을 기다려주세요.</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script src="./common.js"></script>
+<script>
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+window.sb = sb; // auth-gate.js가 같은 클라이언트를 재사용하도록 공유
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    sb.auth.startAutoRefresh();
+  } else {
+    sb.auth.stopAutoRefresh();
+  }
+});
+
+function formatDate(id){
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(id||"");
+  if(!m) return id;
+  return `${m[1]}.${m[2]}.${m[3]}`;
+}
+
+async function loadReports(){
+  const { data, error } = await sb.from('daily_reports').select('id,title,html,created_at').order('id', { ascending: false });
+  const list = document.getElementById('list');
+  const emptyMsg = document.getElementById('emptyMsg');
+
+  if(error){
+    console.error("불러오기 실패:", error);
+    list.innerHTML = "";
+    emptyMsg.style.display = "block";
+    emptyMsg.textContent = "리포트를 불러오지 못했습니다.";
+    return;
+  }
+
+  const reports = data || [];
+  if(reports.length === 0){
+    list.innerHTML = "";
+    emptyMsg.style.display = "block";
+    return;
+  }
+  emptyMsg.style.display = "none";
+
+  list.innerHTML = reports.map((r, i) => `
+    <details class="entry" ${i === 0 ? 'open' : ''}>
+      <summary>
+        <span class="date">${escapeHtml(formatDate(r.id))}</span>
+        ${r.title ? `<span class="title">${escapeHtml(r.title)}</span>` : ''}
+      </summary>
+      <div class="frame-wrap">
+        <iframe srcdoc="${escapeHtml(r.html)}" loading="lazy" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
+      </div>
+    </details>
+  `).join('');
+}
+
+loadReports();
+</script>
+<script src="./auth-gate.js"></script>
+</body>
+</html>

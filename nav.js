@@ -15,6 +15,7 @@
     { href: './work.html',   icon: '💼', label: '부업' },
     { href: './trip.html',   icon: '✈️', label: '여행' },
     { href: './docs.html',   icon: '📁', label: '보관함' },
+    { href: './report.html', icon: '🗞️', label: 'Report' },
   ];
 
   const currentFile = (location.pathname.split('/').pop() || 'index.html');
