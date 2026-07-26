@@ -673,6 +673,52 @@ function realCashOwner(t){
   return t.scope;
 }
 
+/* 결제수단 현황 위젯: 체크카드는 이번 달 사용/입금을 즉시 보여주고,
+   신용카드(현대카드[보라])는 (1) 이번 달 지금까지 쌓인 누적 사용액과 다음 청구일,
+   (2) 이번 달에 실제로 청구된 금액(전월 사용분)을 함께 보여줍니다. */
+function renderCardStatus(ym){
+  const wrap = document.getElementById('cardStatusWrap');
+  if(!wrap) return;
+  const all = DB.list();
+  const today = todayStr();
+  const isLiveMonth = ym === today.slice(0,7);
+
+  const debitRows = PAYMENT_METHODS.filter(p => PAYMENT_META[p].type === '체크카드').map(p=>{
+    const tx = monthTx(all, ym).filter(t => t.payment === p);
+    const out = tx.filter(t=>t.type==='지출').reduce((s,t)=>s+Number(t.amount||0),0);
+    const inc = tx.filter(t=>t.type==='수입').reduce((s,t)=>s+Number(t.amount||0),0);
+    return `<div class="cat-row">
+      <div class="top"><span class="name">${p}<span class="sub">체크카드 · 즉시 반영</span></span><span class="amt">지출 ${won(out)}${inc?` · 입금 ${won(inc)}`:''}</span></div>
+    </div>`;
+  }).join('');
+
+  const creditRows = PAYMENT_METHODS.filter(p => PAYMENT_META[p].type === '신용카드').map(p=>{
+    const accruedTx = monthTx(all, ym).filter(t=>t.type==='지출' && t.payment===p);
+    const accrued = accruedTx.reduce((s,t)=>s+Number(t.amount||0),0);
+    const nextBillYm = shiftYm(ym,1);
+    const [by,bm] = nextBillYm.split('-');
+    const accruedLabel = isLiveMonth ? `1일~오늘(${Number(today.split('-')[2])}일)까지 누적` : `${Number(ym.split('-')[1])}월 전체 사용액`;
+
+    const prevYmVal = shiftYm(ym,-1);
+    const billedNow = monthTx(all, prevYmVal).filter(t=>t.type==='지출' && t.payment===p).reduce((s,t)=>s+Number(t.amount||0),0);
+    const [py,pm] = prevYmVal.split('-');
+
+    return `
+      <div class="cat-row" style="margin-top:4px;">
+        <div class="top"><span class="name">${p}<span class="sub">신용카드</span></span><span class="amt">${won(accrued)}</span></div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px;">${accruedLabel} · <b style="color:var(--ink);">${by}년 ${Number(bm)}월 12일</b> 청구 예정</div>
+      </div>
+      ${billedNow ? `
+      <div class="cat-row" style="background:var(--invest-soft);border-radius:10px;padding:10px 12px;margin-top:8px;">
+        <div class="top"><span class="name" style="color:var(--invest);">이번 달 12일 청구됨</span><span class="amt" style="color:var(--invest);">${won(billedNow)}</span></div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px;">${py}년 ${Number(pm)}월 사용분</div>
+      </div>` : ''}
+    `;
+  }).join('');
+
+  wrap.innerHTML = debitRows + creditRows;
+}
+
 /* =================================================================================
    0-2. 정기 자동이체 (매월 반복) — 연도·월과 무관하게 매월 자동으로 채워집니다.
    해당 월에 아직 만들어지지 않았으면 그 달을 처음 열 때 자동으로 거래로 추가됩니다.
@@ -1557,6 +1603,11 @@ function renderMonth(ym){
       ⚠ 구분 미지정 거래 ${unassignedCount}건 — 눌러서 재분류하기
     </div>` : ''}
 
+    <div class="section">
+      <div class="section-head"><h2>결제수단 현황</h2><span class="hint">체크카드는 즉시 반영, 신용카드는 익월 12일 청구</span></div>
+      <div class="card cat-list-card" id="cardStatusWrap"></div>
+    </div>
+
     <div class="grid two-col section">
       <div class="card cal-card">
         <div class="section-head"><h2>지출 캘린더</h2><span class="hint">일별 지출 합계</span></div>
@@ -1615,6 +1666,7 @@ function renderMonth(ym){
   `;
 
   renderCalendar(y,m,tx);
+  renderCardStatus(ym);
   renderCatList(ym);
   renderTxToolbar(ym);
   renderTxTable(ym);
