@@ -652,13 +652,26 @@ const DOW = ["월","화","수","목","금","토","일"];
 /* =================================================================================
    0-1. 결제수단
    ================================================================================= */
-const PAYMENT_METHODS = ["현대카드[보라]", "하나[보라]", "카카오[보라]", "농협[관]"];
+const PAYMENT_METHODS = ["현대카드[보라]", "하나[보라]", "농협[관]"];
 const PAYMENT_META = {
   "현대카드[보라]": { person:"보라", type:"신용카드", desc:"1~31일 사용분이 익월 12일에 한 번에 청구돼요." },
   "하나[보라]":     { person:"보라", type:"체크카드", desc:"보라 수입에서 즉시 빠져나가요." },
-  "카카오[보라]":   { person:"보라", type:"체크카드", desc:"보라 수입에서 즉시 빠져나가요." },
   "농협[관]":       { person:"관",   type:"체크카드", desc:"관 수입에서 즉시 빠져나가요." },
 };
+
+/* 실제 돈이 오가는 주체를 계산합니다.
+   - 결제수단이 지정된 거래는 결제수단의 실소유자(person) 계좌에서 실제로 빠져나가거나 들어옵니다.
+     (거래에 적힌 구분(공동/보라/관)과 무관하게, 실제 카드/계좌의 주인 기준으로 반영)
+   - 단, 신용카드(현대카드[보라])는 사용 시점에는 반영하지 않고 익월 12일 결제일에 별도로 누적 반영합니다. → 'CARD' 반환
+   - 결제수단이 지정되지 않은 거래는 기존처럼 구분(scope) 기준으로 반영합니다. */
+function realCashOwner(t){
+  const meta = t.payment ? PAYMENT_META[t.payment] : null;
+  if(meta){
+    if(meta.type === '신용카드') return 'CARD';
+    return meta.person;
+  }
+  return t.scope;
+}
 
 /* =================================================================================
    0-2. 정기 자동이체 (매월 반복) — 연도·월과 무관하게 매월 자동으로 채워집니다.
@@ -668,7 +681,7 @@ const DEFAULT_RECURRING_TEMPLATES = [
   { key:"r_loan1",     day:3,  scope:"공동", main:"주거비", category:"집대출",   note:"신용대출",                     amount:108665, payment:"하나[보라]" },
   { key:"r_google_b",  day:9,  scope:"보라", main:"구독",   category:"기타",     note:"보라 구글",                     amount:2400,   payment:"현대카드[보라]" },
   { key:"r_carloan",   day:10, scope:"공동", main:"자동차", category:"할부금",   note:"자동차할부",                   amount:456520, payment:"하나[보라]" },
-  { key:"r_transit",   day:10, scope:"공동", main:"교통비", category:"대중교통", note:"대중교통",                     amount:80000,  payment:"카카오[보라]" },
+  { key:"r_transit",   day:10, scope:"공동", main:"교통비", category:"대중교통", note:"대중교통",                     amount:80000,  payment:"하나[보라]" },
   { key:"r_driverins", day:10, scope:"공동", main:"자동차", category:"운전자보험", note:"운전자보험",                 amount:6510,   payment:"하나[보라]" },
   { key:"r_phone_b",   day:12, scope:"보라", main:"통신비", category:"핸드폰",   note:"보라 핸드폰",                   amount:78900,  payment:"현대카드[보라]" },
   { key:"r_coway",     day:12, scope:"공동", main:"주거비", category:"정수기",   note:"코웨이",                       amount:14900,  payment:"현대카드[보라]" },
@@ -680,7 +693,7 @@ const DEFAULT_RECURRING_TEMPLATES = [
   { key:"r_ins_g",     day:23, scope:"관",   main:"건강",   category:"실비보험", note:"관 보험(삼성화재)",             amount:16647,  payment:"농협[관]" },
   { key:"r_mortgage",  day:25, scope:"공동", main:"주거비", category:"집대출",   note:"보금자리론",                   amount:680000, payment:"하나[보라]" },
   { key:"r_phone_g",   day:25, scope:"관",   main:"통신비", category:"핸드폰",   note:"관 핸드폰 (28,000+47,000)",     amount:75000,  payment:"농협[관]" },
-  { key:"r_coupang",   day:26, scope:"공동", main:"구독",   category:"쇼핑",     note:"쿠팡",                         amount:7890,   payment:"카카오[보라]" },
+  { key:"r_coupang",   day:26, scope:"공동", main:"구독",   category:"쇼핑",     note:"쿠팡",                         amount:7890,   payment:"하나[보라]" },
   { key:"r_icloud",    day:26, scope:"보라", main:"구독",   category:"기타",     note:"아이클라우드",                 amount:1100,   payment:"현대카드[보라]" },
 ];
 
@@ -1504,9 +1517,18 @@ function renderMonth(ym){
   const tx = monthTx(all, ym).sort((a,b)=> a.date < b.date ? 1 : -1);
 
   const scopeSummary = SCOPES.map(sc=>{
-    const scTx = tx.filter(t=>t.scope===sc);
+    const scTx = tx.filter(t=>realCashOwner(t)===sc);
     return { scope:sc, income: sumBy(scTx,'수입'), expense: sumBy(scTx,'지출') };
   });
+  // 현대카드[보라]는 사용월이 아니라 익월 12일에 전달(1~31일) 누적 사용액이 한 번에 청구됩니다.
+  const prevMonthTx = monthTx(all, shiftYm(ym,-1));
+  const cardBill = prevMonthTx
+    .filter(t=> t.type==='지출' && t.payment==='현대카드[보라]')
+    .reduce((s,t)=>s+Number(t.amount||0), 0);
+  if(cardBill){
+    const boraCard = scopeSummary.find(s=>s.scope==='보라');
+    if(boraCard) boraCard.expense += cardBill;
+  }
   const totalSummary = { scope:'전체', income: sumBy(tx,'수입'), expense: sumBy(tx,'지출') };
   const kpiCards = [totalSummary, ...scopeSummary];
   const unassignedCount = tx.filter(t=>!t.scope).length;
