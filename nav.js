@@ -119,7 +119,7 @@
   }).join('');
 
   const navHtml = `
-    <header id="bkNav">
+    <header id="bkNav" class="wrap">
       <a class="bk-title" href="./index.html">BORAKWAN</a>
       <div class="bk-grid">${cardsHtml}</div>
     </header>
