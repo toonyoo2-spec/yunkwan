@@ -132,7 +132,8 @@ button{font-family:inherit;}
   border-radius:var(--radius-m);
   box-shadow:var(--shadow-card);
 }
-.grid{display:grid;gap:16px;}
+.grid{display:grid;gap:16px;min-width:0;}
+.grid > *{min-width:0;}
 .kpis{grid-template-columns:repeat(4,1fr);margin-bottom:18px;}
 @media (max-width:800px){.kpis{grid-template-columns:repeat(2,1fr);}}
 
@@ -1690,7 +1691,7 @@ function renderMonth(ym){
       <button class="move" onclick="location.hash='#/${nextYm(ym)}'">다음 달 ›</button>
     </div>
 
-    <div class="grid kpis" style="grid-template-columns:repeat(4,1fr);">
+    <div class="grid kpis">
       ${kpiCards.map(s=>{
         const balance = s.income - s.expense;
         return `
