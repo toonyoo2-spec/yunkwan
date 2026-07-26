@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>프로젝트 관리</title>
+<link rel="stylesheet" href="./common.css">
+<link rel="stylesheet" href="./panel-common.css">
+<style>
+  header{margin-bottom:20px;}
+
+  /* ---- 상단 요약 카드 ---- */
+  .stat-row{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:14px;
+    margin-bottom:24px;
+  }
+  .stat-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 18px;
+  }
+  .stat-card .label{font-size:12px;color:var(--sub);margin-bottom:6px;}
+  .stat-card .value{font-size:22px;font-weight:800;letter-spacing:-0.01em;}
+  .stat-card.cash .value{color:var(--accent);}
+
+  /* ---- 캘린더 ---- */
+  .cal-panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:24px;
+  }
+  .cal-header{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+    margin-bottom:14px;
+    position:relative;
+  }
+  .cal-nav-btn{
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--sub);
+    width:30px;height:30px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:15px;
+    line-height:1;
+  }
+  .cal-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .cal-title{font-size:15.5px;font-weight:700;min-width:110px;text-align:center;}
+
+  .cal-legend{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    justify-content:center;
+    margin-bottom:16px;
+    font-size:12px;
+    color:var(--sub);
+  }
+  .cal-legend span{display:flex;align-items:center;gap:5px;}
+  .cal-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  .cal-grid-wrap{position:relative;}
+  .cal-grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:6px;
+  }
+  .cal-bars-layer{
+    position:absolute;
+    top:0;left:0;right:0;bottom:0;
+    pointer-events:none;
+  }
+  .cal-bar-slot{height:17px;flex-shrink:0;}
+  .cal-bar{
+    position:absolute;
+    box-sizing:border-box;
+    display:flex;
+    align-items:center;
+    font-size:10.5px;
+    font-weight:600;
+    padding:2px 6px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    cursor:pointer;
+    pointer-events:auto;
+  }
+  .cal-bar:hover{filter:brightness(0.95);}
+  .cal-bar.round-left{border-top-left-radius:5px;border-bottom-left-radius:5px;}
+  .cal-bar.round-right{border-top-right-radius:5px;border-bottom-right-radius:5px;}
+  .cal-dow{
+    text-align:center;
+    font-size:11.5px;
+    color:var(--sub);
+    padding-bottom:6px;
+    font-weight:600;
+  }
+  .cal-cell{
+    min-height:82px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:6px 6px;
+    background:#fdfcfa;
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+    overflow:hidden;
+  }
+  .cal-cell.other-month{background:transparent;border-color:transparent;}
+  .cal-cell.today{border-color:var(--accent);background:#f0f0ee;}
+  .cal-daynum{font-size:11.5px;color:var(--sub);}
+  .cal-cell.today .cal-daynum{color:var(--accent);font-weight:700;}
+  .cal-event{
+    font-size:10.5px;
+    padding:2px 5px;
+    border-radius:4px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    cursor:pointer;
+    font-weight:600;
+  }
+  .cal-event:hover{filter:brightness(0.95);}
+  .cal-event.settlement{border:1px dashed rgba(0,0,0,0.25);}
+
+  /* ---- 상태 배지 ---- */
+  .status-badge{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    padding:3px 9px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .status-badge.st-notstarted{background:var(--wait-bg);color:var(--wait-ink);}
+  .status-badge.st-working{background:var(--conf-bg);color:var(--conf-ink);}
+  .status-badge.st-done{background:var(--owner-gwan-bg);color:var(--owner-gwan-ink);}
+  .status-badge.st-settled{background:var(--done-bg);color:var(--done-ink);}
+
+  select.status-select{
+    padding:6px 8px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:12.5px;
+    background:#fff;
+    color:var(--ink);
+    font-family:inherit;
+    cursor:pointer;
+  }
+  select.status-select.st-notstarted{border-color:var(--wait-ink);color:var(--wait-ink);}
+  select.status-select.st-working{border-color:var(--conf-ink);color:var(--conf-ink);}
+  select.status-select.st-done{border-color:var(--owner-gwan-ink);color:var(--owner-gwan-ink);}
+  select.status-select.st-settled{border-color:var(--done-ink);color:var(--done-ink);}
+
+  .pay-badge{
+    display:inline-block;
+    font-size:11px;
+    font-weight:600;
+    padding:3px 9px;
+    border-radius:20px;
+    background:#eef0ec;
+    color:var(--sub);
+    white-space:nowrap;
+  }
+
+  /* ---- 등록 폼 ---- */
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:24px;
+  }
+  .section-title{
+    font-size:13px;
+    font-weight:600;
+    color:var(--sub);
+    margin:28px 0 12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .section-title::before{
+    content:"";
+    width:6px;height:6px;border-radius:50%;
+    background:var(--accent);
+    display:inline-block;
+  }
+  .form-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:10px;
+    align-items:end;
+  }
+  input[type=text], input[type=date], input[type=number], textarea, select{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:13.5px;
+    background:#fff;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:50px;}
+  input:focus, textarea:focus, select:focus{outline:none;border-color:var(--accent);}
+  .save-btn{
+    grid-column:1/-1;
+    justify-self:start;
+    margin-top:4px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:10px 22px;
+    border-radius:7px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .save-btn:hover{opacity:0.9;}
+  .save-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+  /* ---- 프로젝트 시트(표) ---- */
+  .sheet-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;}
+  table.sheet{width:100%;border-collapse:collapse;font-size:13px;min-width:820px;}
+  table.sheet th{
+    text-align:left;
+    padding:10px 12px;
+    font-size:12px;
+    color:var(--sub);
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  table.sheet td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  table.sheet tbody tr:hover{background:#fafaf8;}
+  table.sheet td.amt{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .proj-title-cell{display:flex;align-items:center;gap:8px;}
+  .proj-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .proj-title{font-weight:700;}
+  .del-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--sub);
+    cursor:pointer;
+    font-size:12px;
+    padding:5px 10px;
+    border-radius:7px;
+    white-space:nowrap;
+  }
+  .del-btn:hover{border-color:#b3452f;color:#b3452f;}
+
+  /* ---- 상세 팝업 ---- */
+  .cal-modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(34,34,31,0.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9998;
+    padding:20px;
+  }
+  .cal-modal-overlay.open{display:flex;}
+  .cal-modal{
+    background:var(--card);
+    border-radius:14px;
+    max-width:360px;
+    width:100%;
+    padding:24px;
+    position:relative;
+    box-shadow:0 12px 32px rgba(0,0,0,0.15);
+  }
+  .cal-modal-close{
+    position:absolute;
+    top:14px;right:16px;
+    background:none;
+    border:none;
+    font-size:18px;
+    color:var(--sub);
+    cursor:pointer;
+    line-height:1;
+  }
+  .cal-modal-close:hover{color:var(--ink);}
+  .cal-modal-title{font-size:17px;font-weight:700;margin-bottom:10px;}
+  .cal-modal-row{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    padding:8px 0;
+    border-top:1px solid var(--line);
+    font-size:13px;
+  }
+  .cal-modal-row .k{color:var(--sub);flex-shrink:0;}
+  .cal-modal-row .v{text-align:right;word-break:break-all;}
+  .cal-modal-actions{display:flex;gap:8px;margin-top:18px;align-items:center;}
+  .cal-modal-actions select{flex:2;}
+  .cal-modal-del-btn{
+    flex:1;
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--sub);
+    padding:9px 0;
+    border-radius:8px;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .cal-modal-del-btn:hover{border-color:#b3452f;color:#b3452f;}
+
+  @media (max-width:820px){
+    .stat-row{grid-template-columns:repeat(2,1fr);}
+    .form-grid{grid-template-columns:1fr 1fr;}
+    table.sheet{min-width:720px;}
+  }
+</style>
+</head>
+<body>
+<script src="./nav.js"></script>
+<div class="wrap" id="appContent">
+
+  <header>
+    <h1>💼 프로젝트 관리</h1>
+    <p>프로젝트를 등록하면 캘린더에 바로 반영되고, 정산 상태에 따라 현금 누적과 가계부 수입이 자동으로 정리됩니다.</p>
+  </header>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="label">전체 프로젝트</div>
+      <div class="value" id="statTotal">0건</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">진행중 (정산 전)</div>
+      <div class="value" id="statOngoing">0건</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">정산완료</div>
+      <div class="value" id="statSettled">0건</div>
+    </div>
+    <div class="stat-card cash">
+      <div class="label">현금 누적</div>
+      <div class="value" id="statCash">0원</div>
+    </div>
+  </div>
+
+  <div class="cal-panel">
+    <div class="cal-header">
+      <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+      <div class="cal-title" id="calTitle"></div>
+      <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="cal-legend" id="calLegend"></div>
+    <div class="cal-grid-wrap">
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-bars-layer" id="calBarsLayer"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>새 프로젝트 등록</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>프로젝트명</label>
+        <input type="text" id="in-title" placeholder="예: OO 브랜드 리브랜딩">
+      </div>
+      <div class="field">
+        <label>담당자</label>
+        <input type="text" id="in-manager" placeholder="예: 김보라">
+      </div>
+      <div class="field">
+        <label>연락처</label>
+        <input type="text" id="in-contact" placeholder="예: 010-1234-5678">
+      </div>
+      <div class="field">
+        <label>결제방식</label>
+        <select id="in-payment">
+          <option value="하나은행">하나은행</option>
+          <option value="농협은행">농협은행</option>
+          <option value="현금">현금</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>시작일</label>
+        <input type="date" id="in-startDate">
+      </div>
+      <div class="field">
+        <label>종료일</label>
+        <input type="date" id="in-endDate">
+      </div>
+      <div class="field">
+        <label>정산 예정일</label>
+        <input type="date" id="in-settlementDate">
+      </div>
+      <div class="field">
+        <label>비용</label>
+        <input type="number" id="in-cost" placeholder="예: 3000000">
+      </div>
+      <div class="field" style="grid-column:1/-1;">
+        <label>메모</label>
+        <textarea id="in-memo" placeholder="작업 범위, 참고사항 등"></textarea>
+      </div>
+      <button class="save-btn" id="saveProjectBtn" onclick="addProject()">+ 프로젝트 등록</button>
+    </div>
+  </div>
+
+  <div class="section-title">등록된 프로젝트</div>
+  <div class="sheet-wrap">
+    <table class="sheet">
+      <thead>
+        <tr>
+          <th>프로젝트</th>
+          <th>담당자 / 연락처</th>
+          <th>기간</th>
+          <th>비용</th>
+          <th>결제방식</th>
+          <th>정산일</th>
+          <th>상태</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="sheetBody"></tbody>
+    </table>
+  </div>
+  <div class="empty" id="emptyMsg" style="display:none;">아직 등록된 프로젝트가 없어요.</div>
+
+  <!-- 프로젝트 상세 팝업 -->
+  <div class="cal-modal-overlay" id="calModalOverlay" onclick="if(event.target===this) closeDetail()">
+    <div class="cal-modal">
+      <button class="cal-modal-close" onclick="closeDetail()">✕</button>
+      <div id="calModalBody"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script src="./common.js"></script>
+<script>
+/* ===========================================================
+   Supabase 연동 (projects 테이블 + ledger의 transactions 테이블 공유)
+   =========================================================== */
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+window.sb = sb;
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    sb.auth.startAutoRefresh();
+  } else {
+    sb.auth.stopAutoRefresh();
+  }
+});
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ return normalizeDate(new Date()); }
+const won = n => (Math.round(n||0)).toLocaleString('ko-KR') + '원';
+
+const STATUS_LIST = ["시작전", "작업중", "작업완료", "정산완료"];
+const STATUS_CLASS = { "시작전":"st-notstarted", "작업중":"st-working", "작업완료":"st-done", "정산완료":"st-settled" };
+
+// 결제방식이 하나은행/농협은행이면 정산 시 ledger.html의 해당 계좌 수입으로 자동 반영됩니다.
+// (하나은행 = 보라 명의 체크카드 계좌, 농협은행 = 관 명의 체크카드 계좌 — ledger.html과 동일한 구분)
+const LEDGER_PAYMENT_MAP = { "하나은행":"하나[보라]", "농협은행":"농협[관]" };
+const LEDGER_SCOPE_MAP = { "하나은행":"보라", "농협은행":"관" };
+
+let projects = [];
+let calCursor = new Date();
+calCursor.setDate(1);
+let calCurrentSegments = [];
+
+/* ---- 날짜 유틸 (index.html 캘린더와 동일한 방식) ---- */
+function normalizeDate(v){
+  if(!v) return "";
+  const d = new Date(v);
+  if(isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function dateRange(start, end){
+  const startStr = normalizeDate(start);
+  if(!startStr) return [];
+  const endStr = normalizeDate(end) || startStr;
+
+  const startD = new Date(startStr + "T00:00:00");
+  const endD = new Date(endStr + "T00:00:00");
+  if(isNaN(endD.getTime()) || endD < startD) return [startStr];
+
+  const dates = [];
+  let cur = new Date(startD);
+  let guard = 0;
+  while(cur <= endD && guard < 400){
+    dates.push(normalizeDate(cur));
+    cur.setDate(cur.getDate() + 1);
+    guard++;
+  }
+  return dates;
+}
+
+function dateRowCol(dateStr, y, m){
+  const [ey, em, ed] = dateStr.split('-').map(Number);
+  if(ey !== y || em !== m+1) return null;
+  const first = new Date(y, m, 1);
+  const startOffset = first.getDay();
+  const idx = startOffset + (ed - 1);
+  return { row: Math.floor(idx / 7), col: idx % 7 };
+}
+
+function formatDateShort(v){
+  if(!v) return "";
+  const d = new Date(v + "T00:00:00");
+  if(isNaN(d.getTime())) return v;
+  return `${d.getMonth()+1}.${d.getDate()}`;
+}
+
+/* ---- 프로젝트 색상 (등록 시 랜덤 배정되어 고정) ---- */
+function projStyle(hue){
+  const h = Number(hue) || 0;
+  return {
+    dot: `hsl(${h}, 62%, 46%)`,
+    barBg: `hsl(${h}, 55%, 88%)`,
+    barInk: `hsl(${h}, 60%, 26%)`,
+  };
+}
+
+/* ---- 데이터 로드 ---- */
+async function loadProjects(){
+  const { data, error } = await sb.from('projects').select('*').order('createdAt', { ascending:false });
+  if(error){
+    console.error("프로젝트 목록 로드 실패:", error);
+  } else {
+    projects = data || [];
+  }
+  renderAll();
+}
+
+function renderAll(){
+  renderStats();
+  renderCalendar();
+  renderSheet();
+}
+
+/* ---- 상단 요약 ---- */
+function renderStats(){
+  document.getElementById('statTotal').textContent = `${projects.length}건`;
+  document.getElementById('statOngoing').textContent = `${projects.filter(p => p.status !== '정산완료').length}건`;
+  document.getElementById('statSettled').textContent = `${projects.filter(p => p.status === '정산완료').length}건`;
+  const cash = projects
+    .filter(p => p.paymentMethod === '현금' && p.status === '정산완료')
+    .reduce((s, p) => s + Number(p.cost || 0), 0);
+  document.getElementById('statCash').textContent = won(cash);
+}
+
+/* ---- 캘린더 ---- */
+function changeMonth(delta){
+  calCursor.setMonth(calCursor.getMonth() + delta);
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const y = calCursor.getFullYear();
+  const m = calCursor.getMonth();
+  document.getElementById('calTitle').textContent = `${y}년 ${m+1}월`;
+
+  const byDate = {};
+  const rowSegments = {};
+  const globalStartStr = {};
+  const globalEndStr = {};
+  const monthProjectIds = new Set();
+
+  projects.forEach(p => {
+    const dates = dateRange(p.startDate, p.endDate);
+    if(dates.length === 0) return;
+    globalStartStr[p.id] = dates[0];
+    globalEndStr[p.id] = dates[dates.length-1];
+
+    if(dates.length === 1){
+      const dateStr = dates[0];
+      const [ey, em] = dateStr.split('-').map(Number);
+      if(ey === y && em === m+1){
+        (byDate[dateStr] = byDate[dateStr] || []).push({ kind:'project', data:p });
+        monthProjectIds.add(p.id);
+      }
+    } else {
+      const inMonthDates = dates.filter(dateStr => {
+        const [ey, em] = dateStr.split('-').map(Number);
+        return ey === y && em === m+1;
+      });
+      if(inMonthDates.length > 0){
+        let seg = null;
+        inMonthDates.forEach(dateStr => {
+          const rc = dateRowCol(dateStr, y, m);
+          if(!rc) return;
+          if(seg && seg.row === rc.row && seg.endCol === rc.col - 1){
+            seg.endCol = rc.col;
+            seg.dates.push(dateStr);
+          } else {
+            if(seg) (rowSegments[seg.row] = rowSegments[seg.row] || []).push(seg);
+            seg = { p, row: rc.row, startCol: rc.col, endCol: rc.col, dates:[dateStr] };
+          }
+        });
+        if(seg) (rowSegments[seg.row] = rowSegments[seg.row] || []).push(seg);
+        monthProjectIds.add(p.id);
+      }
+    }
+
+    // 정산(예정)일은 작업 기간과 별개로 항상 해당 날짜에 마커로 표시
+    if(p.settlementDate){
+      const settleStr = normalizeDate(p.settlementDate);
+      const [sy, sm] = settleStr.split('-').map(Number);
+      if(sy === y && sm === m+1){
+        (byDate[settleStr] = byDate[settleStr] || []).push({ kind:'settlement', data:p });
+        monthProjectIds.add(p.id);
+      }
+    }
+  });
+
+  const legend = document.getElementById('calLegend');
+  const monthProjects = projects.filter(p => monthProjectIds.has(p.id));
+  legend.innerHTML = monthProjects.length === 0 ? '' : monthProjects.map(p => {
+    const st = projStyle(p.colorHue);
+    return `<span><i class="dot" style="background:${st.dot};"></i>${escapeHtml(p.title)}</span>`;
+  }).join('');
+
+  Object.keys(rowSegments).forEach(rowKey => {
+    const segs = rowSegments[rowKey];
+    segs.forEach(seg => {
+      seg.isGlobalStart = seg.dates[0] === globalStartStr[seg.p.id];
+      seg.isGlobalEnd = seg.dates[seg.dates.length-1] === globalEndStr[seg.p.id];
+    });
+    segs.sort((a,b) => a.startCol - b.startCol || a.endCol - b.endCol);
+    const laneEndCol = [];
+    segs.forEach(seg => {
+      let lane = laneEndCol.findIndex(endCol => endCol < seg.startCol);
+      if(lane === -1){ lane = laneEndCol.length; laneEndCol.push(seg.endCol); }
+      else { laneEndCol[lane] = seg.endCol; }
+      seg.lane = lane;
+    });
+  });
+
+  const first = new Date(y, m, 1);
+  const startOffset = first.getDay();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const daysInPrevMonth = new Date(y, m, 0).getDate();
+  const todayStrVal = normalizeDate(new Date());
+
+  const cells = [];
+  const dowLabels = ['일','월','화','수','목','금','토'];
+  dowLabels.forEach(l => cells.push(`<div class="cal-dow">${l}</div>`));
+
+  for(let i = startOffset - 1; i >= 0; i--){
+    cells.push(`<div class="cal-cell other-month"><div class="cal-daynum">${daysInPrevMonth - i}</div></div>`);
+  }
+
+  function slotsHtmlForCol(row, col){
+    const segs = (rowSegments[row] || []).filter(s => col >= s.startCol && col <= s.endCol);
+    if(segs.length === 0) return '';
+    const maxLane = Math.max(...segs.map(s => s.lane));
+    let html = '';
+    for(let lane = 0; lane <= maxLane; lane++){
+      const seg = segs.find(s => s.lane === lane);
+      html += seg
+        ? `<div class="cal-bar-slot" data-seg="${seg.p.id}_r${row}"></div>`
+        : `<div class="cal-bar-slot" data-seg="blank"></div>`;
+    }
+    return html;
+  }
+
+  for(let d = 1; d <= daysInMonth; d++){
+    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === todayStrVal;
+    const rc = dateRowCol(dateStr, y, m);
+    const dayEntries = byDate[dateStr] || [];
+
+    const eventsHtml = dayEntries.map(entry => {
+      const p = entry.data;
+      const st = projStyle(p.colorHue);
+      if(entry.kind === 'settlement'){
+        return `<div class="cal-event settlement" style="background:${st.barBg};color:${st.barInk};" onclick="showDetail('${p.id}')" title="정산 예정: ${escapeHtml(p.title)}">💰 ${escapeHtml(p.title)}</div>`;
+      }
+      return `<div class="cal-event" style="background:${st.barBg};color:${st.barInk};" onclick="showDetail('${p.id}')" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</div>`;
+    }).join('');
+
+    const slotsHtml = rc ? slotsHtmlForCol(rc.row, rc.col) : '';
+    cells.push(`<div class="cal-cell ${isToday?'today':''}"><div class="cal-daynum">${d}</div>${slotsHtml}${eventsHtml}</div>`);
+  }
+
+  const totalSoFar = startOffset + daysInMonth;
+  const trailing = (7 - (totalSoFar % 7)) % 7;
+  for(let d = 1; d <= trailing; d++){
+    cells.push(`<div class="cal-cell other-month"><div class="cal-daynum">${d}</div></div>`);
+  }
+
+  document.getElementById('calGrid').innerHTML = cells.join('');
+
+  calCurrentSegments = [];
+  Object.keys(rowSegments).forEach(rowKey => {
+    rowSegments[rowKey].forEach(seg => calCurrentSegments.push(seg));
+  });
+  positionBars();
+}
+
+function positionBars(){
+  const layer = document.getElementById('calBarsLayer');
+  const wrap = layer.parentElement;
+  if(!layer || !wrap) return;
+  const wrapRect = wrap.getBoundingClientRect();
+
+  const html = calCurrentSegments.map(seg => {
+    const segId = `${seg.p.id}_r${seg.row}`;
+    const els = Array.from(document.querySelectorAll(`[data-seg="${segId}"]`));
+    if(els.length === 0) return '';
+    let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+    els.forEach(el => {
+      const r = el.getBoundingClientRect();
+      left = Math.min(left, r.left);
+      right = Math.max(right, r.right);
+      top = Math.min(top, r.top);
+      bottom = Math.max(bottom, r.bottom);
+    });
+    const p = seg.p;
+    const st = projStyle(p.colorHue);
+    const roundClass = (seg.isGlobalStart ? 'round-left ' : '') + (seg.isGlobalEnd ? 'round-right' : '');
+    const style = `left:${left - wrapRect.left}px; top:${top - wrapRect.top}px; width:${right-left}px; height:${bottom-top}px; background:${st.barBg}; color:${st.barInk};`;
+    return `<div class="cal-bar ${roundClass}" style="${style}" onclick="showDetail('${p.id}')" title="${escapeHtml(p.title)}">${escapeHtml(p.title)}</div>`;
+  }).join('');
+
+  layer.innerHTML = html;
+}
+
+let calResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(calResizeTimer);
+  calResizeTimer = setTimeout(positionBars, 150);
+});
+
+// auth-gate.js는 로그인 확인이 끝나야 #appContent를 display:none에서 풀어줍니다.
+// 그 전에 프로젝트 데이터 로딩이 먼저 끝나 캘린더를 그리면, 화면이 숨겨진 상태라
+// getBoundingClientRect가 전부 0을 반환해 막대 위치가 깨진 채로 굳어버립니다.
+// #appContent가 보이는 순간(style 변경)을 감지해서 위치를 다시 계산합니다.
+const appContentEl = document.getElementById('appContent');
+if(appContentEl){
+  new MutationObserver(positionBars).observe(appContentEl, { attributes:true, attributeFilter:['style'] });
+}
+
+/* ---- 시트(표) ---- */
+function renderSheet(){
+  const body = document.getElementById('sheetBody');
+  const emptyMsg = document.getElementById('emptyMsg');
+
+  if(projects.length === 0){
+    body.innerHTML = "";
+    emptyMsg.style.display = "block";
+    return;
+  }
+  emptyMsg.style.display = "none";
+
+  body.innerHTML = projects.map(p => {
+    const st = projStyle(p.colorHue);
+    const period = p.endDate && p.endDate !== p.startDate
+      ? `${formatDateShort(p.startDate)} ~ ${formatDateShort(p.endDate)}`
+      : formatDateShort(p.startDate);
+    const contactLine = [p.manager, p.contact].filter(Boolean).join(' · ') || '-';
+
+    return `
+      <tr>
+        <td data-label="프로젝트">
+          <div class="proj-title-cell" title="${escapeHtml(p.memo||'')}">
+            <span class="proj-dot" style="background:${st.dot};"></span>
+            <span class="proj-title">${escapeHtml(p.title)}</span>
+          </div>
+        </td>
+        <td data-label="담당자">${escapeHtml(contactLine)}</td>
+        <td data-label="기간">${period}</td>
+        <td data-label="비용" class="amt">${won(p.cost)}</td>
+        <td data-label="결제방식"><span class="pay-badge">${escapeHtml(p.paymentMethod)}</span></td>
+        <td data-label="정산일">${p.settlementDate ? formatDateShort(p.settlementDate) : '-'}</td>
+        <td data-label="상태">
+          <select class="status-select ${STATUS_CLASS[p.status]}" onchange="onStatusChange('${p.id}', this.value)">
+            ${STATUS_LIST.map(s => `<option value="${s}" ${s===p.status?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </td>
+        <td data-label=""><button class="del-btn" onclick="deleteProject('${p.id}')">삭제</button></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/* ---- 등록 ---- */
+async function addProject(){
+  const title = document.getElementById('in-title').value.trim();
+  const manager = document.getElementById('in-manager').value.trim();
+  const contact = document.getElementById('in-contact').value.trim();
+  const paymentMethod = document.getElementById('in-payment').value;
+  const startDate = document.getElementById('in-startDate').value;
+  const endDate = document.getElementById('in-endDate').value;
+  const settlementDate = document.getElementById('in-settlementDate').value;
+  const cost = Number(document.getElementById('in-cost').value) || 0;
+  const memo = document.getElementById('in-memo').value.trim();
+
+  if(!title){ alert('프로젝트명을 입력해주세요.'); return; }
+  if(!startDate){ alert('시작일을 선택해주세요.'); return; }
+  if(endDate && endDate < startDate){ alert('종료일은 시작일보다 빠를 수 없어요.'); return; }
+
+  const saveBtn = document.getElementById('saveProjectBtn');
+  saveBtn.disabled = true;
+
+  const newProject = {
+    id: uid(),
+    title, manager, contact, paymentMethod,
+    startDate, endDate: endDate || null, settlementDate: settlementDate || null,
+    cost, memo,
+    status: '시작전',
+    colorHue: Math.floor(Math.random() * 360),
+    ledgerSynced: false,
+    createdAt: new Date().toISOString()
+  };
+
+  const { error } = await sb.from('projects').insert(newProject);
+  saveBtn.disabled = false;
+  if(error){ alert("저장 실패: " + error.message); return; }
+
+  ['in-title','in-manager','in-contact','in-startDate','in-endDate','in-settlementDate','in-cost','in-memo'].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById('in-payment').value = "하나은행";
+
+  await loadProjects();
+}
+
+async function deleteProject(id){
+  if(!confirm('이 프로젝트를 삭제할까요?')) return;
+  const { error } = await sb.from('projects').delete().eq('id', id);
+  if(error){ alert("삭제 실패: " + error.message); return; }
+  closeDetail();
+  await loadProjects();
+}
+
+/* ---- 상태 변경 (정산완료 시 결제방식에 따라 가계부/현금 누적에 자동 반영) ---- */
+async function onStatusChange(id, newStatus){
+  const p = projects.find(x => x.id === id);
+  if(!p) return;
+  const prevStatus = p.status;
+  p.status = newStatus;
+
+  const patch = { status: newStatus };
+
+  if(newStatus === '정산완료'){
+    if(!p.settlementDate){
+      p.settlementDate = todayStr();
+      patch.settlementDate = p.settlementDate;
+    }
+    const ledgerPayment = LEDGER_PAYMENT_MAP[p.paymentMethod];
+    if(ledgerPayment && !p.ledgerSynced){
+      const { error: txError } = await sb.from('transactions').insert({
+        date: p.settlementDate,
+        type: '수입',
+        scope: LEDGER_SCOPE_MAP[p.paymentMethod],
+        main: '기타소득',
+        category: '부업',
+        note: `${p.title} 정산`,
+        amount: p.cost,
+        user_name: ledgerPayment,
+        payment: ledgerPayment
+      });
+      if(txError){
+        alert('가계부 반영 실패: ' + txError.message + '\n(상태는 저장되지만 가계부에는 수동으로 추가해주세요.)');
+      } else {
+        p.ledgerSynced = true;
+        patch.ledgerSynced = true;
+      }
+    }
+  }
+
+  renderAll();
+
+  const { error } = await sb.from('projects').update(patch).eq('id', id);
+  if(error){
+    alert('상태 저장 실패: ' + error.message);
+    p.status = prevStatus;
+    renderAll();
+  }
+}
+
+/* ---- 상세 팝업 ---- */
+function showDetail(id){
+  const p = projects.find(x => x.id === id);
+  if(!p) return;
+  const period = p.endDate && p.endDate !== p.startDate
+    ? `${p.startDate} ~ ${p.endDate}`
+    : p.startDate;
+
+  document.getElementById('calModalBody').innerHTML = `
+    <div class="cal-modal-title">${escapeHtml(p.title)}</div>
+    <span class="status-badge ${STATUS_CLASS[p.status]}">${p.status}</span>
+    <div class="cal-modal-row"><span class="k">담당자</span><span class="v">${escapeHtml(p.manager || '-')}</span></div>
+    <div class="cal-modal-row"><span class="k">연락처</span><span class="v">${escapeHtml(p.contact || '-')}</span></div>
+    <div class="cal-modal-row"><span class="k">일정</span><span class="v">${period}</span></div>
+    <div class="cal-modal-row"><span class="k">비용</span><span class="v">${won(p.cost)}</span></div>
+    <div class="cal-modal-row"><span class="k">결제방식</span><span class="v">${escapeHtml(p.paymentMethod)}</span></div>
+    <div class="cal-modal-row"><span class="k">정산일</span><span class="v">${p.settlementDate || '-'}</span></div>
+    ${p.memo ? `<div class="cal-modal-row"><span class="k">메모</span><span class="v">${escapeHtml(p.memo)}</span></div>` : ''}
+    <div class="cal-modal-actions">
+      <select onchange="onStatusChange('${p.id}', this.value); showDetail('${p.id}');">
+        ${STATUS_LIST.map(s => `<option value="${s}" ${s===p.status?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <button class="cal-modal-del-btn" onclick="deleteProject('${p.id}')">삭제</button>
+    </div>
+  `;
+  document.getElementById('calModalOverlay').classList.add('open');
+}
+
+function closeDetail(){
+  document.getElementById('calModalOverlay').classList.remove('open');
+}
+
+loadProjects();
+</script>
+<script src="./auth-gate.js"></script>
+</body>
+</html>

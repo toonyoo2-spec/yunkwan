@@ -11,11 +11,10 @@
    ========================================================= */
 (function(){
   const NAV_ITEMS = [
-    { href: './review.html', icon: '📋', label: 'Blog' },
-    { href: './ledger.html', icon: '💰', label: '가계부' },
-    { href: './task.html',   icon: '✅', label: 'Task' },
+    { href: './review.html', icon: '📋', label: '블로그' },
+    { href: './work.html',   icon: '💼', label: '부업' },
     { href: './trip.html',   icon: '✈️', label: '여행' },
-    { href: './docs.html',   icon: '📁', label: '문서함' },
+    { href: './docs.html',   icon: '📁', label: '보관함' },
     { href: './report.html', icon: '🗞️', label: 'Report' },
   ];
 
