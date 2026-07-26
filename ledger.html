@@ -132,8 +132,7 @@ button{font-family:inherit;}
   border-radius:var(--radius-m);
   box-shadow:var(--shadow-card);
 }
-.grid{display:grid;gap:16px;min-width:0;}
-.grid > *{min-width:0;}
+.grid{display:grid;gap:16px;}
 .kpis{grid-template-columns:repeat(4,1fr);margin-bottom:18px;}
 @media (max-width:800px){.kpis{grid-template-columns:repeat(2,1fr);}}
 
@@ -1390,8 +1389,8 @@ function renderSummary(){
       <div class="card kpi income"><div class="label">연간 총수입</div><div class="value mono">${wonShort(income)}</div></div>
       <div class="card kpi expense"><div class="label">연간 총지출</div><div class="value mono">${wonShort(expense)}</div></div>
       <div class="card kpi saving">
-        <div class="label">저축 + 투자</div>
-        <div class="value mono" style="color:${net>=0?'var(--income)':'var(--expense)'};">저축(수입-지출) ${won(net)}</div>
+        <div class="label">저축(수입-지출)</div>
+        <div class="value mono" style="color:${net>=0?'var(--income)':'var(--expense)'};">${won(net)}</div>
       </div>
       <div class="card kpi"><div class="label">순저축률 (수입-지출)</div><div class="value mono">${pct(rate)}</div></div>
     </div>
@@ -1691,7 +1690,7 @@ function renderMonth(ym){
       <button class="move" onclick="location.hash='#/${nextYm(ym)}'">다음 달 ›</button>
     </div>
 
-    <div class="grid kpis">
+    <div class="grid kpis" style="grid-template-columns:repeat(4,1fr);">
       ${kpiCards.map(s=>{
         const balance = s.income - s.expense;
         return `
