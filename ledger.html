@@ -768,6 +768,20 @@ function realCashOwner(t){
   return t.scope;
 }
 
+/* ym월에 신용카드로 쓴 지출을 실소유자(person) 기준으로 합산합니다.
+   (익월 12일 청구일에 "잔액"에서만 차감할 때 씀 — realCashOwner 기준과 동일하게
+   PAYMENT_META의 type을 보고 판단하므로, 신용카드가 늘어도 이름을 따로 하드코딩할 필요 없음) */
+function creditCardExpenseByScope(list, ym){
+  const result = {};
+  monthTx(list, ym).forEach(t=>{
+    if(t.type !== '지출') return;
+    const meta = t.payment ? PAYMENT_META[t.payment] : null;
+    if(!meta || meta.type !== '신용카드') return;
+    result[meta.person] = (result[meta.person]||0) + Number(t.amount||0);
+  });
+  return result;
+}
+
 /* 결제수단 현황 위젯: 체크카드는 이번 달 사용/입금을 즉시 보여주고,
    신용카드(현대카드[보라])는 (1) 이번 달 지금까지 쌓인 누적 사용액과 다음 청구일,
    (2) 이번 달에 실제로 청구된 금액(전월 사용분)을 함께 보여줍니다. */
@@ -1689,18 +1703,27 @@ function renderMonth(ym){
 
   const scopeSummary = SCOPES.map(sc=>{
     const scTx = tx.filter(t=>realCashOwner(t)===sc);
-    return { scope:sc, income: sumBy(scTx,'수입'), expense: sumBy(scTx,'지출') };
+    const expense = sumBy(scTx,'지출');
+    // scTx는 realCashOwner 기준이라 신용카드 지출이 애초에 빠져 있음 -> 이미 "현금 기준" 지출.
+    return { scope:sc, income: sumBy(scTx,'수입'), expense, cashExpense: expense };
   });
-  // 현대카드[보라]는 사용월이 아니라 익월 12일에 전달(1~31일) 누적 사용액이 한 번에 청구됩니다.
-  const prevMonthTx = monthTx(all, shiftYm(ym,-1));
-  const cardBill = prevMonthTx
-    .filter(t=> t.type==='지출' && t.payment==='현대카드[보라]')
-    .reduce((s,t)=>s+Number(t.amount||0), 0);
-  if(cardBill){
-    const boraCard = scopeSummary.find(s=>s.scope==='보라');
-    if(boraCard) boraCard.expense += cardBill;
-  }
+  /* 신용카드(예: 현대카드[보라])는 쓴 달에는 "지출" 집계에 안 잡히고(realCashOwner가 'CARD'
+     반환) 카테고리 목록에만 남습니다. 실제 현금은 청구일(익월 12일)에 한 번에 빠져나가므로,
+     "잔액"에서만 그 시점에 별도로 차감합니다 — 지출(분류용) 숫자는 절대 건드리지 않아요.
+     오늘 날짜가 아직 그 청구일 전이면(예: 8월 페이지를 미리 봐도) 차감하지 않습니다. */
+  const cardBillMap = (todayStr() >= `${ym}-12`) ? creditCardExpenseByScope(all, shiftYm(ym,-1)) : {};
+  scopeSummary.forEach(s=>{ s.cardBill = cardBillMap[s.scope] || 0; });
   const totalSummary = { scope:'전체', income: sumBy(tx,'수입'), expense: sumBy(tx,'지출') };
+  // "전체"의 지출 표시는 그대로 두되(카드 포함, 쓴 달 기준), 잔액 계산용 현금 지출은
+  // 스코프별과 똑같이 신용카드분을 제외해서 계산 — 그래야 전체 잔액과 부분(공동+보라+관)
+  // 잔액 합이 어긋나지 않음.
+  totalSummary.cashExpense = tx.reduce((s,t)=>{
+    if(t.type !== '지출') return s;
+    const meta = t.payment ? PAYMENT_META[t.payment] : null;
+    if(meta && meta.type === '신용카드') return s;
+    return s + Number(t.amount||0);
+  }, 0);
+  totalSummary.cardBill = Object.values(cardBillMap).reduce((a,b)=>a+b, 0);
   const kpiCards = [totalSummary, ...scopeSummary];
   const unassignedCount = tx.filter(t=>!t.scope).length;
 
@@ -1713,7 +1736,7 @@ function renderMonth(ym){
 
     <div class="grid kpis">
       ${kpiCards.map(s=>{
-        const balance = s.income - s.expense;
+        const balance = s.income - s.cashExpense - s.cardBill;
         return `
         <div class="card kpi ${s.scope==='전체'?'kpi-total':''}">
           <div class="label">${s.scope}</div>
