@@ -382,6 +382,14 @@ footer.foot{
 .year-item:hover{background:var(--paper);}
 .year-item.active{background:var(--ink);color:var(--paper);}
 
+/* 모바일에서는 연도 선택 버튼을 탭 줄에서 빼서 화면 우상단(#app 기준)으로 올림.
+   PC는 그대로 tabs-row 안에 둠(요청: "PC 유지 가능하면 제일 베스트"). */
+#app{position:relative;}
+@media (max-width:640px){
+  .year-select{position:absolute;top:0;right:0;}
+  .year-btn{border-radius:20px;border-bottom:2px solid var(--ink);padding:7px 12px;font-size:13px;}
+}
+
 /* ---- 거래 내역: 클릭해서 수정 ---- */
 table.tx-table tbody tr.tx-row{cursor:pointer;}
 table.tx-table tbody tr.tx-row:hover{background:var(--paper);}
@@ -1360,7 +1368,10 @@ function render(){
   const monthsWithData = new Set(list.map(t=>ymOf(t.date)));
 
   let tabsHtml = `<button class="tab summary-tab ${state.view==='summary'?'active':''}" onclick="location.hash='#/summary'">SUMMARY</button>`;
-  for(let m=1;m<=12;m++){
+  // 이번 달(오늘 실제 날짜 기준)부터 시작해서 12개월을 순서대로 나열 — 예: 오늘이 7월이면 7,8,...,12,1,...,6월 순.
+  const startMonth = Number(todayStr().split('-')[1]);
+  for(let i=0;i<12;i++){
+    const m = ((startMonth - 1 + i) % 12) + 1;
     const ym = state.year + '-' + String(m).padStart(2,'0');
     const active = state.view===ym;
     const hasData = monthsWithData.has(ym);
