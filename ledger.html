@@ -157,9 +157,6 @@ button{font-family:inherit;}
 .kpi-row .k{display:flex;align-items:center;gap:7px;color:var(--ink-soft);font-weight:600;}
 .kpi-row .k .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .kpi-row .v{font-family:var(--font);font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;}
-.kpi-row.kpi-row-total{margin-top:2px;padding-top:11px;border-top:1px solid var(--line);}
-.kpi-row.kpi-row-total .k{color:var(--ink);font-weight:700;font-size:12.5px;}
-.kpi-row.kpi-row-total .v{font-size:14.5px;}
 
 @media (max-width:800px){
   .kpi .value{font-size:19px;}
@@ -168,7 +165,6 @@ button{font-family:inherit;}
   .kpi{padding:14px 14px 12px;}
   .kpi .value{font-size:16px;}
   .kpi-row{font-size:12.5px;padding:6px 0;}
-  .kpi-row.kpi-row-total .v{font-size:13.5px;}
 }
 
 .section{margin-bottom:26px;}
@@ -697,7 +693,7 @@ const SCOPE_LABEL = { "공동":"공동", "보라":"보라", "관":"관" };
 const TYPES = ["수입", "지출"];
 const TYPE_KEY = { "수입":"income", "지출":"expense" };
 const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
-const DOW = ["월","화","수","목","금","토","일"];
+const DOW = ["일","월","화","수","목","금","토"];
 
 /* =================================================================================
    0-1. 결제수단
@@ -1099,7 +1095,6 @@ const wonShort = n => {
 const pct = n => (isFinite(n) ? n.toFixed(1) : '0.0') + '%';
 const ymOf = d => d.slice(0,7);
 const daysInMonth = (y,m) => new Date(y, m, 0).getDate();
-const mondayIndex = jsDay => (jsDay + 6) % 7; // JS: 0=일..6=토 -> 0=월..6=일
 
 function monthTx(list, ym){ return list.filter(t => ymOf(t.date) === ym); }
 function sumBy(list, type){ return list.filter(t=>t.type===type).reduce((s,t)=>s+Number(t.amount||0),0); }
@@ -1747,7 +1742,7 @@ function renderMonth(ym){
       lines: [
         { name:'수입', value: won(totalSummary.income), dotColor:'var(--income)', valueColor:'var(--income)' },
         { name:'지출', value: won(totalSummary.expense), dotColor:'var(--expense)', valueColor:'var(--expense)' },
-        { name:'잔액', value: won(totalBalance), dotColor: totalBalance>=0?'var(--income)':'var(--expense)', valueColor: totalBalance>=0?'var(--income)':'var(--expense)', isTotal:true },
+        { name:'잔액', value: won(totalBalance), dotColor: totalBalance>=0?'var(--income)':'var(--expense)', valueColor: totalBalance>=0?'var(--income)':'var(--expense)' },
       ],
     },
     {
@@ -1776,7 +1771,7 @@ function renderMonth(ym){
           <div class="label">${block.label}</div>
           <div class="kpi-rows">
             ${block.lines.map(line => `
-              <div class="kpi-row ${line.isTotal?'kpi-row-total':''}">
+              <div class="kpi-row">
                 <span class="k"><i class="dot" style="background:${line.dotColor};"></i>${line.name}</span>
                 <span class="v mono" style="color:${line.valueColor};">${line.value}</span>
               </div>
@@ -1981,7 +1976,7 @@ function renderCalendar(y,m,tx){
   });
   const max = Math.max(1, ...Object.values(byDay));
   const dim = daysInMonth(y,m);
-  const firstDow = mondayIndex(new Date(y, m-1, 1).getDay());
+  const firstDow = new Date(y, m-1, 1).getDay(); // JS getDay()가 이미 0=일..6=토라 그대로 씀
 
   let html = DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
   for(let i=0;i<firstDow;i++) html += `<div class="cal-cell empty"></div>`;
