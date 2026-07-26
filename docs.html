@@ -134,7 +134,24 @@
     border-color:var(--ink);
   }
 
-  .doc-list{display:flex;flex-direction:column;gap:10px;}
+  .doc-list{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;}
+  .owner-section-title{
+    font-size:13px;
+    font-weight:700;
+    color:var(--accent);
+    margin:24px 0 10px;
+    padding-bottom:6px;
+    border-bottom:1px solid var(--line);
+  }
+  .owner-section-title:first-child{margin-top:0;}
+  .doc-row .owner-badge{
+    font-size:11px;
+    padding:2px 8px;
+    border-radius:5px;
+    background:#e3ede4;
+    color:var(--accent);
+    font-weight:600;
+  }
   .doc-row{
     background:var(--card);
     border:1px solid var(--line);
@@ -218,6 +235,14 @@
         <input type="text" id="in-title" placeholder="예: 자동차 보험증권">
       </div>
       <div class="field">
+        <label>등록자</label>
+        <select id="in-owner">
+          <option value="공동">공동</option>
+          <option value="보라">보라</option>
+          <option value="관">관</option>
+        </select>
+      </div>
+      <div class="field">
         <label>카테고리</label>
         <select id="in-category">
           <option value="보험">보험</option>
@@ -226,7 +251,7 @@
           <option value="기타">기타</option>
         </select>
       </div>
-      <div class="field">
+      <div class="field" style="grid-column:1/-1;">
         <label>메모 (선택)</label>
         <input type="text" id="in-memo" placeholder="갱신일, 관련 연락처 등">
       </div>
@@ -239,9 +264,10 @@
     </div>
   </div>
 
+  <div class="tabs" id="ownerTabs"></div>
   <div class="tabs" id="tabs"></div>
 
-  <div class="doc-list" id="docList"></div>
+  <div id="docListWrap"></div>
   <div class="empty" id="emptyMsg" style="display:none;">등록된 문서가 없습니다.</div>
 
 </div>
@@ -266,8 +292,10 @@ document.addEventListener('visibilitychange', () => {
 });
 
 const CATEGORIES = ["보험","계약서","신분증","기타"];
+const OWNERS = ["공동","보라","관"];
 let docs = [];
 let filter = "all";
+let ownerFilter = "all";
 let pickedFile = null;
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -305,36 +333,19 @@ function setFilter(f){
   filter = f;
   render();
 }
+function setOwnerFilter(o){
+  ownerFilter = o;
+  render();
+}
 
-function render(){
-  const counts = { 보험:0, 계약서:0, 신분증:0, 기타:0 };
-  docs.forEach(d => { if(counts[d.category] !== undefined) counts[d.category]++; });
-
-  const tabDefs = [
-    { key:"all", label:`전체 (${docs.length})` },
-    ...CATEGORIES.map(c => ({ key:c, label:`${c} (${counts[c]})` }))
-  ];
-  document.getElementById('tabs').innerHTML = tabDefs.map(t =>
-    `<button class="tab ${filter===t.key?'active':''}" onclick="setFilter('${t.key}')">${t.label}</button>`
-  ).join('');
-
-  const list = filter === "all" ? docs : docs.filter(d => d.category === filter);
-  const listEl = document.getElementById('docList');
-  const emptyMsg = document.getElementById('emptyMsg');
-
-  if(list.length === 0){
-    listEl.innerHTML = "";
-    emptyMsg.style.display = "block";
-    return;
-  }
-  emptyMsg.style.display = "none";
-
-  listEl.innerHTML = list.map(d => `
+function docRowHtml(d){
+  return `
     <div class="doc-row">
       <div class="icon">${iconFor(d.fileName)}</div>
       <div class="body">
         <div class="title">${escapeHtml(d.title)}</div>
         <div class="meta">
+          <span class="owner-badge">${escapeHtml(d.owner||'공동')}</span>
           <span class="cat-badge">${escapeHtml(d.category)}</span>
           <span>${escapeHtml(d.fileName)}</span>
           <span>${escapeHtml((d.uploadedAt||"").slice(0,10))}</span>
@@ -346,12 +357,64 @@ function render(){
         <button class="del-btn" onclick="deleteDoc('${d.id}')">삭제</button>
       </div>
     </div>
+  `;
+}
+
+function render(){
+  /* 등록자 탭 */
+  const ownerCounts = { 공동:0, 보라:0, 관:0 };
+  docs.forEach(d => { const o = d.owner || '공동'; if(ownerCounts[o] !== undefined) ownerCounts[o]++; });
+  const ownerTabDefs = [
+    { key:"all", label:`전체 (${docs.length})` },
+    ...OWNERS.map(o => ({ key:o, label:`${o} (${ownerCounts[o]})` }))
+  ];
+  document.getElementById('ownerTabs').innerHTML = ownerTabDefs.map(t =>
+    `<button class="tab ${ownerFilter===t.key?'active':''}" onclick="setOwnerFilter('${t.key}')">${t.label}</button>`
+  ).join('');
+
+  /* 카테고리 탭 (등록자 필터가 걸린 상태 기준으로 개수 표시) */
+  const ownerScoped = ownerFilter === "all" ? docs : docs.filter(d => (d.owner||'공동') === ownerFilter);
+  const counts = { 보험:0, 계약서:0, 신분증:0, 기타:0 };
+  ownerScoped.forEach(d => { if(counts[d.category] !== undefined) counts[d.category]++; });
+  const tabDefs = [
+    { key:"all", label:`전체 (${ownerScoped.length})` },
+    ...CATEGORIES.map(c => ({ key:c, label:`${c} (${counts[c]})` }))
+  ];
+  document.getElementById('tabs').innerHTML = tabDefs.map(t =>
+    `<button class="tab ${filter===t.key?'active':''}" onclick="setFilter('${t.key}')">${t.label}</button>`
+  ).join('');
+
+  const list = filter === "all" ? ownerScoped : ownerScoped.filter(d => d.category === filter);
+  const wrap = document.getElementById('docListWrap');
+  const emptyMsg = document.getElementById('emptyMsg');
+
+  if(list.length === 0){
+    wrap.innerHTML = "";
+    emptyMsg.style.display = "block";
+    return;
+  }
+  emptyMsg.style.display = "none";
+
+  if(ownerFilter !== "all"){
+    // 특정 등록자만 보는 중이면 그냥 목록 하나로
+    wrap.innerHTML = `<div class="doc-list">${list.map(docRowHtml).join('')}</div>`;
+    return;
+  }
+
+  // 전체 보기: 등록자별로 나눠서(공동/보라/관 순) 섹션을 만듭니다.
+  const sections = OWNERS.map(o => ({ owner:o, items: list.filter(d => (d.owner||'공동') === o) }))
+    .filter(s => s.items.length > 0);
+
+  wrap.innerHTML = sections.map(s => `
+    <div class="owner-section-title">${s.owner} (${s.items.length})</div>
+    <div class="doc-list">${s.items.map(docRowHtml).join('')}</div>
   `).join('');
 }
 
 /* ---- 업로드 ---- */
 async function uploadDoc(){
   const title = document.getElementById('in-title').value.trim();
+  const owner = document.getElementById('in-owner').value;
   const category = document.getElementById('in-category').value;
   const memo = document.getElementById('in-memo').value.trim();
   const statusEl = document.getElementById('uploadStatus');
@@ -377,7 +440,7 @@ async function uploadDoc(){
 
   const newDoc = {
     id: uid(),
-    title, category, memo,
+    title, owner, category, memo,
     fileName: pickedFile.name,
     storagePath,
     uploadedAt: new Date().toISOString()
@@ -396,6 +459,7 @@ async function uploadDoc(){
   statusEl.textContent = "등록 완료 ✓";
   document.getElementById('in-title').value = "";
   document.getElementById('in-memo').value = "";
+  document.getElementById('in-owner').value = "공동";
   document.getElementById('in-category').value = "보험";
   document.getElementById('in-file').value = "";
   document.getElementById('dropLabel').textContent = "클릭해서 파일 선택 (이미지, PDF 등)";
