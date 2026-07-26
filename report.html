@@ -54,7 +54,7 @@
 
   <header>
     <h1>Daily Report</h1>
-    <p>매일 오전 6시 30분에 자동으로 생성되는 데일리 리포트가 여기에 쌓입니다.</p>
+    <p>하루 5번(06:00 / 10:00 / 14:00 / 18:00 / 22:00, 한국시간) 자동으로 생성되는 데일리 리포트가 여기에 계속 쌓입니다.</p>
   </header>
 
   <div id="list"></div>
@@ -79,10 +79,14 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-function formatDate(id){
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(id||"");
-  if(!m) return id;
-  return `${m[1]}.${m[2]}.${m[3]}`;
+function formatDate(createdAt){
+  if(!createdAt) return "";
+  const d = new Date(createdAt);
+  return d.toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).replace(/\. /g, '.').replace(/\.$/, '');
 }
 
 async function loadReports(){
@@ -109,7 +113,7 @@ async function loadReports(){
   list.innerHTML = reports.map((r, i) => `
     <details class="entry" ${i === 0 ? 'open' : ''}>
       <summary>
-        <span class="date">${escapeHtml(formatDate(r.id))}</span>
+        <span class="date">${escapeHtml(formatDate(r.created_at))}</span>
         ${r.title ? `<span class="title">${escapeHtml(r.title)}</span>` : ''}
       </summary>
       <div class="frame-wrap">

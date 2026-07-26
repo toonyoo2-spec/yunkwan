@@ -36,6 +36,12 @@
       border-bottom:1px solid var(--line, #e1dfd6);
       margin-bottom:22px;
     }
+    #bkNav .bk-left{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-shrink:0;
+    }
     #bkNav .bk-title{
       font-size:44px;
       font-weight:800;
@@ -89,6 +95,7 @@
         gap:10px;
       }
       #bkNav .bk-title{font-size:30px;}
+      #bkNav .bk-left{width:100%;}
       #bkNav .bk-grid{
         width:100%;
         display:grid;
@@ -118,9 +125,17 @@
     </a>`;
   }).join('');
 
+  const isHome = currentFile === 'index.html';
+
   const navHtml = `
     <header id="bkNav" class="wrap">
-      <a class="bk-title" href="./index.html">BORAKWAN</a>
+      <div class="bk-left">
+        <a class="bk-card${isHome ? ' active' : ''}" href="./index.html">
+          <span class="bk-icon">🏠</span>
+          <span class="bk-label">홈</span>
+        </a>
+        <a class="bk-title" href="./index.html">BORAKWAN</a>
+      </div>
       <div class="bk-grid">${cardsHtml}</div>
     </header>
   `;
