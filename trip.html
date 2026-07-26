@@ -526,6 +526,7 @@ async function addTrip(){
   document.getElementById('in-title').value = "";
   document.getElementById('in-startDate').value = "";
   document.getElementById('in-endDate').value = "";
+  document.getElementById('in-endDate').min = "";
   document.getElementById('in-budget').value = "";
   document.getElementById('in-memo').value = "";
 
@@ -663,6 +664,19 @@ async function deleteTripItem(id){
   if(error){ alert("삭제 실패: " + error.message); return; }
   await loadTripItems();
 }
+
+/* 시작일을 고르면 종료일 입력칸도 같은 날짜 근처로 미리 맞춰둡니다.
+   그래야 종료일 달력을 열었을 때 시작일과 같은 달이 바로 보여서,
+   멀리 있는 달까지 매번 스크롤하지 않아도 됩니다. */
+document.getElementById('in-startDate').addEventListener('change', function(){
+  const start = this.value;
+  const endInput = document.getElementById('in-endDate');
+  if(!start) return;
+  endInput.min = start; // 시작일보다 빠른 날짜는 아예 선택 못 하게
+  if(!endInput.value || endInput.value < start){
+    endInput.value = start;
+  }
+});
 
 loadTrips();
 </script>
