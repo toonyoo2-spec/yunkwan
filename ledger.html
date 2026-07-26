@@ -1096,6 +1096,11 @@ function shiftYm(ym, n){
 function escapeAttr(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 }
+// onclick="...('${..}')" 처럼 홑따옴표 JS 문자열 안에 값을 넣을 때 쓰는 이스케이프.
+// escapeAttr과 달리 홑따옴표(')도 이스케이프해야 문자열 리터럴을 깨고 나가는 걸 막을 수 있습니다.
+function escapeJsAttr(s){
+  return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
 /* ---- 공용 모달 ---- */
 function chartFallbackNode(){
   const d = document.createElement('div');
@@ -2096,13 +2101,13 @@ function renderTxTable(ym){
 function displayRowHtml(t){
   const fixedTag = t.recurringKey ? `<span class="fixed-tag">(고정)</span>` : '';
   const scopeBadge = t.scope
-    ? `<span class="filter-link" onclick="event.stopPropagation();setScopeFilter('${t.scope}')">${t.scope}</span>${fixedTag}`
+    ? `<span class="filter-link" onclick="event.stopPropagation();setScopeFilter('${escapeJsAttr(t.scope)}')">${escapeAttr(t.scope)}</span>${fixedTag}`
     : `<span class="filter-link" style="color:var(--expense);" onclick="event.stopPropagation();setScopeFilter('미지정')">미지정</span>${fixedTag}`;
   const mainLabel = t.main
-    ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${t.type}','${t.main}')">${t.main}</span>`
+    ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${escapeJsAttr(t.type)}','${escapeJsAttr(t.main)}')">${escapeAttr(t.main)}</span>`
     : `<span style="color:var(--expense);">미지정</span>`;
   const catLabel = t.category
-    ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterCat('${t.type}','${t.main}','${t.category}')">${t.category}</span>`
+    ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterCat('${escapeJsAttr(t.type)}','${escapeJsAttr(t.main)}','${escapeJsAttr(t.category)}')">${escapeAttr(t.category)}</span>`
     : `<span style="color:var(--expense);">미지정</span>`;
   return `<tr class="tx-row" onclick="startEditTx('${t.id}')">
     <td data-label="구분">${scopeBadge}</td>
