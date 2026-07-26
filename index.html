@@ -192,6 +192,26 @@
   .cal-cell.today{border-color:var(--accent);}
   .cal-daynum{font-size:11.5px;color:var(--sub);}
   .cal-cell.today .cal-daynum{color:var(--accent);font-weight:700;}
+  .cal-daynum-row{
+    display:flex;
+    align-items:center;
+    gap:4px;
+  }
+  .cal-workout-dots{
+    display:flex;
+    gap:2px;
+  }
+  .wo-dot{
+    width:5px;height:5px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    background:transparent;
+    flex-shrink:0;
+  }
+  .wo-dot.gwan{border-color:var(--owner-gwan-ink);}
+  .wo-dot.gwan.done{background:var(--owner-gwan-ink);}
+  .wo-dot.bora{border-color:var(--owner-bora-ink);}
+  .wo-dot.bora.done{background:var(--owner-bora-ink);}
   .cal-event{
     font-size:10.5px;
     padding:2px 5px;
@@ -882,7 +902,18 @@ function calRender(){
     }).join('');
 
     const slotsHtml = rc ? slotsHtmlForCol(rc.row, rc.col) : '';
-    cells.push(`<div class="cal-cell ${isToday?'today':''}"><div class="cal-daynum">${d}</div>${slotsHtml}${eventsHtml}</div>`);
+
+    let workoutDotsHtml = '';
+    if(dateStr <= todayStr){
+      const gwanDone = workoutItems.some(w => w.date === dateStr && w.owner === '관');
+      const boraDone = workoutItems.some(w => w.date === dateStr && w.owner === '보라');
+      workoutDotsHtml = `<div class="cal-workout-dots">
+        <span class="wo-dot gwan ${gwanDone?'done':''}" title="관 운동${gwanDone?' 완료':' 안함'}"></span>
+        <span class="wo-dot bora ${boraDone?'done':''}" title="보라 운동${boraDone?' 완료':' 안함'}"></span>
+      </div>`;
+    }
+
+    cells.push(`<div class="cal-cell ${isToday?'today':''}"><div class="cal-daynum-row"><div class="cal-daynum">${d}</div>${workoutDotsHtml}</div>${slotsHtml}${eventsHtml}</div>`);
   }
 
   const totalSoFar = startOffset + daysInMonth;
@@ -979,7 +1010,7 @@ async function workoutLoad(){
   } else {
     workoutItems = data || [];
   }
-  workoutRender();
+  calRender();
 }
 
 function workoutRender(){
@@ -1064,6 +1095,7 @@ async function coupleInitAuth(){
   if(session){
     coupleLoggedIn = true;
     coupleHideLogin();
+    await calLoad();
     await coupleLoad();
     await workoutLoad();
   } else {
@@ -1074,6 +1106,7 @@ async function coupleInitAuth(){
     if(session){
       coupleLoggedIn = true;
       coupleHideLogin();
+      await calLoad();
       await coupleLoad();
       await workoutLoad();
     } else {
