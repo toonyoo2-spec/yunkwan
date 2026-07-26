@@ -552,6 +552,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
+<script src="./common.js"></script>
 <script>
 /* ===========================================================
    체험단 캘린더(campaigns) + 부부 일정(couple_events) 데이터 연동
@@ -610,9 +611,6 @@ function calDateRange(start, end){
   return dates;
 }
 
-function calEscapeHtml(str){
-  return (str||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -659,8 +657,8 @@ function coupleOwnerClass(it){
 
 function coupleTimeLabel(it, isGlobalStart, isGlobalEnd){
   const parts = [];
-  if(isGlobalStart && it.time) parts.push(calEscapeHtml(it.time));
-  if(isGlobalEnd && it.endTime) parts.push(calEscapeHtml(it.endTime));
+  if(isGlobalStart && it.time) parts.push(escapeHtml(it.time));
+  if(isGlobalEnd && it.endTime) parts.push(escapeHtml(it.endTime));
   return parts.join('~');
 }
 
@@ -784,17 +782,17 @@ function calRender(){
     const eventsHtml = dayEntries.map(entry => {
       if(entry.kind === 'campaign'){
         const it = entry.data;
-        const timeLabel = it.resvTime ? `${calEscapeHtml(it.resvTime)} ` : '';
+        const timeLabel = it.resvTime ? `${escapeHtml(it.resvTime)} ` : '';
         const statusLabel = `[${calStatusLabel[it.status]||it.status}]`;
-        return `<div class="cal-event ${it.status}" onclick="calShowDetail('${it.id}','campaign')" title="${timeLabel}${statusLabel} ${calEscapeHtml(it.name)}"><span class="cal-event-time">${timeLabel}</span>${statusLabel} ${calEscapeHtml(it.name)}</div>`;
+        return `<div class="cal-event ${it.status}" onclick="calShowDetail('${it.id}','campaign')" title="${timeLabel}${statusLabel} ${escapeHtml(it.name)}"><span class="cal-event-time">${timeLabel}</span>${statusLabel} ${escapeHtml(it.name)}</div>`;
       } else {
         const it = entry.data;
-        let timeLabel = it.time ? calEscapeHtml(it.time) : '';
-        if(it.endTime) timeLabel = timeLabel ? `${timeLabel}~${calEscapeHtml(it.endTime)}` : calEscapeHtml(it.endTime);
+        let timeLabel = it.time ? escapeHtml(it.time) : '';
+        if(it.endTime) timeLabel = timeLabel ? `${timeLabel}~${escapeHtml(it.endTime)}` : escapeHtml(it.endTime);
         if(timeLabel) timeLabel += ' ';
         const ownerClass = coupleOwnerClass(it);
-        const ownerLabel = `[${calEscapeHtml(it.owner||'관')}]`;
-        return `<div class="cal-event ${ownerClass}" onclick="calShowDetail('${it.id}','couple')" title="${timeLabel}${ownerLabel} ${calEscapeHtml(it.title)}"><span class="cal-event-time">${timeLabel}</span>${ownerLabel} ${calEscapeHtml(it.title)}</div>`;
+        const ownerLabel = `[${escapeHtml(it.owner||'관')}]`;
+        return `<div class="cal-event ${ownerClass}" onclick="calShowDetail('${it.id}','couple')" title="${timeLabel}${ownerLabel} ${escapeHtml(it.title)}"><span class="cal-event-time">${timeLabel}</span>${ownerLabel} ${escapeHtml(it.title)}</div>`;
       }
     }).join('');
 
@@ -860,10 +858,10 @@ function calPositionBars(){
     const ownerClass = coupleOwnerClass(it);
     const roundClass = (seg.isGlobalStart ? 'round-left ' : '') + (seg.isGlobalEnd ? 'round-right' : '');
     const label = coupleTimeLabel(it, seg.isGlobalStart, seg.isGlobalEnd);
-    const ownerLabel = `[${calEscapeHtml(it.owner||'관')}]`;
-    const text = (label ? label + ' ' : '') + ownerLabel + ' ' + calEscapeHtml(it.title);
+    const ownerLabel = `[${escapeHtml(it.owner||'관')}]`;
+    const text = (label ? label + ' ' : '') + ownerLabel + ' ' + escapeHtml(it.title);
     const style = `left:${left - wrapRect.left}px; top:${top - wrapRect.top}px; width:${right-left}px; height:${bottom-top}px;`;
-    const titleAttr = `${it.time?calEscapeHtml(it.time):''}${it.endTime?('~'+calEscapeHtml(it.endTime)):''} ${ownerLabel} ${calEscapeHtml(it.title)}`;
+    const titleAttr = `${it.time?escapeHtml(it.time):''}${it.endTime?('~'+escapeHtml(it.endTime)):''} ${ownerLabel} ${escapeHtml(it.title)}`;
     return `<div class="cal-bar ${ownerClass} ${roundClass}" style="${style}" onclick="calShowDetail('${it.id}','couple')" title="${titleAttr}">${text}</div>`;
   }).join('');
 
@@ -937,7 +935,7 @@ function workoutRender(){
       const isDone = doneSet.has(`${dateStr}_${owner}`);
       const isToday = dateStr === todayStr;
       if(isDone && d <= elapsedDays) counts[owner]++;
-      html += `<div class="workout-cell ${isDone ? 'done '+ownerClass : ''} ${isToday ? 'today' : ''}" onclick="workoutToggle('${dateStr}','${owner}')" title="${dateStr} · ${calEscapeHtml(owner)}${isDone ? ' (운동함)' : ''}">${d}</div>`;
+      html += `<div class="workout-cell ${isDone ? 'done '+ownerClass : ''} ${isToday ? 'today' : ''}" onclick="workoutToggle('${dateStr}','${owner}')" title="${dateStr} · ${escapeHtml(owner)}${isDone ? ' (운동함)' : ''}">${d}</div>`;
     }
     (owner === '관' ? gwanCells : boraCells).innerHTML = html;
   });
@@ -1066,9 +1064,9 @@ function calShowDetail(id, kind){
     const ownerClass = coupleOwnerClass(it);
 
     document.getElementById('calModalBody').innerHTML = `
-      <div class="cal-modal-title">${calEscapeHtml(it.title)}</div>
+      <div class="cal-modal-title">${escapeHtml(it.title)}</div>
       <div class="cal-modal-badge" style="background:var(--${ownerClass}-bg);color:var(--${ownerClass}-ink);">
-        ${calEscapeHtml(it.owner || '관')}
+        ${escapeHtml(it.owner || '관')}
       </div>
       <div class="cal-modal-row">
         <span class="k">일자</span>
@@ -1077,12 +1075,12 @@ function calShowDetail(id, kind){
       ${timeStr ? `
       <div class="cal-modal-row">
         <span class="k">시간</span>
-        <span class="v">${calEscapeHtml(timeStr)}</span>
+        <span class="v">${escapeHtml(timeStr)}</span>
       </div>` : ''}
       ${it.memo ? `
       <div class="cal-modal-row">
         <span class="k">메모</span>
-        <span class="v">${calEscapeHtml(it.memo)}</span>
+        <span class="v">${escapeHtml(it.memo)}</span>
       </div>` : ''}
       <div class="cal-modal-actions">
         <button class="cal-modal-edit-btn" onclick="calCloseDetail(); coupleOpenEdit('${it.id}');">✏️ 수정하기</button>
@@ -1102,12 +1100,12 @@ function calShowDetail(id, kind){
     .map(key => `
       <div class="cal-modal-row">
         <span class="k">${calFieldLabels[key]}</span>
-        <span class="v">${calEscapeHtml(it[key])}</span>
+        <span class="v">${escapeHtml(it[key])}</span>
       </div>
     `).join('');
 
   document.getElementById('calModalBody').innerHTML = `
-    <div class="cal-modal-title">${calEscapeHtml(it.name)}</div>
+    <div class="cal-modal-title">${escapeHtml(it.name)}</div>
     <div class="cal-modal-badge status-badge-${it.status}" style="background:var(--${it.status}-bg);color:var(--${it.status}-ink);">
       ${calStatusLabel[it.status] || it.status}
     </div>

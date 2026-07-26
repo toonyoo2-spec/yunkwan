@@ -150,16 +150,16 @@ button{font-family:inherit;}
 .kpi.income .value{color:var(--income);}
 .kpi.expense .value{color:var(--expense);}
 .kpi.saving .value{color:var(--saving);}
-.kpi-subline{font-size:15px;margin-top:2px;white-space:nowrap;}
-.kpi-subline-balance{font-size:13px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);}
+.kpi .value.kpi-subline{font-size:15px;margin-top:2px;white-space:nowrap;}
+.kpi .value.kpi-subline-balance{font-size:13px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);}
 @media (max-width:800px){
   .kpi .value{font-size:19px;}
 }
 @media (max-width:480px){
   .kpi{padding:14px 12px 12px;}
   .kpi .value{font-size:16px;}
-  .kpi-subline{font-size:12px;}
-  .kpi-subline-balance{font-size:11px;}
+  .kpi .value.kpi-subline{font-size:12px;}
+  .kpi .value.kpi-subline-balance{font-size:11px;}
 }
 
 .section{margin-bottom:26px;}
@@ -536,6 +536,7 @@ tr.edit-row td{padding:12px 10px;}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
+<script src="./common.js"></script>
 <script>
 /* =================================================================================
    -1. 로그인 게이트 (index.html과 동일한 Supabase Auth 계정 사용)
@@ -1093,11 +1094,8 @@ function shiftYm(ym, n){
   while(m>12){ m-=12; y+=1; }
   return y + '-' + String(m).padStart(2,'0');
 }
-function escapeAttr(s){
-  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-}
 // onclick="...('${..}')" 처럼 홑따옴표 JS 문자열 안에 값을 넣을 때 쓰는 이스케이프.
-// escapeAttr과 달리 홑따옴표(')도 이스케이프해야 문자열 리터럴을 깨고 나가는 걸 막을 수 있습니다.
+// escapeHtml과 달리 홑따옴표(')도 이스케이프해야 문자열 리터럴을 깨고 나가는 걸 막을 수 있습니다.
 function escapeJsAttr(s){
   return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;');
 }
@@ -1467,7 +1465,7 @@ function renderSummary(){
           <input type="number" id="rc_amount" placeholder="금액">
           <select id="rc_payment" class="pay-quick-select">
             <option value="">결제수단</option>
-            ${PAYMENT_METHODS.map(p=>`<option value="${escapeAttr(p)}">${p}</option>`).join('')}
+            ${PAYMENT_METHODS.map(p=>`<option value="${escapeHtml(p)}">${p}</option>`).join('')}
           </select>
           <button class="add-btn" onclick="submitRecurring()" title="추가">+</button>
         </div>
@@ -1615,8 +1613,8 @@ function recurDisplayRowHtml(t){
     <td data-label="구분">${t.scope}</td>
     <td data-label="중분류" style="color:var(--muted)">${t.main}</td>
     <td data-label="소분류" style="font-weight:600">${t.category}</td>
-    <td data-label="내용">${escapeAttr(t.note)} ${endTag}</td>
-    <td data-label="결제수단" style="color:var(--muted)">${escapeAttr(t.payment)}</td>
+    <td data-label="내용">${escapeHtml(t.note)} ${endTag}</td>
+    <td data-label="결제수단" style="color:var(--muted)">${escapeHtml(t.payment)}</td>
     <td class="amt expense" data-label="금액">${Number(t.amount).toLocaleString('ko-KR')}</td>
   </tr>`;
 }
@@ -1628,11 +1626,11 @@ function recurEditRowHtml(t){
         <select id="rce_scope_${t.key}">${SCOPES.map(s=>`<option ${s===t.scope?'selected':''}>${s}</option>`).join('')}</select>
         <span class="fixed-field" title="대분류는 지출로 고정돼요">지출</span>
         <span class="fixed-field" title="중분류/소분류는 바꿀 수 없어요. 다른 분류가 필요하면 삭제 후 새로 추가해주세요.">${t.main} · ${t.category}</span>
-        <input type="text" id="rce_note_${t.key}" value="${escapeAttr(t.note)}">
+        <input type="text" id="rce_note_${t.key}" value="${escapeHtml(t.note)}">
         <input type="number" id="rce_amount_${t.key}" value="${t.amount}">
         <select id="rce_payment_${t.key}" class="pay-quick-select">
           <option value="" ${!t.payment?'selected':''}>결제수단</option>
-          ${PAYMENT_METHODS.map(p=>`<option value="${escapeAttr(p)}" ${p===t.payment?'selected':''}>${p}</option>`).join('')}
+          ${PAYMENT_METHODS.map(p=>`<option value="${escapeHtml(p)}" ${p===t.payment?'selected':''}>${p}</option>`).join('')}
         </select>
         <div class="edit-actions">
           <button class="ghost-btn primary" onclick="saveRecurEdit('${t.key}')">저장</button>
@@ -1780,7 +1778,7 @@ function renderMonth(ym){
           <input type="number" id="f_amount" placeholder="금액">
           <select id="f_payment" class="pay-quick-select">
             <option value="">결제수단</option>
-            ${PAYMENT_METHODS.map(p=>`<option value="${escapeAttr(p)}">${p}</option>`).join('')}
+            ${PAYMENT_METHODS.map(p=>`<option value="${escapeHtml(p)}">${p}</option>`).join('')}
           </select>
           <button class="add-btn" onclick="submitTx('${ym}')" title="추가">+</button>
         </div>
@@ -2040,7 +2038,7 @@ function renderTxToolbar(ym){
   document.getElementById('txToolbar').innerHTML = `
     <div class="filters">
       ${scopeChips.map(s=>`<button class="chip ${state.scopeFilter===s?'active':''}" onclick="setScopeFilter('${s}')">${s}</button>`).join('')}
-      <input type="text" class="note-search" id="noteSearch" placeholder="내용 검색" value="${escapeAttr(state.noteFilter)}"
+      <input type="text" class="note-search" id="noteSearch" placeholder="내용 검색" value="${escapeHtml(state.noteFilter)}"
              oninput="state.noteFilter=this.value; renderTxTable('${ym}')" style="margin-left:auto;">
     </div>
     <div class="filters">
@@ -2101,26 +2099,26 @@ function renderTxTable(ym){
 function displayRowHtml(t){
   const fixedTag = t.recurringKey ? `<span class="fixed-tag">(고정)</span>` : '';
   const scopeBadge = t.scope
-    ? `<span class="filter-link" onclick="event.stopPropagation();setScopeFilter('${escapeJsAttr(t.scope)}')">${escapeAttr(t.scope)}</span>${fixedTag}`
+    ? `<span class="filter-link" onclick="event.stopPropagation();setScopeFilter('${escapeJsAttr(t.scope)}')">${escapeHtml(t.scope)}</span>${fixedTag}`
     : `<span class="filter-link" style="color:var(--expense);" onclick="event.stopPropagation();setScopeFilter('미지정')">미지정</span>${fixedTag}`;
   const mainLabel = t.main
-    ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${escapeJsAttr(t.type)}','${escapeJsAttr(t.main)}')">${escapeAttr(t.main)}</span>`
+    ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${escapeJsAttr(t.type)}','${escapeJsAttr(t.main)}')">${escapeHtml(t.main)}</span>`
     : `<span style="color:var(--expense);">미지정</span>`;
   const catLabel = t.category
-    ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterCat('${escapeJsAttr(t.type)}','${escapeJsAttr(t.main)}','${escapeJsAttr(t.category)}')">${escapeAttr(t.category)}</span>`
+    ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterCat('${escapeJsAttr(t.type)}','${escapeJsAttr(t.main)}','${escapeJsAttr(t.category)}')">${escapeHtml(t.category)}</span>`
     : `<span style="color:var(--expense);">미지정</span>`;
   return `<tr class="tx-row" onclick="startEditTx('${t.id}')">
     <td data-label="구분">${scopeBadge}</td>
     <td class="mono" data-label="날짜" style="color:var(--muted)" title="${t.date}">${t.date.slice(5)}</td>
     <td data-label="대분류"><span class="badge ${TYPE_KEY[t.type]}">${t.type}</span></td>
-    <td data-label="중분류" style="color:var(--muted)" title="${escapeAttr(t.main)}">${mainLabel}</td>
-    <td data-label="소분류" style="font-weight:600" title="${escapeAttr(t.category)}">${catLabel}</td>
-    <td data-label="내용" title="${escapeAttr(t.note)}">${escapeAttr(t.note)}</td>
+    <td data-label="중분류" style="color:var(--muted)" title="${escapeHtml(t.main)}">${mainLabel}</td>
+    <td data-label="소분류" style="font-weight:600" title="${escapeHtml(t.category)}">${catLabel}</td>
+    <td data-label="내용" title="${escapeHtml(t.note)}">${escapeHtml(t.note)}</td>
     <td class="amt ${TYPE_KEY[t.type]}" data-label="금액">${Number(t.amount).toLocaleString('ko-KR')}</td>
     <td data-label="결제수단" onclick="event.stopPropagation()">
       <select class="pay-quick-select" onchange="quickSetPayment('${t.id}', this.value)">
         <option value="" ${!t.user?'selected':''}>미지정</option>
-        ${PAYMENT_METHODS.map(p=>`<option value="${escapeAttr(p)}" ${p===t.user?'selected':''}>${p}</option>`).join('')}
+        ${PAYMENT_METHODS.map(p=>`<option value="${escapeHtml(p)}" ${p===t.user?'selected':''}>${p}</option>`).join('')}
       </select>
     </td>
   </tr>`;
@@ -2144,7 +2142,7 @@ function editRowHtml(t){
         <select id="e_type_${t.id}" onchange="onEditTypeChange('${t.id}')">${typesForScope(scope).map(ty=>`<option ${ty===t.type?'selected':''}>${ty}</option>`).join('')}</select>
         <select id="e_main_${t.id}" onchange="onEditMainChange('${t.id}')">${mainOptions(scope, t.type, t.main)}</select>
         <select id="e_category_${t.id}">${catOptions(scope, t.type, t.main, t.category)}</select>
-        <input type="text" id="e_note_${t.id}" value="${escapeAttr(t.note)}" placeholder="내용">
+        <input type="text" id="e_note_${t.id}" value="${escapeHtml(t.note)}" placeholder="내용">
         <input type="number" id="e_amount_${t.id}" value="${t.amount}">
         <div class="edit-actions">
           <button class="ghost-btn primary" onclick="saveEditTx('${t.id}')">저장</button>
@@ -2152,9 +2150,9 @@ function editRowHtml(t){
           <button class="ghost-btn" onclick="cancelEditTx()">취소</button>
         </div>
       </div>
-      <div class="payment-toggle" id="paymentToggleEdit_${t.id}" data-selected="${escapeAttr(t.user)}" style="border-bottom:none;padding:10px 0 0;">
+      <div class="payment-toggle" id="paymentToggleEdit_${t.id}" data-selected="${escapeHtml(t.user)}" style="border-bottom:none;padding:10px 0 0;">
         <span class="payment-toggle-label">결제수단</span>
-        ${PAYMENT_METHODS.map(p=>`<button type="button" class="chip pay-chip ${p===t.user?'active':''}" data-val="${escapeAttr(p)}" onclick="selectPaymentToggle('paymentToggleEdit_${t.id}','${escapeAttr(p)}')">${p}</button>`).join('')}
+        ${PAYMENT_METHODS.map(p=>`<button type="button" class="chip pay-chip ${p===t.user?'active':''}" data-val="${escapeHtml(p)}" onclick="selectPaymentToggle('paymentToggleEdit_${t.id}','${escapeHtml(p)}')">${p}</button>`).join('')}
       </div>
     </td>
   </tr>`;
