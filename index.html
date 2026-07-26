@@ -11,61 +11,8 @@
     --conf-bg:#fbe6e3;   --conf-ink:#b3452f;
   }
 
-  header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:14px;
-    margin-bottom:20px;
-  }
-  h1{
-    font-size:22px;
-    letter-spacing:-0.02em;
-    margin:0;
-  }
-
-  /* 상단 이동 카드는 캘린더처럼 폭을 늘리지 않고,
-     제목 옆에 붙는 작은 탭 형태로 유지합니다. */
-  .grid{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-bottom:0;
-  }
-
-  .card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:8px 14px;
-    text-decoration:none;
-    color:var(--ink);
-    display:flex;
-    align-items:center;
-    gap:8px;
-    flex:0 0 auto;
-    transition:transform .12s ease, box-shadow .12s ease;
-  }
-  .card:hover{
-    transform:translateY(-1px);
-    box-shadow:0 4px 12px rgba(34,34,31,0.07);
-    border-color:var(--accent);
-  }
-  .card .icon{
-    font-size:15px;
-    width:26px;height:26px;
-    display:flex;align-items:center;justify-content:center;
-    background:#eef0ec;
-    border-radius:7px;
-    flex-shrink:0;
-  }
-  .card .title{font-size:13.5px;font-weight:700;}
-  .card .desc{display:none;}
-
-  @media (max-width:640px){
-    header{flex-direction:column;align-items:flex-start;}
-  }
+  /* 상단 고정 메뉴바(제목 + 이동 카드)는 이제 nav.js가 모든 페이지 공통으로 삽입합니다.
+     (이전에는 여기 header/h1/.grid/.card 로 index.html에만 따로 그려져 있었음) */
 
   #appContent{display:block;}
 
@@ -453,39 +400,10 @@
     text-align:center;
   }
 
-  /* 📱 모바일 화면 최적화 (가로 1줄 3열 카드 배치) */
+  /* 📱 모바일 화면 최적화 */
   @media (max-width:640px){
     body{padding:16px 12px 60px;}
-    header { margin-bottom: 16px; }
-    h1 { font-size: 22px; }
-    
-    .grid {
-      grid-template-columns: repeat(3, 1fr) !important;
-      gap: 8px !important;
-      margin-bottom: 20px !important;
-    }
-    .card {
-      padding: 12px 8px !important;
-      align-items: center;
-      text-align: center;
-      gap: 4px !important;
-      border-radius: 10px !important;
-    }
-    .card .icon {
-      width: 34px !important;
-      height: 34px !important;
-      font-size: 18px !important;
-      border-radius: 8px !important;
-    }
-    .card .title {
-      font-size: 13px !important;
-      margin-top: 2px;
-    }
-    .card .desc {
-      font-size: 10.5px !important;
-      white-space: nowrap;
-    }
-    
+
     .cal-header {
       display: flex;
       flex-wrap: wrap;
@@ -527,33 +445,8 @@
 </style>
 </head>
 <body>
+<script src="./nav.js"></script>
 <div class="wrap" id="appContent">
-
-  <header>
-    <h1>BORAKWAN</h1>
-    <div class="grid">
-      <a class="card" href="./review.html">
-        <div class="icon">📋</div>
-        <div class="title">Blog</div>
-      </a>
-      <a class="card" href="./ledger.html">
-        <div class="icon">💰</div>
-        <div class="title">가계부</div>
-      </a>
-      <a class="card" href="./task.html">
-        <div class="icon">✅</div>
-        <div class="title">Task</div>
-      </a>
-      <a class="card" href="./trip.html">
-        <div class="icon">✈️</div>
-        <div class="title">여행</div>
-      </a>
-      <a class="card" href="./docs.html">
-        <div class="icon">📁</div>
-        <div class="title">문서함</div>
-      </a>
-    </div>
-  </header>
 
   <div class="cal-panel">
     <div class="cal-header">
