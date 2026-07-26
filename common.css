@@ -12,14 +12,14 @@
   --accent:#3a5a52;
 
   --wait-bg:#fdf3d9;   --wait-ink:#8a6d16;
-  --conf-bg:#e2eef5;   --conf-ink:#1f5c82;
-  --done-bg:#e3ede4;   --done-ink:#2f6b3c;
-  --end-bg:#ececea;    --end-ink:#78766e;
+  --conf-bg:#d4f4dd;   --conf-ink:#2d7a3e;
+  --done-bg:#fde8e8;   --done-ink:#c53030;
+  --end-bg:#fde8e8;    --end-ink:#c53030;
 
   /* 부부 일정 전용 색상 (사람별 구분, index.html에서만 사용) */
-  --owner-gwan-bg:#e2eef5;    --owner-gwan-ink:#1f5c82;
-  --owner-bora-bg:#fff4c2;    --owner-bora-ink:#b8860b;
-  --owner-common-bg:#e3ede4;  --owner-common-ink:#2f6b3c;
+  --owner-gwan-bg:#dbeafe;    --owner-gwan-ink:#1e40af;
+  --owner-bora-bg:#ede9fe;    --owner-bora-ink:#7c3aed;
+  --owner-common-bg:#fef3c7;  --owner-common-ink:#b45309;
 }
 *{box-sizing:border-box;}
 body{

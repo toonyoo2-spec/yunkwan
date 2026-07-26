@@ -792,7 +792,8 @@ function calRender(){
         if(it.endTime) timeLabel = timeLabel ? `${timeLabel}~${calEscapeHtml(it.endTime)}` : calEscapeHtml(it.endTime);
         if(timeLabel) timeLabel += ' ';
         const ownerClass = coupleOwnerClass(it);
-        return `<div class="cal-event ${ownerClass}" onclick="calShowDetail('${it.id}','couple')" title="${timeLabel}${calEscapeHtml(it.title)} (${calEscapeHtml(it.owner||'관')})"><span class="cal-event-time">${timeLabel}</span>${calEscapeHtml(it.title)}</div>`;
+        const ownerLabel = `[${calEscapeHtml(it.owner||'관')}]`;
+        return `<div class="cal-event ${ownerClass}" onclick="calShowDetail('${it.id}','couple')" title="${timeLabel}${ownerLabel} ${calEscapeHtml(it.title)}"><span class="cal-event-time">${timeLabel}</span>${ownerLabel} ${calEscapeHtml(it.title)}</div>`;
       }
     }).join('');
 
@@ -860,9 +861,10 @@ function calPositionBars(){
     const ownerClass = coupleOwnerClass(it);
     const roundClass = (seg.isGlobalStart ? 'round-left ' : '') + (seg.isGlobalEnd ? 'round-right' : '');
     const label = coupleTimeLabel(it, seg.isGlobalStart, seg.isGlobalEnd);
-    const text = (label ? label + ' ' : '') + calEscapeHtml(it.title);
+    const ownerLabel = `[${calEscapeHtml(it.owner||'관')}]`;
+    const text = (label ? label + ' ' : '') + ownerLabel + ' ' + calEscapeHtml(it.title);
     const style = `left:${left - wrapRect.left}px; top:${top - wrapRect.top}px; width:${right-left}px; height:${bottom-top}px;`;
-    const titleAttr = `${it.time?calEscapeHtml(it.time):''}${it.endTime?('~'+calEscapeHtml(it.endTime)):''} ${calEscapeHtml(it.title)} (${calEscapeHtml(it.owner||'관')})`;
+    const titleAttr = `${it.time?calEscapeHtml(it.time):''}${it.endTime?('~'+calEscapeHtml(it.endTime)):''} ${ownerLabel} ${calEscapeHtml(it.title)}`;
     return `<div class="cal-bar ${ownerClass} ${roundClass}" style="${style}" onclick="calShowDetail('${it.id}','couple')" title="${titleAttr}">${text}</div>`;
   }).join('');
 
