@@ -1139,18 +1139,18 @@ function renderSummary(){
       <div class="hint" style="margin:-8px 0 10px;">지출 카테고리 표의 <span class="badge fixed-badge">고정</span> 배지가 자동이체 항목이에요 · 날짜/금액을 바꾸고 싶으면 여기서 관리하세요</div>
       <div id="recurringManagePanel" style="display:${state.recurringPanelOpen ? 'block' : 'none'};">
       <div class="card table-card">
-        <div class="tx-form" style="grid-template-columns:56px 84px 1fr 1fr 1fr 90px 40px;">
+        <div class="tx-form" style="grid-template-columns:56px 84px 1fr 1fr 1fr 90px 120px 40px;">
           <input type="number" id="rc_day" placeholder="일" min="1" max="31">
           <select id="rc_scope" onchange="onRcScopeChange()">${SCOPES.map(s=>`<option>${s}</option>`).join('')}</select>
           <select id="rc_main" onchange="onRcMainChange()"></select>
           <select id="rc_category"></select>
           <input type="text" id="rc_note" placeholder="내용 (예: 관리비)">
           <input type="number" id="rc_amount" placeholder="금액">
+          <select id="rc_payment" class="pay-quick-select">
+            <option value="">결제수단</option>
+            ${PAYMENT_METHODS.map(p=>`<option value="${escapeAttr(p)}">${p}</option>`).join('')}
+          </select>
           <button class="add-btn" onclick="submitRecurring()" title="추가">+</button>
-        </div>
-        <div class="payment-toggle" id="paymentToggleRc" data-selected="">
-          <span class="payment-toggle-label">결제수단</span>
-          ${PAYMENT_METHODS.map(p=>`<button type="button" class="chip pay-chip" data-val="${escapeAttr(p)}" onclick="selectPaymentToggle('paymentToggleRc','${escapeAttr(p)}')">${p}</button>`).join('')}
         </div>
         <div style="overflow-x:auto;">
         <table class="tx-table">
@@ -1265,7 +1265,7 @@ function submitRecurring(){
   const day = Number(document.getElementById('rc_day').value);
   const amount = Number(document.getElementById('rc_amount').value);
   if(!day || day<1 || day>31 || !amount){ alert('일자(1~31)와 금액을 입력해주세요.'); return; }
-  const payment = document.getElementById('paymentToggleRc')?.dataset.selected || '';
+  const payment = document.getElementById('rc_payment').value;
   const templates = DB.getRecurringTemplates() || [];
   templates.push({
     key: 'r_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
@@ -1279,7 +1279,7 @@ function submitRecurring(){
   document.getElementById('rc_day').value = '';
   document.getElementById('rc_note').value = '';
   document.getElementById('rc_amount').value = '';
-  selectPaymentToggle('paymentToggleRc', '');
+  document.getElementById('rc_payment').value = '';
   renderRecurringTable();
 }
 
@@ -1304,22 +1304,22 @@ function recurDisplayRowHtml(t){
 function recurEditRowHtml(t){
   return `<tr class="edit-row">
     <td colspan="7">
-      <div class="tx-edit-form" style="grid-template-columns:64px 88px 96px 96px 1fr 96px auto;">
+      <div class="tx-edit-form" style="grid-template-columns:64px 88px 96px 96px 1fr 96px 120px auto;">
         <input type="number" id="rce_day_${t.key}" value="${t.day}" min="1" max="31">
         <select id="rce_scope_${t.key}">${SCOPES.map(s=>`<option ${s===t.scope?'selected':''}>${s}</option>`).join('')}</select>
         <span class="fixed-field" title="대분류는 지출로 고정돼요">지출</span>
         <span class="fixed-field" title="중분류/소분류는 바꿀 수 없어요. 다른 분류가 필요하면 삭제 후 새로 추가해주세요.">${t.main} · ${t.category}</span>
         <input type="text" id="rce_note_${t.key}" value="${escapeAttr(t.note)}">
         <input type="number" id="rce_amount_${t.key}" value="${t.amount}">
+        <select id="rce_payment_${t.key}" class="pay-quick-select">
+          <option value="" ${!t.payment?'selected':''}>결제수단</option>
+          ${PAYMENT_METHODS.map(p=>`<option value="${escapeAttr(p)}" ${p===t.payment?'selected':''}>${p}</option>`).join('')}
+        </select>
         <div class="edit-actions">
           <button class="ghost-btn primary" onclick="saveRecurEdit('${t.key}')">저장</button>
           <button class="ghost-btn danger" onclick="deleteRecur('${t.key}')">삭제</button>
           <button class="ghost-btn" onclick="cancelRecurEdit()">취소</button>
         </div>
-      </div>
-      <div class="payment-toggle" id="paymentToggleRce_${t.key}" data-selected="${escapeAttr(t.payment)}" style="border-bottom:none;padding:10px 0 0;">
-        <span class="payment-toggle-label">결제수단</span>
-        ${PAYMENT_METHODS.map(p=>`<button type="button" class="chip pay-chip ${p===t.payment?'active':''}" data-val="${escapeAttr(p)}" onclick="selectPaymentToggle('paymentToggleRce_${t.key}','${escapeAttr(p)}')">${p}</button>`).join('')}
       </div>
       <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span class="payment-toggle-label">종료월(선택)</span>
@@ -1337,7 +1337,7 @@ function saveRecurEdit(key){
   const day = Number(document.getElementById('rce_day_'+key).value);
   const amount = Number(document.getElementById('rce_amount_'+key).value);
   if(!day || day<1 || day>31 || !amount){ alert('일자(1~31)와 금액을 확인해주세요.'); return; }
-  const payment = document.getElementById('paymentToggleRce_'+key)?.dataset.selected || '';
+  const payment = document.getElementById('rce_payment_'+key)?.value || '';
   const endYm = document.getElementById('rce_endym_'+key)?.value || '';
   const templates = DB.getRecurringTemplates() || [];
   const idx = templates.findIndex(t=>t.key===key);
