@@ -51,26 +51,6 @@
       text-decoration:none;
       flex-shrink:0;
     }
-    #bkNav .bk-home{
-      width:44px;height:44px;
-      display:flex;align-items:center;justify-content:center;
-      font-size:22px;
-      background:var(--card, #ffffff);
-      border:1px solid var(--line, #e1dfd6);
-      border-radius:10px;
-      text-decoration:none;
-      flex-shrink:0;
-      transition:transform .12s ease, box-shadow .12s ease;
-    }
-    #bkNav .bk-home:hover{
-      transform:translateY(-1px);
-      box-shadow:0 4px 12px rgba(34,34,31,0.07);
-      border-color:var(--accent, #3a5a52);
-    }
-    #bkNav .bk-home.active{
-      border-color:var(--accent, #3a5a52);
-      box-shadow:0 0 0 1px var(--accent, #3a5a52) inset;
-    }
     #bkNav .bk-grid{
       display:flex;
       flex-wrap:wrap;
@@ -115,7 +95,7 @@
         gap:10px;
       }
       #bkNav .bk-title{font-size:30px;}
-      #bkNav .bk-home{width:38px;height:38px;font-size:19px;}
+      #bkNav .bk-left{width:100%;}
       #bkNav .bk-grid{
         width:100%;
         display:grid;
@@ -150,7 +130,10 @@
   const navHtml = `
     <header id="bkNav" class="wrap">
       <div class="bk-left">
-        <a class="bk-home${isHome ? ' active' : ''}" href="./index.html" title="홈" aria-label="홈">🏠</a>
+        <a class="bk-card${isHome ? ' active' : ''}" href="./index.html">
+          <span class="bk-icon">🏠</span>
+          <span class="bk-label">홈</span>
+        </a>
         <a class="bk-title" href="./index.html">BORAKWAN</a>
       </div>
       <div class="bk-grid">${cardsHtml}</div>
