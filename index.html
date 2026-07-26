@@ -458,7 +458,6 @@
     <div class="cal-legend">
       <span><i class="dot confirm"></i>예약완료</span>
       <span><i class="dot done"></i>체험완료</span>
-      <span><i class="dot end"></i>체험종료</span>
       <span><i class="dot owner-gwan"></i>관</span>
       <span><i class="dot owner-bora"></i>보라</span>
       <span><i class="dot owner-common"></i>공통</span>
@@ -579,7 +578,7 @@ let workoutItems = [];  // 운동 체크 항목 { id, date, owner, done }
 let calCursor = new Date();
 calCursor.setDate(1);
 
-const calStatusLabel = { wait:"예약대기", confirm:"예약완료", done:"체험완료", end:"종료" };
+const calStatusLabel = { wait:"예약대기", confirm:"예약완료", done:"체험완료", end:"체험완료" };
 
 function calNormalizeDate(v){
   if(!v) return "";
@@ -645,7 +644,7 @@ function coupleItemToRow(item){
 }
 
 function calEventDate(it){
-  if(it.status !== "confirm" || !it.resvDate) return "";
+  if(!it.resvDate) return "";
   return calNormalizeDate(it.resvDate);
 }
 
@@ -785,7 +784,8 @@ function calRender(){
       if(entry.kind === 'campaign'){
         const it = entry.data;
         const timeLabel = it.resvTime ? `${calEscapeHtml(it.resvTime)} ` : '';
-        return `<div class="cal-event ${it.status}" onclick="calShowDetail('${it.id}','campaign')" title="${timeLabel}${calEscapeHtml(it.name)} (${calStatusLabel[it.status]||''})"><span class="cal-event-time">${timeLabel}</span>${calEscapeHtml(it.name)}</div>`;
+        const statusLabel = `[${calStatusLabel[it.status]||it.status}]`;
+        return `<div class="cal-event ${it.status}" onclick="calShowDetail('${it.id}','campaign')" title="${timeLabel}${statusLabel} ${calEscapeHtml(it.name)}"><span class="cal-event-time">${timeLabel}</span>${statusLabel} ${calEscapeHtml(it.name)}</div>`;
       } else {
         const it = entry.data;
         let timeLabel = it.time ? calEscapeHtml(it.time) : '';
