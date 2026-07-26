@@ -703,6 +703,42 @@ function bulkAutoAssignScope(){
   render();
 }
 
+/* ---- 소분류(카테고리) 없는 거래 일괄 자동 분류 ----
+   내용(note)에서 키워드를 찾아 소분류를 추측합니다. 못 찾으면 '기타'로 채웁니다.
+   (모든 중분류에 '기타' 소분류가 있어서 항상 뭔가는 채워집니다.) 1차 정리용입니다. */
+const CATEGORY_KEYWORDS = {
+  "주거비":   [["관리비", ["관리비"]], ["정수기", ["정수기","코웨이"]], ["TV인터넷", ["tv","인터넷","와이파이"]], ["집대출", ["대출","론","전세","월세","보금자리"]]],
+  "교통비":   [["대중교통", ["버스","지하철","대중교통","교통카드"]], ["주유비", ["주유"]], ["전기차충전", ["충전","차지비"]]],
+  "자동차":   [["자동차보험", ["자동차보험"]], ["운전자보험", ["운전자보험"]], ["할부금", ["할부"]], ["주차비", ["주차"]]],
+  "통신비":   [["핸드폰", ["핸드폰","통신","휴대폰"]]],
+  "생활비":   [["배달", ["배달"]], ["외식", ["외식","식당","레스토랑"]], ["식비", ["카페","커피","마트","편의점","식재료","장보기","컬리"]], ["쇼핑", ["쇼핑","쿠팡","화장품"]], ["여행", ["여행","숙소","항공"]]],
+  "구독":     [["OTT", ["넷플릭스","디즈니","왓챠","ott"]], ["AI", ["챗지피티","gpt","ai"]], ["쇼핑", ["쿠팡"]]],
+  "건강":     [["병원비", ["병원","약국","치과"]], ["운동", ["헬스","필라테스","운동"]], ["실비보험", ["실비"]]],
+  "경조사":   [["가족", ["가족"]], ["지인", ["지인","친구"]]],
+  "가족":     [["가족", ["회비"]]],
+  "급여":     [["월급", ["월급","급여"]], ["상여금", ["상여","보너스"]]],
+  "기타소득": [["부업", ["부업"]]],
+};
+function guessCategory(t){
+  if(!t.main) return '';
+  const note = (t.note || '').toLowerCase();
+  const rules = CATEGORY_KEYWORDS[t.main];
+  if(rules){
+    for(const [cat, keywords] of rules){
+      if(keywords.some(k => note.includes(k))) return cat;
+    }
+  }
+  return '기타';
+}
+function bulkAutoAssignCategory(){
+  const targets = DB.list().filter(t => t.main && !t.category);
+  if(!targets.length){ alert('소분류 미지정 거래가 없어요.'); return; }
+  if(!confirm(`소분류 미지정 거래 ${targets.length}건을 자동 분류할까요?\n내용에서 키워드를 찾아 추측하고, 못 찾으면 '기타'로 채워요 — 분류 후 하나씩 확인해서 고쳐주세요.`)) return;
+  targets.forEach(t => DB.update(t.id, { category: guessCategory(t) }));
+  alert(`${targets.length}건을 분류했어요. 화면에서 확인해보세요.`);
+  render();
+}
+
 function realCashOwner(t){
   const meta = t.payment ? PAYMENT_META[t.payment] : null;
   if(meta){
@@ -1333,6 +1369,7 @@ function renderSummary(){
   const rate = income ? (net/income*100) : 0;
 
   const totalUnassigned = DB.list().filter(t => !t.scope).length;
+  const totalNoCategory = DB.list().filter(t => t.main && !t.category).length;
 
   document.getElementById('view').innerHTML = `
     <div class="section-head">
@@ -1343,11 +1380,19 @@ function renderSummary(){
     <div class="pill-note" style="cursor:pointer;background:var(--expense-soft);color:var(--expense);" onclick="bulkAutoAssignScope()">
       ⚠ 전체 기간 구분 미지정 거래 ${totalUnassigned}건 — 눌러서 일괄 자동 분류 (1차 정리용, 이후 직접 확인 필요)
     </div>` : ''}
+    ${totalNoCategory ? `
+    <div class="pill-note" style="cursor:pointer;background:var(--invest-soft);color:var(--invest);margin-top:${totalUnassigned?'8px':'0'};" onclick="bulkAutoAssignCategory()">
+      ⚠ 전체 기간 소분류 미지정 거래 ${totalNoCategory}건 — 눌러서 일괄 자동 분류 (1차 정리용, 이후 직접 확인 필요)
+    </div>` : ''}
 
     <div class="grid kpis">
       <div class="card kpi income"><div class="label">연간 총수입</div><div class="value mono">${wonShort(income)}</div></div>
       <div class="card kpi expense"><div class="label">연간 총지출</div><div class="value mono">${wonShort(expense)}</div></div>
-      <div class="card kpi saving"><div class="label">저축 + 투자</div><div class="value mono">${wonShort(savingInvest)}</div></div>
+      <div class="card kpi saving">
+        <div class="label">저축 + 투자</div>
+        <div class="value mono">${wonShort(savingInvest)}</div>
+        <div class="value mono" style="color:${net>=0?'var(--income)':'var(--expense)'};font-size:13px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);">저축(수입-지출) ${won(net)}</div>
+      </div>
       <div class="card kpi"><div class="label">순저축률 (수입-지출)</div><div class="value mono">${pct(rate)}</div></div>
     </div>
 
