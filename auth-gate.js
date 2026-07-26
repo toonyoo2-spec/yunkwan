@@ -110,9 +110,14 @@
   }
 
   async function init(){
-    const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+    // 페이지 자체 스크립트가 이미 Supabase 클라이언트를 만들어 window.sb에
+    // 등록해뒀다면 그걸 재사용합니다. (review.html, task.html 등)
+    // 이렇게 해야 같은 storage key로 클라이언트가 두 개 생겨서 나는
+    // "Multiple GoTrueClient instances" 경고/세션 불일치를 막을 수 있습니다.
+    const sb = window.sb || supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
       auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
     });
+    window.sb = sb;
 
     // 탭이 백그라운드로 갔다가 다시 보일 때 자동 토큰 갱신을 확실히 재개시킴.
     // (모바일 브라우저는 백그라운드에서 타이머를 멈추기 때문에, 이걸 안 해주면
