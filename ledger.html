@@ -70,10 +70,6 @@ button{font-family:inherit;}
   margin-bottom:22px;flex-wrap:wrap;gap:10px;
 }
 .topbar .brand{display:flex;align-items:baseline;gap:10px;}
-.home-btn{
-  display:inline-block;font-size:12.5px;color:var(--sub);text-decoration:none;margin-bottom:8px;
-}
-.home-btn:hover{color:var(--accent);}
 .topbar h1{font-size:26px;}
 .topbar .sub{color:var(--muted);font-size:13px;}
 .topbar .actions{display:flex;gap:8px;align-items:center;}
@@ -432,7 +428,7 @@ tr.edit-row td{padding:12px 10px;}
 
 /* ---- 모달 ---- */
 .modal-overlay{
-  display:none;position:fixed;inset:0;background:rgba(32,36,31,0.45);z-index:100;
+  display:none;position:fixed;inset:0;background:rgba(32,36,31,0.45);z-index:1000;
   align-items:center;justify-content:center;padding:20px;
 }
 .modal-overlay.open{display:flex;}
@@ -503,6 +499,7 @@ tr.edit-row td{padding:12px 10px;}
 </style>
 </head>
 <body>
+<script src="./nav.js"></script>
 <div id="app" class="wrap"></div>
 
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
@@ -1358,7 +1355,6 @@ function render(){
     <div class="topbar">
       <div class="brand">
         <div>
-          <a href="./index.html" class="home-btn">← 홈</a>
           <h1>우리집 가계부</h1>
           <div class="sub">Supabase에 저장됩니다 · 기기 간 자동 동기화</div>
         </div>

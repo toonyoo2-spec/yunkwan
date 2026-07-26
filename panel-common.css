@@ -4,16 +4,6 @@
    - 값을 여기서 바꾸면 4개 페이지에 한 번에 반영됩니다.
    - 페이지마다 다른 나머지 스타일은 각 파일의 <style>에 그대로 있습니다.
    ========================================================= */
-.home-btn{
-    display:inline-block;
-    font-size:12.5px;
-    color:var(--sub);
-    text-decoration:none;
-    margin-bottom:8px;
-  }
-
-.home-btn:hover{color:var(--accent);}
-
 h1{
     font-size:26px;
     letter-spacing:-0.02em;
