@@ -309,6 +309,7 @@
 const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
   auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
 });
+window.sb = sb; // auth-gate.js가 같은 클라이언트를 재사용하도록 공유
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
