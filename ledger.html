@@ -680,10 +680,11 @@ const PAYMENT_META = {
   "하나[보라]":     { person:"보라", type:"체크카드", desc:"보라 수입에서 즉시 빠져나가요." },
   "농협[관]":       { person:"관",   type:"체크카드", desc:"관 수입에서 즉시 빠져나가요." },
 };
-/* 하나/농협 카드는 실제 통장 잔고를 그대로 추적합니다. 2026-08-01 이전 거래는 이미
-   아래 시작 잔고에 녹아있는 걸로 보고 계산에서 제외하고, 이 날짜 이후 새로 기록되는
-   거래만 잔고에서 가감합니다. 보고 있는 달이 바뀌어도 이 잔고는 계속 이어집니다. */
-const CARD_BALANCE_ANCHOR = '2026-08-01';
+/* 하나/농협 카드는 실제 통장 잔고를 그대로 추적합니다. 아래 시작 잔고는 2026-07-26
+   기준으로 입력한 값이라, 2026-07-27 이전 거래는 이미 그 잔고에 녹아있는 걸로 보고
+   계산에서 제외하고, 그 이후 새로 기록되는 거래만 잔고에서 가감합니다. 보고 있는
+   달이 바뀌어도 이 잔고는 계속 이어집니다. */
+const CARD_BALANCE_ANCHOR = '2026-07-27';
 const CARD_STARTING_BALANCE = {
   "하나[보라]": 5116513,
   "농협[관]": 1130746,
@@ -776,27 +777,24 @@ function creditCardExpenseByScope(list, ym){
   return result;
 }
 
-/* 결제수단 카드형 위젯: 신용카드(현대카드)는 지금까지 기록된 전체 누적 지출을,
+/* 결제수단별 현황 줄을 계산합니다(DOM 조작 없이 데이터만 반환 — "카드 현황" 카드의
+   서브라인으로 씀). 신용카드(현대카드)는 지금까지 기록된 전체 누적 지출을,
    체크카드(하나/농협)는 CARD_BALANCE_ANCHOR 이후 거래만 반영한 실제 잔고를
-   보여줍니다. 보고 있는 달(ym) 말일까지 누적된 값이라, 다음 달로 넘어가도
-   이 값이 그대로 이어져서 다음 달 거래만큼만 더 반영됩니다. */
-function renderCardStatus(ym){
-  const wrap = document.getElementById('cardStatusWrap');
-  if(!wrap) return;
+   돌려줍니다(수입은 +, 지출은 -). 보고 있는 달(ym) 말일까지 누적된 값이라, 다음
+   달로 넘어가도 이 값이 그대로 이어져서 다음 달 거래만큼만 더 반영됩니다. */
+function buildCardStatusLines(ym){
   const all = DB.list();
   const cutoffExclusive = shiftYm(ym,1) + '-01'; // 보고 있는 달 말일까지만 포함(다음 달 1일 미만)
 
-  const cardsHtml = PAYMENT_METHODS.map(p=>{
+  return PAYMENT_METHODS.map(p=>{
     const meta = PAYMENT_META[p];
+    const shortName = p.replace(/\[.*?\]/, ''); // "현대카드[보라]" -> "현대카드" (이 카드에선 소유자 표시 생략)
 
     if(meta.type === '신용카드'){
       const totalSpent = all
         .filter(t=>t.payment===p && t.type==='지출' && t.date < cutoffExclusive)
         .reduce((s,t)=>s+Number(t.amount||0), 0);
-      return `<div class="card kpi">
-        <div class="label">${p}</div>
-        <div class="value mono" style="color:var(--expense);">누적지출 ${won(totalSpent)}</div>
-      </div>`;
+      return { text:`${shortName} 누적지출 ${won(totalSpent)}`, color:'var(--expense)' };
     }
 
     const netChange = all
@@ -807,13 +805,8 @@ function renderCardStatus(ym){
         return s;
       }, 0);
     const balance = (CARD_STARTING_BALANCE[p]||0) + netChange;
-    return `<div class="card kpi">
-      <div class="label">${p}</div>
-      <div class="value mono" style="color:${balance>=0?'var(--income)':'var(--expense)'};">잔고 ${won(balance)}</div>
-    </div>`;
-  }).join('');
-
-  wrap.innerHTML = `<div class="grid kpis" style="grid-template-columns:repeat(${PAYMENT_METHODS.length},1fr);">${cardsHtml}</div>`;
+    return { text:`${shortName} 잔고 ${won(balance)}`, color: balance>=0?'var(--income)':'var(--expense)' };
+  });
 }
 
 /* =================================================================================
@@ -1709,8 +1702,28 @@ function renderMonth(ym){
     return s + Number(t.amount||0);
   }, 0);
   totalSummary.cardBill = Object.values(cardBillMap).reduce((a,b)=>a+b, 0);
-  const kpiCards = [totalSummary, ...scopeSummary];
   const unassignedCount = tx.filter(t=>!t.scope).length;
+
+  // 상단 3개 카드: ① 전체(수입/지출/잔액) ② 지출(공동/보라/관) ③ 카드 현황(현대/하나/농협)
+  const totalBalance = totalSummary.income - totalSummary.cashExpense - totalSummary.cardBill;
+  const kpiBlocks = [
+    {
+      label: '전체', extraClass: 'kpi-total',
+      lines: [
+        { text:`수입 ${won(totalSummary.income)}`, color:'var(--income)' },
+        { text:`지출 ${won(totalSummary.expense)}`, color:'var(--expense)' },
+        { text:`잔액 ${won(totalBalance)}`, color: totalBalance>=0?'var(--income)':'var(--expense)', extraClass:'kpi-subline-balance' },
+      ],
+    },
+    {
+      label: '지출',
+      lines: scopeSummary.map(s => ({ text:`${s.scope} ${won(s.expense)}`, color:'var(--expense)' })),
+    },
+    {
+      label: '카드 현황',
+      lines: buildCardStatusLines(ym),
+    },
+  ];
 
   document.getElementById('view').innerHTML = `
     <div class="month-nav">
@@ -1719,35 +1732,18 @@ function renderMonth(ym){
       <button class="move" onclick="location.hash='#/${nextYm(ym)}'">다음 달 ›</button>
     </div>
 
-    <div class="grid kpis">
-      ${kpiCards.map(s=>{
-        if(s.scope !== '전체'){
-          return `
-          <div class="card kpi">
-            <div class="label">${s.scope}</div>
-            <div class="value mono" style="color:var(--expense);">지출 ${won(s.expense)}</div>
-          </div>
-        `;
-        }
-        const balance = s.income - s.cashExpense - s.cardBill;
-        return `
-        <div class="card kpi kpi-total">
-          <div class="label">${s.scope}</div>
-          <div class="value mono kpi-subline" style="color:var(--income);">수입 ${won(s.income)}</div>
-          <div class="value mono kpi-subline" style="color:var(--expense);">지출 ${won(s.expense)}</div>
-          <div class="value mono kpi-subline kpi-subline-balance" style="color:${balance>=0?'var(--income)':'var(--expense)'};">잔액 ${won(balance)}</div>
+    <div class="grid kpis" style="grid-template-columns:repeat(3,1fr);">
+      ${kpiBlocks.map(block => `
+        <div class="card kpi ${block.extraClass||''}">
+          <div class="label">${block.label}</div>
+          ${block.lines.map(line => `<div class="value mono kpi-subline ${line.extraClass||''}" style="color:${line.color};">${line.text}</div>`).join('')}
         </div>
-      `;}).join('')}
+      `).join('')}
     </div>
     ${unassignedCount ? `
     <div class="pill-note" style="cursor:pointer;" onclick="quickFilterUnassigned()">
       ⚠ 구분 미지정 거래 ${unassignedCount}건 — 눌러서 재분류하기
     </div>` : ''}
-
-    <div class="section">
-      <div class="section-head"><h2>결제수단 현황</h2><span class="hint">하나·농협은 8/1부터 반영된 실제 잔고, 현대카드는 전체 누적 지출</span></div>
-      <div id="cardStatusWrap"></div>
-    </div>
 
     <div class="grid two-col section">
       <div class="card cal-card">
@@ -1807,7 +1803,6 @@ function renderMonth(ym){
   `;
 
   renderCalendar(y,m,tx);
-  renderCardStatus(ym);
   renderCatList(ym);
   renderTxToolbar(ym);
   renderTxTable(ym);
