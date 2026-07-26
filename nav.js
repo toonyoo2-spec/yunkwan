@@ -26,7 +26,7 @@
     #bkNav{
       position:sticky;
       top:0;
-      z-index:500;
+      z-index:10000;
       background:var(--bg, #f6f5f1);
       display:flex;
       align-items:center;
