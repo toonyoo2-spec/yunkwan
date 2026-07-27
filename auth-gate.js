@@ -16,6 +16,15 @@
   이 값이 바뀔 일이 있으면 supabase-config.js만 수정하면 됩니다.
 */
 (function(){
+  // 백그라운드로 갔다가(bfcache에 얼어붙은 채) 다시 돌아왔을 때, 로그인 확인
+  // 로직이 멈춘 상태 그대로 복원되면서 화면이 계속 빈 채로 보이는 경우가 있습니다.
+  // 이런 "얼어붙은 상태" 복원을 감지하면 새로고침해서 처음부터 다시 확인하게 합니다.
+  window.addEventListener('pageshow', function(event){
+    if(event.persisted){
+      location.reload();
+    }
+  });
+
   function idToEmail(id){
     return `${id.trim().toLowerCase()}@${window.COUPLE_EMAIL_DOMAIN}`;
   }

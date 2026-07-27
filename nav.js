@@ -10,6 +10,17 @@
      깨지지 않도록 각 변수에 기본값(fallback)을 넣어뒀습니다.
    ========================================================= */
 (function(){
+  // 홈 화면 아이콘으로 PWA를 "새로 켰을 때"(=참조 페이지 없음) 마지막으로
+  // 보던 탭이 아니라 무조건 index.html로 시작하게 강제합니다.
+  // (nav.js 안에서 링크를 눌러 이동한 경우엔 referrer가 있어서 여기 안 걸립니다.)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+  const currentFile0 = (location.pathname.split('/').pop() || 'index.html');
+  if(isStandalone && currentFile0 !== 'index.html' && currentFile0 !== '' && !document.referrer){
+    location.replace('./index.html');
+    return;
+  }
+
   const NAV_ITEMS = [
     { href: './index.html',  icon: '🏠', label: '홈' },
     { href: './ledger.html', icon: '💰', label: '가계부' },
