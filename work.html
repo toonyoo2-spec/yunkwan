@@ -1105,7 +1105,6 @@ async function loadOrCreateGwakProject(){
     gwakProject = inserted;
   }
 
-  updateGwakUI();
   return gwakProject;
 }
 
@@ -1189,7 +1188,6 @@ async function removeGwakWorkDate(dateStr){
   gwakProject.currentAmount = newAmount;
   gwakProject.cost = newAmount;
 
-  updateGwakUI();
   await loadProjects();
   openGwakDetail(); // 모달 새로고침
 }
@@ -1234,7 +1232,6 @@ async function addGwakWorkDateFromModal(){
   gwakProject.cost = newAmount;
 
   dateInput.value = '';
-  updateGwakUI();
   await loadProjects();
   openGwakDetail(); // 모달 새로고침
   alert('작업일이 추가되었습니다!');
@@ -1302,7 +1299,6 @@ async function settleGwakProject(){
   gwakProject.settlementHistory = history;
   gwakProject.status = '정산완료';
 
-  updateGwakUI();
   await loadProjects();
   closeGwakDetail();
   alert('정산이 완료되었습니다!');
@@ -1358,7 +1354,6 @@ async function restoreGwakSettlement(){
   gwakProject.settlementHistory = newHistory;
   gwakProject.status = '작업중';
 
-  updateGwakUI();
   await loadProjects();
   openGwakDetail(); // 모달 새로고침
   alert('정산이 취소되고 작업일이 복구되었습니다!');
