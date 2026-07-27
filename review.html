@@ -22,7 +22,20 @@
     gap:16px;
     margin-bottom:24px;
   }
-        
+  .refresh-btn{
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--sub);
+    padding:9px 16px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .refresh-btn:hover{background:#f5f4f0;}
+  .refresh-btn:active{opacity:0.7;}
+
   .summary{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -119,9 +132,35 @@
     border-color:var(--ink);
   }
 
+  .table-scroll{
+    position: relative;
+  }
+  .table-scroll::after{
+    content: "";
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 28px;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.07));
+    pointer-events: none;
+  }
   .table-wrap {
     width: 100%;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-wrap::-webkit-scrollbar{
+    height: 8px;
+  }
+  .table-wrap::-webkit-scrollbar-track{
+    background: #f0eee6;
+    border-radius: 4px;
+  }
+  .table-wrap::-webkit-scrollbar-thumb{
+    background: #c8c5ba;
+    border-radius: 4px;
+  }
+  .table-wrap::-webkit-scrollbar-thumb:hover{
+    background: #b0ac9e;
   }
 
   table{
@@ -328,6 +367,7 @@
   .tabs{ justify-content:flex-start; }
 
   .table-wrap { overflow-x: visible; }
+  .table-scroll::after{ display:none; }
   table, thead, tbody, tr, th, td{ display:block; width:100%; }
   thead{ display:none; }
 
@@ -391,6 +431,7 @@
     <div>
       <h1>블로그 체험단 관리</h1>
     </div>
+    <button class="refresh-btn" onclick="location.reload()" title="새로고침">⟳ 새로고침</button>
   </header>
 
   <div class="summary" id="summary"></div>
@@ -469,24 +510,26 @@
       <div class="tabs" id="tabs"></div>
     </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>지역</th>
-            <th>체험단 이름</th>
-            <th>제공내역</th>
-            <th>상태/예약</th>
-            <th>플랫폼</th>
-            <th>주소</th>
-            <th>예약문의</th>
-            <th>주차장</th>
-            <th>마감일자</th>
-            <th>키워드</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+    <div class="table-scroll">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>지역</th>
+              <th>체험단 이름</th>
+              <th>제공내역</th>
+              <th>상태/예약</th>
+              <th>플랫폼</th>
+              <th>주소</th>
+              <th>예약문의</th>
+              <th>주차장</th>
+              <th>마감일자</th>
+              <th>키워드</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
     </div>
     <div class="empty" id="emptyMsg" style="display:none;">등록된 체험단이 없습니다.</div>
   </div>
