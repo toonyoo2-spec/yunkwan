@@ -168,6 +168,10 @@ button{font-family:inherit;}
   .kpi{padding:14px 14px 12px;}
   .kpi .value{font-size:16px;}
   .kpi-row{font-size:12.5px;padding:6px 0;}
+  /* 좁은 화면에서는 "이름 · 금액"을 한 줄에 나란히 두면 이름이 한 글자씩 줄바꿈되므로,
+     이름을 위, 금액을 아래로 쌓아 칸 안에 온전히 들어오게 함 */
+  .kpi-row{flex-direction:column;align-items:flex-start;gap:2px;}
+  .kpi-row .k{white-space:nowrap;}
   /* 터치 탭 대상은 44px 이상 권장 — 좌우 패딩은 유지하되 위아래 여백을 늘려 탭하기 쉽게 함 */
   .kpi-row-clickable{padding-top:9px;padding-bottom:9px;}
 }
