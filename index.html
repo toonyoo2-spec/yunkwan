@@ -251,6 +251,7 @@
   .workout-cell.today{border-color:var(--accent);border-width:1.5px;}
   .workout-cell.done.owner-gwan{background:var(--owner-gwan-bg);color:var(--owner-gwan-ink);border-color:var(--owner-gwan-bg);font-weight:700;}
   .workout-cell.done.owner-bora{background:var(--owner-bora-bg);color:var(--owner-bora-ink);border-color:var(--owner-bora-bg);font-weight:700;}
+  .workout-cell.missed{background:#fdf1f0;color:#b3452f;border-color:#f3d9d6;font-weight:700;}
 
   /* ---- 이벤트 상세 팝업 ---- */
   .cal-modal-overlay{
@@ -941,8 +942,12 @@ function workoutRender(){
       const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
       const isDone = doneSet.has(`${dateStr}_${owner}`);
       const isToday = dateStr === todayStr;
+      const isPast = dateStr < todayStr;
+      const isMissed = owner === '관' && isPast && !isDone;
       if(isDone && d <= elapsedDays) counts[owner]++;
-      html += `<div class="workout-cell ${isDone ? 'done '+ownerClass : ''} ${isToday ? 'today' : ''}" onclick="workoutToggle('${dateStr}','${owner}')" title="${dateStr} · ${escapeHtml(owner)}${isDone ? ' (운동함)' : ''}">${d}</div>`;
+      const label = isMissed ? 'X' : d;
+      const titleSuffix = isDone ? ' (운동함)' : (isMissed ? ' (운동 안함)' : '');
+      html += `<div class="workout-cell ${isDone ? 'done '+ownerClass : ''} ${isToday ? 'today' : ''} ${isMissed ? 'missed' : ''}" onclick="workoutToggle('${dateStr}','${owner}')" title="${dateStr} · ${escapeHtml(owner)}${titleSuffix}">${label}</div>`;
     }
     (owner === '관' ? gwanCells : boraCells).innerHTML = html;
   });
