@@ -355,8 +355,74 @@
 
   @media (max-width:820px){
     .stat-row{grid-template-columns:repeat(2,1fr);}
-    .form-grid{grid-template-columns:1fr 1fr;}
+    .form-grid{grid-template-columns:1fr;}
     table.sheet{min-width:720px;}
+
+    /* 모바일 버튼 텍스트 줄바꿈 방지 */
+    .save-btn, button{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      min-width:0;
+    }
+
+    /* 테이블 버튼 최적화 */
+    table.sheet button{
+      font-size:11px;
+      padding:6px 10px;
+      white-space:nowrap;
+    }
+
+    /* 상태 선택 드롭다운 */
+    select.status-select{
+      font-size:12px;
+      padding:4px 6px;
+      min-width:90px;
+    }
+
+    /* 캘린더 모달 */
+    .cal-modal{
+      max-width:95vw;
+      max-height:90vh;
+      overflow-y:auto;
+      margin:20px;
+    }
+
+    /* 곽현 프로젝트 패널 */
+    #gwakStatus{
+      font-size:12px !important;
+    }
+    #gwakStatus button{
+      font-size:12px !important;
+      padding:6px !important;
+    }
+  }
+
+  @media (max-width:480px){
+    .form-grid{
+      grid-template-columns:1fr;
+    }
+
+    /* 헤더 텍스트 크기 조정 */
+    header h1{
+      font-size:22px;
+    }
+    header p{
+      font-size:13px;
+    }
+
+    /* 통계 카드 */
+    .stat-card .label{
+      font-size:11px;
+    }
+    .stat-card .value{
+      font-size:18px;
+    }
+
+    /* 패널 제목 */
+    .panel h2{
+      font-size:16px;
+    }
   }
 </style>
 </head>
@@ -407,12 +473,23 @@
     <div style="margin-bottom:12px;font-size:13px;color:var(--sub);">
       매일 5만원 / 정산예정일: 2026-08-31 / 결제방식: 현금
     </div>
+    <div id="gwakStatus" style="margin-bottom:12px;padding:12px;background:rgba(59,130,246,0.1);border-radius:8px;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-weight:600;">현재 누적 금액:</span>
+        <span style="font-size:18px;font-weight:800;color:#3b82f6;" id="gwakCurrentAmount">0원</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-weight:600;">작업일 수:</span>
+        <span id="gwakWorkDaysCount">0일</span>
+      </div>
+      <button onclick="openGwakDetail()" style="width:100%;margin-top:10px;padding:8px;background:#fff;border:1px solid #3b82f6;color:#3b82f6;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">📅 작업일 관리 & 정산 히스토리</button>
+    </div>
     <div class="form-grid">
       <div class="field">
-        <label>작업일</label>
+        <label>작업일 추가</label>
         <input type="date" id="quick-workDate">
       </div>
-      <button class="save-btn" id="quickAddBtn" onclick="addQuickProject()" style="background:#3b82f6;">+ 빠른 등록</button>
+      <button class="save-btn" id="quickAddBtn" onclick="addGwakWorkDate()" style="background:#3b82f6;">+ 추가</button>
     </div>
   </div>
 
@@ -501,6 +578,48 @@
     <div class="cal-modal">
       <button class="cal-modal-close" onclick="closeDetail()">✕</button>
       <div id="calModalBody"></div>
+    </div>
+  </div>
+
+  <!-- 곽현 프로젝트 상세 모달 -->
+  <div class="cal-modal-overlay" id="gwakModalOverlay" onclick="if(event.target===this) closeGwakDetail()">
+    <div class="cal-modal" style="max-width:600px;">
+      <button class="cal-modal-close" onclick="closeGwakDetail()">✕</button>
+      <div id="gwakModalBody">
+        <h2>📅 곽현 프로젝트 관리</h2>
+
+        <div style="background:#f0f9ff;padding:16px;border-radius:12px;margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-weight:600;">현재 누적 금액:</span>
+            <span style="font-size:20px;font-weight:800;color:#3b82f6;" id="gwakModalAmount">0원</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-weight:600;">작업일 수:</span>
+            <span id="gwakModalDaysCount">0일</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <h3 style="font-size:15px;margin-bottom:10px;">📆 작업일 캘린더</h3>
+          <div id="gwakCalendarView"></div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <h3 style="font-size:15px;margin-bottom:10px;">📋 작업일 목록</h3>
+          <div id="gwakWorkDatesList" style="max-height:200px;overflow-y:auto;"></div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <button onclick="settleGwakProject()" style="width:100%;padding:12px;background:#10b981;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
+            ✅ 정산 완료 처리
+          </button>
+        </div>
+
+        <div>
+          <h3 style="font-size:15px;margin-bottom:10px;">📜 정산 히스토리</h3>
+          <div id="gwakHistoryList"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -940,61 +1059,329 @@ function toggleSettlementDate(){
   }
 }
 
-/* ---- 곽현 프로젝트 빠른 등록 ---- */
-async function addQuickProject(){
+/* ---- 곽현 프로젝트 관리 ---- */
+const GWAK_DAILY_RATE = 50000; // 일당 5만원
+let gwakProject = null;
+
+// 곽현 프로젝트 로드 또는 생성
+async function loadOrCreateGwakProject(){
+  const { data, error } = await sb.from('projects')
+    .select('*')
+    .eq('title', '곽현')
+    .eq('isAccumulative', true)
+    .single();
+
+  if(error && error.code !== 'PGRST116'){ // PGRST116 = no rows
+    console.error('곽현 프로젝트 조회 실패:', error);
+    return null;
+  }
+
+  if(data){
+    gwakProject = data;
+  } else {
+    // 곽현 프로젝트 생성
+    const newGwak = {
+      id: uid(),
+      title: '곽현',
+      manager: '곽현',
+      contact: '곽현',
+      paymentMethod: '현금',
+      startDate: todayStr(),
+      endDate: null,
+      settlementDate: '2026-08-31',
+      cost: 0,
+      currentAmount: 0,
+      memo: '규칙적인 일 (누적 방식)',
+      status: '작업중',
+      colorHue: 200,
+      ledgerSynced: false,
+      isRecurring: false,
+      isAccumulative: true,
+      workDates: [],
+      settlementHistory: [],
+      createdAt: new Date().toISOString()
+    };
+
+    const { data: inserted, error: insertError } = await sb.from('projects').insert(newGwak).select().single();
+    if(insertError){
+      console.error('곽현 프로젝트 생성 실패:', insertError);
+      return null;
+    }
+    gwakProject = inserted;
+  }
+
+  updateGwakUI();
+  return gwakProject;
+}
+
+// 곽현 프로젝트 UI 업데이트
+function updateGwakUI(){
+  if(!gwakProject) return;
+
+  const workDates = gwakProject.workDates || [];
+  const amount = workDates.length * GWAK_DAILY_RATE;
+
+  document.getElementById('gwakCurrentAmount').textContent = won(amount);
+  document.getElementById('gwakWorkDaysCount').textContent = workDates.length + '일';
+}
+
+// 작업일 추가
+async function addGwakWorkDate(){
   const workDate = document.getElementById('quick-workDate').value;
   if(!workDate){ alert('작업일을 선택해주세요.'); return; }
 
   const quickBtn = document.getElementById('quickAddBtn');
   quickBtn.disabled = true;
 
-  // 곽현 프로젝트의 recurringGroupId 찾기 (이미 등록된 곽현 프로젝트가 있으면 같은 그룹으로)
-  const existingGwak = projects.find(p => p.title === '곽현' && p.recurringGroupId);
-  const groupId = existingGwak ? existingGwak.recurringGroupId : uid();
+  if(!gwakProject){
+    await loadOrCreateGwakProject();
+  }
 
-  // 같은 날짜에 이미 등록된 곽현 프로젝트가 있는지 확인
-  const duplicate = projects.find(p =>
-    p.title === '곽현' &&
-    p.startDate === workDate &&
-    p.endDate === workDate
-  );
+  const workDates = gwakProject.workDates || [];
 
-  if(duplicate){
+  // 중복 체크
+  if(workDates.includes(workDate)){
     quickBtn.disabled = false;
-    alert('해당 날짜에 이미 곽현 프로젝트가 등록되어 있습니다.');
+    alert('이미 등록된 작업일입니다.');
     return;
   }
 
-  const newProject = {
-    id: uid(),
-    title: '곽현',
-    manager: '곽현',
-    contact: '곽현',
-    paymentMethod: '현금',
-    startDate: workDate,
-    endDate: workDate,
-    settlementDate: '2026-08-31',
-    cost: 50000,
-    memo: '규칙적인 일 (빠른 등록)',
-    status: '시작전',
-    colorHue: 200,
-    ledgerSynced: false,
-    isRecurring: true,
-    recurringGroupId: groupId,
-    createdAt: new Date().toISOString()
-  };
+  // 작업일 추가
+  const newWorkDates = [...workDates, workDate].sort();
+  const newAmount = newWorkDates.length * GWAK_DAILY_RATE;
 
-  const { error } = await sb.from('projects').insert(newProject);
+  const { error } = await sb.from('projects')
+    .update({
+      workDates: newWorkDates,
+      currentAmount: newAmount,
+      cost: newAmount
+    })
+    .eq('id', gwakProject.id);
+
   quickBtn.disabled = false;
 
   if(error){
-    alert("저장 실패: " + error.message);
+    alert('저장 실패: ' + error.message);
     return;
   }
 
-  document.getElementById('quick-workDate').value = "";
+  gwakProject.workDates = newWorkDates;
+  gwakProject.currentAmount = newAmount;
+  gwakProject.cost = newAmount;
+
+  document.getElementById('quick-workDate').value = '';
+  updateGwakUI();
   await loadProjects();
-  alert('곽현 프로젝트가 등록되었습니다!');
+  alert('작업일이 추가되었습니다!');
+}
+
+// 곽현 프로젝트 상세 모달 열기
+async function openGwakDetail(){
+  if(!gwakProject){
+    await loadOrCreateGwakProject();
+  }
+
+  const workDates = gwakProject.workDates || [];
+  const amount = workDates.length * GWAK_DAILY_RATE;
+  const history = gwakProject.settlementHistory || [];
+
+  document.getElementById('gwakModalAmount').textContent = won(amount);
+  document.getElementById('gwakModalDaysCount').textContent = workDates.length + '일';
+
+  // 작업일 목록
+  const datesListHtml = workDates.length > 0
+    ? workDates.map(d => `
+      <div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid var(--line);">
+        <span>${d}</span>
+        <button onclick="removeGwakWorkDate('${d}')" style="background:#ef4444;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">삭제</button>
+      </div>
+    `).join('')
+    : '<p style="color:var(--sub);text-align:center;padding:20px;">작업일이 없습니다.</p>';
+
+  document.getElementById('gwakWorkDatesList').innerHTML = datesListHtml;
+
+  // 정산 히스토리
+  const historyHtml = history.length > 0
+    ? history.map((h, idx) => {
+      const isLatest = idx === history.length - 1;
+      return `
+        <div style="padding:14px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;background:${isLatest ? '#f0fdf4' : '#fafafa'};">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-weight:700;">✅ ${h.settledAt} 정산완료</span>
+            ${isLatest ? '<span style="font-size:11px;background:#10b981;color:#fff;padding:2px 8px;border-radius:12px;">최근</span>' : ''}
+          </div>
+          <div style="font-size:13px;color:var(--sub);">
+            <div>금액: <strong>${won(h.amount)}</strong></div>
+            <div>작업일: ${h.workDates.length}일 (${h.workDates[0]} ~ ${h.workDates[h.workDates.length-1]})</div>
+            <div>결제: ${h.paymentMethod}</div>
+          </div>
+          ${isLatest ? `<button onclick="restoreGwakSettlement()" style="width:100%;margin-top:10px;padding:8px;background:#fff;border:1px solid #ef4444;color:#ef4444;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;">↩️ 이 정산 취소하기</button>` : ''}
+        </div>
+      `;
+    }).join('')
+    : '<p style="color:var(--sub);text-align:center;padding:20px;">정산 히스토리가 없습니다.</p>';
+
+  document.getElementById('gwakHistoryList').innerHTML = historyHtml;
+
+  document.getElementById('gwakModalOverlay').style.display = 'flex';
+}
+
+// 곽현 프로젝트 상세 모달 닫기
+function closeGwakDetail(){
+  document.getElementById('gwakModalOverlay').style.display = 'none';
+}
+
+// 작업일 삭제
+async function removeGwakWorkDate(dateStr){
+  if(!confirm(`${dateStr} 작업일을 삭제하시겠어요?`)) return;
+
+  const workDates = (gwakProject.workDates || []).filter(d => d !== dateStr);
+  const newAmount = workDates.length * GWAK_DAILY_RATE;
+
+  const { error } = await sb.from('projects')
+    .update({
+      workDates: workDates,
+      currentAmount: newAmount,
+      cost: newAmount
+    })
+    .eq('id', gwakProject.id);
+
+  if(error){
+    alert('삭제 실패: ' + error.message);
+    return;
+  }
+
+  gwakProject.workDates = workDates;
+  gwakProject.currentAmount = newAmount;
+  gwakProject.cost = newAmount;
+
+  updateGwakUI();
+  await loadProjects();
+  openGwakDetail(); // 모달 새로고침
+}
+
+// 정산 완료 처리
+async function settleGwakProject(){
+  const workDates = gwakProject.workDates || [];
+  if(workDates.length === 0){
+    alert('작업일이 없어서 정산할 금액이 없습니다.');
+    return;
+  }
+
+  const amount = workDates.length * GWAK_DAILY_RATE;
+  if(!confirm(`${won(amount)}을 정산 완료 처리하시겠어요?\n작업일이 ${workDates.length}일 리셋되고 히스토리에 저장됩니다.`)) return;
+
+  const history = gwakProject.settlementHistory || [];
+  const newHistoryItem = {
+    settledAt: todayStr(),
+    amount: amount,
+    workDates: [...workDates],
+    paymentMethod: gwakProject.paymentMethod
+  };
+
+  history.push(newHistoryItem);
+
+  // 가계부 반영 (현금은 누적만, 은행은 transactions 추가)
+  let ledgerSynced = false;
+  const ledgerPayment = LEDGER_PAYMENT_MAP[gwakProject.paymentMethod];
+  if(ledgerPayment){
+    const { error: txError } = await sb.from('transactions').insert({
+      date: todayStr(),
+      type: '수입',
+      scope: LEDGER_SCOPE_MAP[gwakProject.paymentMethod],
+      main: '기타소득',
+      category: '부업',
+      note: `곽현 프로젝트 정산 (${workDates.length}일)`,
+      amount: amount,
+      user_name: ledgerPayment,
+      payment: ledgerPayment
+    });
+    if(!txError) ledgerSynced = true;
+  }
+
+  // 프로젝트 업데이트 (작업일 리셋, 히스토리 저장)
+  const { error } = await sb.from('projects')
+    .update({
+      workDates: [],
+      currentAmount: 0,
+      cost: 0,
+      settlementHistory: history,
+      status: '정산완료',
+      ledgerSynced: ledgerSynced
+    })
+    .eq('id', gwakProject.id);
+
+  if(error){
+    alert('정산 실패: ' + error.message);
+    return;
+  }
+
+  gwakProject.workDates = [];
+  gwakProject.currentAmount = 0;
+  gwakProject.cost = 0;
+  gwakProject.settlementHistory = history;
+  gwakProject.status = '정산완료';
+
+  updateGwakUI();
+  await loadProjects();
+  closeGwakDetail();
+  alert('정산이 완료되었습니다!');
+}
+
+// 최근 정산 복구
+async function restoreGwakSettlement(){
+  const history = gwakProject.settlementHistory || [];
+  if(history.length === 0){
+    alert('복구할 정산이 없습니다.');
+    return;
+  }
+
+  const latest = history[history.length - 1];
+  if(!confirm(`${latest.settledAt} 정산(${won(latest.amount)})을 취소하고 작업일을 복구하시겠어요?`)) return;
+
+  // 히스토리에서 마지막 항목 제거
+  const newHistory = history.slice(0, -1);
+
+  // 작업일 복구
+  const currentWorkDates = gwakProject.workDates || [];
+  const restoredWorkDates = [...currentWorkDates, ...latest.workDates].sort();
+  const newAmount = restoredWorkDates.length * GWAK_DAILY_RATE;
+
+  // 가계부 거래 삭제 (ledgerSynced였다면)
+  const ledgerPayment = LEDGER_PAYMENT_MAP[gwakProject.paymentMethod];
+  if(ledgerPayment){
+    await sb.from('transactions').delete()
+      .eq('date', latest.settledAt)
+      .eq('note', `곽현 프로젝트 정산 (${latest.workDates.length}일)`);
+  }
+
+  // 프로젝트 업데이트
+  const { error } = await sb.from('projects')
+    .update({
+      workDates: restoredWorkDates,
+      currentAmount: newAmount,
+      cost: newAmount,
+      settlementHistory: newHistory,
+      status: '작업중',
+      ledgerSynced: false
+    })
+    .eq('id', gwakProject.id);
+
+  if(error){
+    alert('복구 실패: ' + error.message);
+    return;
+  }
+
+  gwakProject.workDates = restoredWorkDates;
+  gwakProject.currentAmount = newAmount;
+  gwakProject.cost = newAmount;
+  gwakProject.settlementHistory = newHistory;
+  gwakProject.status = '작업중';
+
+  updateGwakUI();
+  await loadProjects();
+  openGwakDetail(); // 모달 새로고침
+  alert('정산이 취소되고 작업일이 복구되었습니다!');
 }
 
 /* ---- 등록 ---- */
@@ -1172,6 +1559,7 @@ document.getElementById('in-startDate').addEventListener('change', function(){
 toggleSettlementDate();
 
 loadProjects();
+loadOrCreateGwakProject();
 </script>
 <script src="./auth-gate.js"></script>
 </body>
