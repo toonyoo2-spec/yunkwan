@@ -395,7 +395,15 @@
       </div>
       <div class="field">
         <label>주차장</label>
-        <input id="in-deadline" type="text" placeholder="예: 건물 내 무료주차 2시간">
+        <input id="in-parking" type="text" placeholder="예: 건물 내 무료주차 2시간">
+      </div>
+      <div class="field">
+        <label>마감일자</label>
+        <input id="in-deadline" type="date">
+      </div>
+      <div class="field">
+        <label>키워드</label>
+        <input id="in-keyword" type="text" placeholder="예: 강남맛집, OO맛집">
       </div>
       <div class="field">
         <label>상태</label>
@@ -438,6 +446,8 @@
             <th>주소</th>
             <th>예약문의</th>
             <th>주차장</th>
+            <th>마감일자</th>
+            <th>키워드</th>
             <th></th>
           </tr>
         </thead>
@@ -505,7 +515,9 @@ async function addItem(){
   const provide = document.getElementById('in-provide').value.trim();
   const address = document.getElementById('in-address').value.trim();
   const contact = document.getElementById('in-contact').value.trim();
-  const deadline = document.getElementById('in-deadline').value;
+  const parking = document.getElementById('in-parking').value.trim();
+  const deadline = document.getElementById('in-deadline').value || null;
+  const keyword = document.getElementById('in-keyword').value.trim();
   const status = document.getElementById('in-status').value;
   const platform = document.getElementById('in-platform').value;
 
@@ -513,7 +525,7 @@ async function addItem(){
 
   const newItem = {
     id: uid(),
-    region, name, provide, address, contact, deadline, status, platform,
+    region, name, provide, address, contact, parking, deadline, keyword, status, platform,
     resvDate: "", resvTime: ""
   };
 
@@ -528,7 +540,9 @@ async function addItem(){
   document.getElementById('in-provide').value = "";
   document.getElementById('in-address').value = "";
   document.getElementById('in-contact').value = "";
+  document.getElementById('in-parking').value = "";
   document.getElementById('in-deadline').value = "";
+  document.getElementById('in-keyword').value = "";
   document.getElementById('in-status').value = "wait";
   document.getElementById('in-platform').value = "디너의여왕";
 
@@ -574,14 +588,16 @@ async function updatePlatform(id, value){
 
 function startInlineEditSpan(span, id, field) {
   const wrap = span.closest('.editable-wrap');
-  const currentValue = span.textContent.trim();
-  const safeValue = currentValue.replace(/"/g, '&quot;');
+  const it = items.find(i => i.id === id);
+  const isDate = field === 'deadline';
+  const currentValue = isDate ? normalizeDate(it && it.deadline) : span.textContent.trim();
+  const safeValue = String(currentValue).replace(/"/g, '&quot;');
 
   wrap.innerHTML = `
-    <input type="text" class="inline-edit-input" 
-           value="${safeValue}" 
+    <input type="${isDate ? 'date' : 'text'}" class="inline-edit-input"
+           value="${safeValue}"
            placeholder="입력..."
-           onblur="saveInlineEdit('${id}', '${field}', this.value)" 
+           onblur="saveInlineEdit('${id}', '${field}', this.value)"
            onkeydown="if(event.key === 'Enter') this.blur()">
   `;
   const input = wrap.querySelector('input');
@@ -591,11 +607,12 @@ function startInlineEditSpan(span, id, field) {
 async function saveInlineEdit(id, field, value) {
   const it = items.find(i => i.id === id);
   if (!it) return;
-  if (it[field] === value) {
+  if ((it[field] || "") === value) {
     render();
     return;
   }
-  const { error } = await sb.from('campaigns').update({ [field]: value }).eq('id', id);
+  const payload = (field === 'deadline' && value === "") ? null : value;
+  const { error } = await sb.from('campaigns').update({ [field]: payload }).eq('id', id);
   if (error) {
     alert("업데이트 실패: " + error.message);
   }
@@ -704,7 +721,17 @@ function render(){
         </td>
         <td data-label="주차장">
           <div class="editable-wrap">
-            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'deadline')" title="클릭하여 수정">${escapeHtml(it.deadline) || '주차 정보'}</span>
+            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'parking')" title="클릭하여 수정">${escapeHtml(it.parking) || '주차 정보'}</span>
+          </div>
+        </td>
+        <td data-label="마감일자">
+          <div class="editable-wrap">
+            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'deadline')" title="클릭하여 수정">${escapeHtml(normalizeDate(it.deadline)) || '마감일 입력...'}</span>
+          </div>
+        </td>
+        <td data-label="키워드">
+          <div class="editable-wrap">
+            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'keyword')" title="클릭하여 수정">${escapeHtml(it.keyword) || '키워드 입력...'}</span>
           </div>
         </td>
         <td data-label=""><button class="del-btn" onclick="deleteItem('${it.id}')">✕</button></td>
