@@ -4,7 +4,7 @@
   - Supabase 등 외부 API 요청은 건드리지 않고 그대로 네트워크로 흘려보냅니다.
   - 전략: stale-while-revalidate (캐시 먼저 보여주고, 백그라운드에서 최신 파일로 갱신)
 */
-const CACHE_NAME = "borakwan-shell-v1";
+const CACHE_NAME = "borakwan-shell-v2";
 
 const SHELL_FILES = [
   "./index.html",
@@ -24,6 +24,7 @@ const SHELL_FILES = [
   "./icons/icon-512.png",
   "./icons/icon-maskable-192.png",
   "./icons/icon-maskable-512.png",
+  "./icons/apple-touch-icon.png",
 ];
 
 self.addEventListener("install", (event) => {
