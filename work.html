@@ -19,7 +19,7 @@
   /* ---- 상단 요약 카드 ---- */
   .stat-row{
     display:grid;
-    grid-template-columns:repeat(4, 1fr);
+    grid-template-columns:repeat(5, 1fr);
     gap:14px;
     margin-bottom:24px;
   }
@@ -456,6 +456,10 @@
     </div>
     <div class="stat-card cash">
       <div class="label">현금 누적</div>
+      <div class="value" id="statCashAccrued">0원</div>
+    </div>
+    <div class="stat-card cash">
+      <div class="label">현금 정산</div>
       <div class="value" id="statCash">0원</div>
     </div>
   </div>
@@ -782,6 +786,11 @@ function renderStats(){
   document.getElementById('statTotal').textContent = `${projects.length}건`;
   document.getElementById('statOngoing').textContent = `${projects.filter(p => p.status !== '정산완료').length}건`;
   document.getElementById('statSettled').textContent = `${projects.filter(p => p.status === '정산완료').length}건`;
+  const cashAccrued = projects
+    .filter(p => p.paymentMethod === '현금' && p.status !== '정산완료')
+    .reduce((s, p) => s + Number(p.cost || 0), 0);
+  document.getElementById('statCashAccrued').textContent = won(cashAccrued);
+
   const cash = projects
     .filter(p => p.paymentMethod === '현금' && p.status === '정산완료')
     .reduce((s, p) => s + Number(p.cost || 0), 0);
