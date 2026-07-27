@@ -166,6 +166,13 @@
   .wo-dot.gwan.done{background:var(--owner-gwan-ink);}
   .wo-dot.bora{border-color:var(--owner-bora-ink);}
   .wo-dot.bora.done{background:var(--owner-bora-ink);}
+  .wo-x{
+    font-size:6px;
+    line-height:1;
+    font-weight:800;
+    color:var(--owner-gwan-ink);
+    flex-shrink:0;
+  }
   .cal-event{
     font-size:10.5px;
     padding:2px 5px;
@@ -810,9 +817,12 @@ function calRender(){
     const gwanPlanned = workoutItems.some(w => w.date === dateStr && w.owner === '관');
     const boraPlanned = workoutItems.some(w => w.date === dateStr && w.owner === '보라');
     const isFuture = dateStr > todayStr;
+    const gwanMissed = !isFuture && dateStr !== todayStr && !gwanPlanned;
 
     workoutDotsHtml = `<div class="cal-workout-dots">
-      <span class="wo-dot gwan ${gwanPlanned?'done':''}" title="관 운동${isFuture?' 예정':(gwanPlanned?' 완료':' 안함')}"></span>
+      ${gwanMissed
+        ? `<span class="wo-x gwan" title="관 운동 안함">X</span>`
+        : `<span class="wo-dot gwan ${gwanPlanned?'done':''}" title="관 운동${isFuture?' 예정':(gwanPlanned?' 완료':' 안함')}"></span>`}
       <span class="wo-dot bora ${boraPlanned?'done':''}" title="보라 운동${isFuture?' 예정':(boraPlanned?' 완료':' 안함')}"></span>
     </div>`;
 
