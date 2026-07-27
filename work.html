@@ -600,8 +600,11 @@
         </div>
 
         <div style="margin-bottom:20px;">
-          <h3 style="font-size:15px;margin-bottom:10px;">📆 작업일 캘린더</h3>
-          <div id="gwakCalendarView"></div>
+          <h3 style="font-size:15px;margin-bottom:10px;">📆 작업일 추가</h3>
+          <div style="display:flex;gap:10px;">
+            <input type="date" id="gwakModalDateInput" style="flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;">
+            <button onclick="addGwakWorkDateFromModal()" style="padding:10px 20px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;">+ 추가</button>
+          </div>
         </div>
 
         <div style="margin-bottom:20px;">
@@ -1258,6 +1261,52 @@ async function removeGwakWorkDate(dateStr){
   updateGwakUI();
   await loadProjects();
   openGwakDetail(); // 모달 새로고침
+}
+
+// 모달에서 작업일 추가
+async function addGwakWorkDateFromModal(){
+  const dateInput = document.getElementById('gwakModalDateInput');
+  const workDate = dateInput.value;
+
+  if(!workDate){
+    alert('작업일을 선택해주세요.');
+    return;
+  }
+
+  const workDates = gwakProject.workDates || [];
+
+  // 중복 체크
+  if(workDates.includes(workDate)){
+    alert('이미 등록된 작업일입니다.');
+    return;
+  }
+
+  // 작업일 추가
+  const newWorkDates = [...workDates, workDate].sort();
+  const newAmount = newWorkDates.length * GWAK_DAILY_RATE;
+
+  const { error } = await sb.from('projects')
+    .update({
+      workDates: newWorkDates,
+      currentAmount: newAmount,
+      cost: newAmount
+    })
+    .eq('id', gwakProject.id);
+
+  if(error){
+    alert('저장 실패: ' + error.message);
+    return;
+  }
+
+  gwakProject.workDates = newWorkDates;
+  gwakProject.currentAmount = newAmount;
+  gwakProject.cost = newAmount;
+
+  dateInput.value = '';
+  updateGwakUI();
+  await loadProjects();
+  openGwakDetail(); // 모달 새로고침
+  alert('작업일이 추가되었습니다!');
 }
 
 // 정산 완료 처리

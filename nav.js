@@ -63,6 +63,7 @@
       font-size:18px;
       transition:transform .12s ease;
       flex-shrink:0;
+      display:none; /* PC에서는 숨김 */
     }
     #bkNav .bk-toggle:hover{
       transform:scale(1.05);
@@ -123,6 +124,7 @@
       #bkNav .bk-title{font-size:24px;}
       #bkNav.collapsed .bk-title{font-size:18px;}
       #bkNav .bk-toggle{
+        display:block; /* 모바일에서만 표시 */
         padding:6px 10px;
         font-size:16px;
         min-width:40px;
