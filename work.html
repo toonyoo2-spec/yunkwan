@@ -800,9 +800,6 @@ function renderCalendar(){
   const monthProjectIds = new Set();
 
   projects.forEach(p => {
-    // 곽현 프로젝트는 캘린더에 표시하지 않음
-    if(p.isAccumulative && p.title === '곽현') return;
-
     // 누적 방식 프로젝트 (곽현)는 workDates 배열의 각 날짜를 표시
     if(p.isAccumulative && p.workDates && p.workDates.length > 0){
       p.workDates.forEach(dateStr => {
@@ -862,7 +859,7 @@ function renderCalendar(){
   });
 
   const legend = document.getElementById('calLegend');
-  const monthProjects = projects.filter(p => monthProjectIds.has(p.id));
+  const monthProjects = projects.filter(p => monthProjectIds.has(p.id) && !(p.isAccumulative && p.title === '곽현'));
   legend.innerHTML = monthProjects.length === 0 ? '' : monthProjects.map(p => {
     const st = projStyle(p.colorHue);
     return `<span><i class="dot" style="background:${st.dot};"></i>${escapeHtml(p.title)}</span>`;
