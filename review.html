@@ -90,6 +90,68 @@
   }
   .add-btn:hover{opacity:0.9;}
 
+  .capture-drop{
+    border:1.5px dashed var(--line);
+    border-radius:10px;
+    padding:20px;
+    text-align:center;
+    cursor:pointer;
+    color:var(--sub);
+    font-size:13px;
+    position:relative;
+    background:#fafaf8;
+  }
+  .capture-drop input[type=file]{
+    position:absolute;
+    inset:0;
+    opacity:0;
+    cursor:pointer;
+  }
+  .upload-status{
+    font-size:11.5px;
+    color:var(--sub);
+    margin-top:6px;
+    min-height:14px;
+  }
+  .capture-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+    gap:10px;
+    margin-top:14px;
+  }
+  .capture-card{
+    position:relative;
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+    background:#fff;
+  }
+  .capture-card img{
+    width:100%;
+    height:110px;
+    object-fit:cover;
+    display:block;
+  }
+  .capture-badge{
+    position:absolute;
+    top:6px;
+    left:6px;
+    font-size:10.5px;
+    padding:3px 8px;
+    border-radius:20px;
+    font-weight:600;
+  }
+  .capture-badge.pending{ background:var(--wait-bg); color:var(--wait-ink); }
+  .capture-badge.done{ background:var(--conf-bg); color:var(--conf-ink); }
+  .capture-name{
+    font-size:10.5px;
+    color:var(--sub);
+    padding:5px 6px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
   .toolbar{
     display:flex;
     justify-content:space-between;
@@ -370,6 +432,16 @@
   </header>
 
   <div class="summary" id="summary"></div>
+
+  <div class="panel">
+    <h2>체험단 캡처 업로드</h2>
+    <div class="capture-drop" id="captureDrop">
+      <span>클릭해서 체험단 신청 캡처 이미지 선택 (여러 장 가능)</span>
+      <input type="file" accept="image/*" id="in-capture" multiple>
+    </div>
+    <div class="upload-status" id="captureStatus">업로드 후 알려주시면 내용을 분석해서 표에 반영해드려요. (기존 식당이면 빈칸만 채우고 상태/예약일시는 유지, 새 식당이면 예약대기로 새로 등록)</div>
+    <div class="capture-grid" id="captureGrid"></div>
+  </div>
 
   <div class="panel">
     <h2>새 체험단 등록</h2>
@@ -756,6 +828,64 @@ function hourOptions(selected){
   return opts;
 }
 
+
+const CAPTURE_BUCKET = 'review-uploads';
+
+function bindCaptureUpload(){
+  const input = document.getElementById('in-capture');
+  input.addEventListener('change', async function(e){
+    const files = Array.from(e.target.files || []);
+    if(!files.length) return;
+
+    const statusEl = document.getElementById('captureStatus');
+    let done = 0, failed = 0;
+    statusEl.textContent = `업로드 중... (0/${files.length})`;
+
+    for(const file of files){
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+      const path = `${uid()}.${ext}`;
+      const { error } = await sb.storage.from(CAPTURE_BUCKET)
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if(error) failed++;
+      done++;
+      statusEl.textContent = `업로드 중... (${done}/${files.length})`;
+    }
+
+    statusEl.textContent = failed
+      ? `업로드 완료 (${files.length - failed}장 성공, ${failed}장 실패)`
+      : `업로드 완료 ✓ (${files.length}장) — 확인 후 알려주시면 분석해서 표에 반영할게요.`;
+    input.value = '';
+    refreshCaptureGallery();
+  });
+}
+bindCaptureUpload();
+
+async function refreshCaptureGallery(){
+  const grid = document.getElementById('captureGrid');
+  const { data: objects, error } = await sb.storage.from(CAPTURE_BUCKET)
+    .list('', { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+  if(error || !objects){ grid.innerHTML = ''; return; }
+
+  const { data: logs } = await sb.from('review_upload_log').select('path,campaign_name');
+  const logMap = {};
+  (logs || []).forEach(l => logMap[l.path] = l);
+
+  grid.innerHTML = objects.filter(o => o.id).map(obj => {
+    const log = logMap[obj.name];
+    const { data: pub } = sb.storage.from(CAPTURE_BUCKET).getPublicUrl(obj.name);
+    const badge = log
+      ? `<span class="capture-badge done">분석완료</span>`
+      : `<span class="capture-badge pending">분석대기</span>`;
+    const caption = log && log.campaign_name ? escapeHtml(log.campaign_name) : '';
+    return `
+      <div class="capture-card">
+        ${badge}
+        <img src="${pub.publicUrl}" alt="">
+        <div class="capture-name">${caption}</div>
+      </div>`;
+  }).join('');
+}
+refreshCaptureGallery();
 
 async function loadInitialData(){
   const { data, error } = await sb.from('campaigns').select('*').order('id');
