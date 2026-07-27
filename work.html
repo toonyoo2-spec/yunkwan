@@ -826,38 +826,50 @@ function renderCalendar(){
   const monthProjectIds = new Set();
 
   projects.forEach(p => {
-    const dates = dateRange(p.startDate, p.endDate);
-    if(dates.length === 0) return;
-    globalStartStr[p.id] = dates[0];
-    globalEndStr[p.id] = dates[dates.length-1];
-
-    if(dates.length === 1){
-      const dateStr = dates[0];
-      const [ey, em] = dateStr.split('-').map(Number);
-      if(ey === y && em === m+1){
-        (byDate[dateStr] = byDate[dateStr] || []).push({ kind:'project', data:p });
-        monthProjectIds.add(p.id);
-      }
-    } else {
-      const inMonthDates = dates.filter(dateStr => {
+    // 누적 방식 프로젝트 (곽현)는 workDates 배열의 각 날짜를 표시
+    if(p.isAccumulative && p.workDates && p.workDates.length > 0){
+      p.workDates.forEach(dateStr => {
         const [ey, em] = dateStr.split('-').map(Number);
-        return ey === y && em === m+1;
+        if(ey === y && em === m+1){
+          (byDate[dateStr] = byDate[dateStr] || []).push({ kind:'project', data:p });
+          monthProjectIds.add(p.id);
+        }
       });
-      if(inMonthDates.length > 0){
-        let seg = null;
-        inMonthDates.forEach(dateStr => {
-          const rc = dateRowCol(dateStr, y, m);
-          if(!rc) return;
-          if(seg && seg.row === rc.row && seg.endCol === rc.col - 1){
-            seg.endCol = rc.col;
-            seg.dates.push(dateStr);
-          } else {
-            if(seg) (rowSegments[seg.row] = rowSegments[seg.row] || []).push(seg);
-            seg = { p, row: rc.row, startCol: rc.col, endCol: rc.col, dates:[dateStr] };
-          }
+    } else {
+      // 일반 프로젝트는 기존 방식대로
+      const dates = dateRange(p.startDate, p.endDate);
+      if(dates.length === 0) return;
+      globalStartStr[p.id] = dates[0];
+      globalEndStr[p.id] = dates[dates.length-1];
+
+      if(dates.length === 1){
+        const dateStr = dates[0];
+        const [ey, em] = dateStr.split('-').map(Number);
+        if(ey === y && em === m+1){
+          (byDate[dateStr] = byDate[dateStr] || []).push({ kind:'project', data:p });
+          monthProjectIds.add(p.id);
+        }
+      } else {
+        const inMonthDates = dates.filter(dateStr => {
+          const [ey, em] = dateStr.split('-').map(Number);
+          return ey === y && em === m+1;
         });
-        if(seg) (rowSegments[seg.row] = rowSegments[seg.row] || []).push(seg);
-        monthProjectIds.add(p.id);
+        if(inMonthDates.length > 0){
+          let seg = null;
+          inMonthDates.forEach(dateStr => {
+            const rc = dateRowCol(dateStr, y, m);
+            if(!rc) return;
+            if(seg && seg.row === rc.row && seg.endCol === rc.col - 1){
+              seg.endCol = rc.col;
+              seg.dates.push(dateStr);
+            } else {
+              if(seg) (rowSegments[seg.row] = rowSegments[seg.row] || []).push(seg);
+              seg = { p, row: rc.row, startCol: rc.col, endCol: rc.col, dates:[dateStr] };
+            }
+          });
+          if(seg) (rowSegments[seg.row] = rowSegments[seg.row] || []).push(seg);
+          monthProjectIds.add(p.id);
+        }
       }
     }
 

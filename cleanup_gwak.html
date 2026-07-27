@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>기존 곽현 프로젝트 정리</title>
+</head>
+<body>
+<h1>기존 곽현 프로젝트 정리 중...</h1>
+<div id="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script>
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+
+async function cleanupGwakProjects(){
+  const statusDiv = document.getElementById('status');
+
+  try {
+    // 모든 곽현 프로젝트 조회
+    const { data: allGwak, error: fetchError } = await sb
+      .from('projects')
+      .select('*')
+      .eq('title', '곽현');
+
+    if(fetchError){
+      statusDiv.innerHTML = '<p style="color:red;">조회 실패: ' + fetchError.message + '</p>';
+      return;
+    }
+
+    statusDiv.innerHTML = `<p>찾은 곽현 프로젝트: ${allGwak.length}개</p>`;
+
+    if(allGwak.length === 0){
+      statusDiv.innerHTML += '<p>삭제할 프로젝트가 없습니다.</p>';
+      return;
+    }
+
+    // 누적 방식이 아닌 곽현 프로젝트들 삭제 (isAccumulative가 false 또는 null인 것들)
+    const oldGwakIds = allGwak.filter(p => !p.isAccumulative).map(p => p.id);
+
+    if(oldGwakIds.length > 0){
+      const { error: deleteError } = await sb
+        .from('projects')
+        .delete()
+        .in('id', oldGwakIds);
+
+      if(deleteError){
+        statusDiv.innerHTML += '<p style="color:red;">삭제 실패: ' + deleteError.message + '</p>';
+        return;
+      }
+
+      statusDiv.innerHTML += `<p style="color:green;">✅ ${oldGwakIds.length}개의 기존 곽현 프로젝트를 삭제했습니다.</p>`;
+    }
+
+    // 누적 방식 곽현 프로젝트 확인
+    const accumulativeGwak = allGwak.find(p => p.isAccumulative);
+    if(accumulativeGwak){
+      statusDiv.innerHTML += `
+        <div style="margin-top:20px;padding:15px;background:#f0f9ff;border-radius:8px;">
+          <h3>누적 방식 곽현 프로젝트</h3>
+          <div><strong>현재 누적 금액:</strong> ${accumulativeGwak.currentAmount || 0}원</div>
+          <div><strong>작업일 수:</strong> ${(accumulativeGwak.workDates || []).length}일</div>
+          <div><strong>작업일:</strong> ${(accumulativeGwak.workDates || []).join(', ')}</div>
+        </div>
+      `;
+    }
+
+    statusDiv.innerHTML += '<p style="margin-top:20px;">work.html을 새로고침하세요!</p>';
+
+  } catch(err){
+    statusDiv.innerHTML = '<p style="color:red;">오류: ' + err.message + '</p>';
+  }
+}
+
+cleanupGwakProjects();
+</script>
+</body>
+</html>
