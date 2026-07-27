@@ -723,14 +723,18 @@ function render(){
 
   let list = filter === "all" ? items.slice() : items.filter(it => it.status === filter);
   const statusOrder = { confirm:0, wait:1, done:2, end:3 };
+  const deadlineKey = (it) => normalizeDate(it.deadline) || "9999-99-99";
   list.sort((a,b) => {
     const orderDiff = statusOrder[a.status] - statusOrder[b.status];
     if(orderDiff !== 0) return orderDiff;
 
     if(a.status === "confirm"){
-      const aKey = (normalizeDate(a.resvDate) || "9999-99-99") + " " + (a.resvTime || "99:99");
-      const bKey = (normalizeDate(b.resvDate) || "9999-99-99") + " " + (b.resvTime || "99:99");
+      const aKey = deadlineKey(a) + " " + (normalizeDate(a.resvDate) || "9999-99-99") + " " + (a.resvTime || "99:99");
+      const bKey = deadlineKey(b) + " " + (normalizeDate(b.resvDate) || "9999-99-99") + " " + (b.resvTime || "99:99");
       return aKey.localeCompare(bKey);
+    }
+    if(a.status === "wait"){
+      return deadlineKey(a).localeCompare(deadlineKey(b));
     }
     return 0;
   });
