@@ -120,7 +120,13 @@
         margin-bottom:18px;
         gap:10px;
       }
-      #bkNav .bk-title{font-size:30px;}
+      #bkNav .bk-title{font-size:24px;}
+      #bkNav.collapsed .bk-title{font-size:18px;}
+      #bkNav .bk-toggle{
+        padding:6px 10px;
+        font-size:16px;
+        min-width:40px;
+      }
       #bkNav .bk-grid{
         width:100%;
         display:grid;
