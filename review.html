@@ -164,11 +164,6 @@
     text-overflow:ellipsis;
     cursor:help;
   }
-  .wrap-cell{
-    white-space:normal;
-    max-width:180px;
-    line-height:1.4;
-  }
 
   .status-badge{
     display:inline-block;
@@ -288,7 +283,53 @@
   }
   .modal-del-btn:hover{border-color:#b3452f;color:#b3452f;}
 
-    
+  /* ---- 요약 팝업 ---- */
+  .name-cell{cursor:pointer;}
+  .name-cell:hover{text-decoration:underline;}
+  .detail-title{
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .detail-sub{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .detail-rows{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .detail-row{
+    display:flex;
+    gap:14px;
+    padding-bottom:12px;
+    border-bottom:1px solid var(--line);
+  }
+  .detail-row:last-child{border-bottom:none;padding-bottom:0;}
+  .detail-label{
+    flex:0 0 72px;
+    font-size:12px;
+    color:var(--sub);
+    font-weight:600;
+    padding-top:1px;
+  }
+  .detail-value{
+    flex:1;
+    font-size:13.5px;
+    line-height:1.5;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  .detail-actions{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:20px;
+  }
+
+
 /* ============================================================
    📱 모바일 반응형 최적화
    ============================================================ */
@@ -358,7 +399,7 @@
 
   tbody td .region-badge{ flex-shrink:0; }
 
-  .ellipsis-cell, .wrap-cell{ max-width:none; overflow:visible; text-overflow:clip; }
+  .ellipsis-cell{ max-width:none; overflow:visible; text-overflow:clip; }
 
   .edit-form-grid{ grid-template-columns:1fr; }
 }
@@ -547,6 +588,16 @@
   </div>
 </div>
 
+<div class="cal-modal-overlay" id="detailModalOverlay" onclick="if(event.target===this) closeDetailModal()">
+  <div class="cal-modal">
+    <button class="cal-modal-close" onclick="closeDetailModal()">✕</button>
+    <div id="detailModalBody"></div>
+    <div class="detail-actions">
+      <button class="modal-save-btn" onclick="editFromDetailModal()">수정하기</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
 <script src="./common.js"></script>
@@ -643,6 +694,7 @@ async function deleteItem(id){
 
 /* ---- 수정 모달 ---- */
 let editingId = null;
+let detailModalId = null;
 
 function openEditModal(id){
   const it = items.find(i => i.id === id);
@@ -721,6 +773,57 @@ async function deleteItemFromModal(){
   await loadInitialData();
 }
 
+/* ---- 요약 팝업 ---- */
+function openDetailModal(id){
+  const it = items.find(i => i.id === id);
+  if(!it) return;
+
+  const resvText = (it.status === "confirm" && normalizeDate(it.resvDate))
+    ? `${normalizeDate(it.resvDate)}${it.resvTime ? ' ' + it.resvTime : ''}`
+    : "";
+
+  const rows = [
+    ['지역', it.region],
+    ['제공내역', it.provide],
+    ['주소', it.address],
+    ['예약문의', it.contact],
+    ['주차장', it.parking],
+    ['마감일자', normalizeDate(it.deadline)],
+    ['키워드', it.keyword],
+    ['플랫폼', it.platform],
+  ].filter(([, v]) => v);
+
+  document.getElementById('detailModalBody').innerHTML = `
+    <div class="detail-title">${escapeHtml(it.name)}</div>
+    <div class="detail-sub">
+      <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
+      ${resvText ? `<span class="resv-text">${resvText}</span>` : ''}
+    </div>
+    <div class="detail-rows">
+      ${rows.map(([label, value]) => `
+        <div class="detail-row">
+          <div class="detail-label">${label}</div>
+          <div class="detail-value">${escapeHtml(value)}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  detailModalId = id;
+  document.getElementById('detailModalOverlay').classList.add('open');
+}
+
+function closeDetailModal(){
+  document.getElementById('detailModalOverlay').classList.remove('open');
+  detailModalId = null;
+}
+
+function editFromDetailModal(){
+  if(!detailModalId) return;
+  const id = detailModalId;
+  closeDetailModal();
+  openEditModal(id);
+}
+
 function setFilter(f){
   filter = f;
   render();
@@ -783,18 +886,18 @@ function render(){
     return `
       <tr>
         <td data-label="지역"><span class="region-badge">${it.region}</span></td>
-        <td data-label="체험단 이름" class="name-cell">${escapeHtml(it.name)}</td>
+        <td data-label="체험단 이름" class="name-cell" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기">${escapeHtml(it.name)}</td>
         <td data-label="제공내역" class="ellipsis-cell" title="${escapeHtml(it.provide)}">${escapeHtml(it.provide) || '-'}</td>
         <td data-label="상태/예약">
           <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
           ${resvText ? `<div class="resv-text">${resvText}</div>` : ''}
         </td>
         <td data-label="플랫폼">${escapeHtml(it.platform)}</td>
-        <td data-label="주소" class="wrap-cell">${escapeHtml(it.address) || '-'}</td>
+        <td data-label="주소" class="ellipsis-cell" title="${escapeHtml(it.address)}">${escapeHtml(it.address) || '-'}</td>
         <td data-label="예약문의">${escapeHtml(it.contact) || '-'}</td>
         <td data-label="주차장">${escapeHtml(it.parking) || '-'}</td>
         <td data-label="마감일자">${escapeHtml(normalizeDate(it.deadline)) || '-'}</td>
-        <td data-label="키워드" class="wrap-cell">${escapeHtml(it.keyword) || '-'}</td>
+        <td data-label="키워드" class="ellipsis-cell" title="${escapeHtml(it.keyword)}">${escapeHtml(it.keyword) || '-'}</td>
         <td data-label="" class="actions-cell">
           <button class="edit-btn" onclick="openEditModal('${it.id}')" title="수정">✏️</button>
           <button class="del-btn" onclick="deleteItem('${it.id}')" title="삭제">✕</button>
