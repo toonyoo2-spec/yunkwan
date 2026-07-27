@@ -844,8 +844,8 @@ function render(){
     if(orderDiff !== 0) return orderDiff;
 
     if(a.status === "confirm"){
-      const aKey = deadlineKey(a) + " " + (normalizeDate(a.resvDate) || "9999-99-99") + " " + (a.resvTime || "99:99");
-      const bKey = deadlineKey(b) + " " + (normalizeDate(b.resvDate) || "9999-99-99") + " " + (b.resvTime || "99:99");
+      const aKey = (normalizeDate(a.resvDate) || "9999-99-99") + " " + (a.resvTime || "99:99");
+      const bKey = (normalizeDate(b.resvDate) || "9999-99-99") + " " + (b.resvTime || "99:99");
       return aKey.localeCompare(bKey);
     }
     if(a.status === "wait" || a.status === "done"){
