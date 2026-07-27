@@ -6,7 +6,7 @@
     배포 직후에도 새로고침 한 번으로 바로 최신 내용이 보이게 합니다.
   - CSS/JS/아이콘 등 정적 파일만 stale-while-revalidate(캐시 먼저 보여주고 백그라운드 갱신)로 처리합니다.
 */
-const CACHE_NAME = "borakwan-shell-v3";
+const CACHE_NAME = "borakwan-shell-v4";
 
 const SHELL_FILES = [
   "./index.html",
@@ -56,7 +56,10 @@ self.addEventListener("fetch", (event) => {
 
   if (isHtml) {
     event.respondWith(
-      fetch(req)
+      // cache:'no-store'로 브라우저 HTTP 캐시까지 건너뛰고 항상 원본 서버에서 새로 받아온다.
+      // (안 하면 network-first라고 해도 GitHub Pages의 Cache-Control 때문에
+      //  브라우저가 자체 HTTP 캐시에서 응답을 내줘버려 배포 직후에도 옛 화면이 보일 수 있음)
+      fetch(req, { cache: "no-store" })
         .then((res) => {
           if (res && res.ok) {
             caches.open(CACHE_NAME).then((cache) => cache.put(req, res.clone()));
