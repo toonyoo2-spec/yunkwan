@@ -439,7 +439,8 @@
       <span>클릭해서 체험단 신청 캡처 이미지 선택 (여러 장 가능)</span>
       <input type="file" accept="image/*" id="in-capture" multiple>
     </div>
-    <div class="upload-status" id="captureStatus">업로드 후 알려주시면 내용을 분석해서 표에 반영해드려요. (기존 식당이면 빈칸만 채우고 상태/예약일시는 유지, 새 식당이면 예약대기로 새로 등록)</div>
+    <button class="add-btn" id="analyzeBtn" onclick="analyzeCaptures()" style="margin-top:10px;">지금 분석하기</button>
+    <div class="upload-status" id="captureStatus">캡처를 올려두고 "지금 분석하기"를 누르면, 기존 식당이면 빈칸만 채우고 상태/예약일시는 유지한 채, 새 식당이면 예약대기로 새로 등록해드려요.</div>
     <div class="capture-grid" id="captureGrid"></div>
   </div>
 
@@ -857,12 +858,44 @@ function bindCaptureUpload(){
 
     statusEl.textContent = failed
       ? `업로드 완료 (${files.length - failed}장 성공, ${failed}장 실패)`
-      : `업로드 완료 ✓ (${files.length}장) — 확인 후 알려주시면 분석해서 표에 반영할게요.`;
+      : `업로드 완료 ✓ (${files.length}장) — "지금 분석하기"를 눌러주세요.`;
     input.value = '';
     refreshCaptureGallery();
   });
 }
 bindCaptureUpload();
+
+async function analyzeCaptures(){
+  const btn = document.getElementById('analyzeBtn');
+  const statusEl = document.getElementById('captureStatus');
+  btn.disabled = true;
+  statusEl.textContent = "분석 중... 이미지 수에 따라 시간이 걸릴 수 있어요.";
+
+  try{
+    const { data, error } = await sb.functions.invoke('process-review-capture', { method: 'POST' });
+    if(error){
+      statusEl.textContent = "분석 요청 실패: " + error.message;
+    } else if(data && data.error){
+      statusEl.textContent = "분석 실패: " + data.error;
+    } else {
+      const list = (data && data.results) || [];
+      const created = list.filter(r => r.action === 'created').length;
+      const matched = list.filter(r => r.action === 'matched').length;
+      const failed = list.filter(r => r.error).length;
+      if(list.length === 0){
+        statusEl.textContent = "분석할 새 캡처가 없어요.";
+      } else {
+        statusEl.textContent = `분석 완료 — 신규 등록 ${created}건, 기존 정보 보완 ${matched}건` + (failed ? `, 실패 ${failed}건` : '');
+      }
+      loadInitialData();
+      refreshCaptureGallery();
+    }
+  } catch(err){
+    statusEl.textContent = "분석 요청 실패: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
 
 async function refreshCaptureGallery(){
   const grid = document.getElementById('captureGrid');
