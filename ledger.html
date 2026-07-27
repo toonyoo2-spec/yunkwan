@@ -445,6 +445,11 @@ tr.edit-row td{padding:12px 10px;}
   border:1px solid var(--line-strong);border-radius:100px;padding:6px 12px;font-size:12px;
   background:var(--surface);color:var(--ink);width:160px;
 }
+@media (max-width:480px){
+  /* 좁은 화면에서는 margin-left:auto로 인해 검색창이 어색하게 치우쳐 보이므로,
+     자기 줄을 온전히 차지하도록 함 */
+  .note-search{width:100%;flex:1 1 100%;margin-left:0 !important;box-sizing:border-box;}
+}
 
 /* ---- 캘린더 셀 클릭 ---- */
 .cal-cell{cursor:pointer;transition:.12s ease;}
