@@ -178,18 +178,6 @@
   .status-end{background:var(--end-bg);color:var(--end-ink);}
   .resv-text{font-size:11.5px;color:var(--sub);margin-top:3px;white-space:nowrap;}
 
-  .actions-cell{display:flex;gap:6px;justify-content:flex-end;}
-  .del-btn{
-    background:none;
-    border:none;
-    color:#b7b5ac;
-    cursor:pointer;
-    font-size:16px;
-    line-height:1;
-    padding:2px 4px;
-  }
-  .del-btn:hover{color:#b3452f;}
-
   /* ---- 수정 모달 ---- */
   .cal-modal-overlay{
     display:none;
@@ -316,7 +304,8 @@
   }
   .detail-actions{
     display:flex;
-    justify-content:flex-end;
+    justify-content:space-between;
+    gap:10px;
     margin-top:20px;
   }
 
@@ -376,9 +365,7 @@
     text-align: left;
   }
   
-  tbody td:not([data-label]) ::before,
-  tbody td[data-label=""]::before{ display:none; }
-  tbody td[data-label=""]{ justify-content:flex-end; }
+  tbody td:not([data-label]) ::before{ display:none; }
 
   tbody td select,
   tbody td input{
@@ -493,7 +480,6 @@
             <th>주차장</th>
             <th>마감일자</th>
             <th>키워드</th>
-            <th></th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -584,6 +570,7 @@
     <button class="cal-modal-close" onclick="closeDetailModal()">✕</button>
     <div id="detailModalBody"></div>
     <div class="detail-actions">
+      <button class="modal-del-btn" onclick="deleteFromDetailModal()">삭제하기</button>
       <button class="modal-save-btn" onclick="editFromDetailModal()">수정하기</button>
     </div>
   </div>
@@ -671,16 +658,6 @@ async function addItem(){
   document.getElementById('in-platform').value = "디너의여왕";
 
   render();
-}
-
-async function deleteItem(id){
-  if(!confirm('이 체험단을 삭제할까요?')) return;
-  const { error } = await sb.from('campaigns').delete().eq('id', id);
-  if (error) {
-    alert("삭제 실패: " + error.message);
-    return;
-  }
-  await loadInitialData();
 }
 
 /* ---- 수정 모달 ---- */
@@ -815,6 +792,18 @@ function editFromDetailModal(){
   openEditModal(id);
 }
 
+async function deleteFromDetailModal(){
+  if(!detailModalId) return;
+  if(!confirm('이 체험단을 삭제할까요?')) return;
+  const { error } = await sb.from('campaigns').delete().eq('id', detailModalId);
+  if (error) {
+    alert("삭제 실패: " + error.message);
+    return;
+  }
+  closeDetailModal();
+  await loadInitialData();
+}
+
 function setFilter(f){
   filter = f;
   render();
@@ -889,9 +878,6 @@ function render(){
         <td data-label="주차장">${escapeHtml(it.parking) || '-'}</td>
         <td data-label="마감일자">${escapeHtml(normalizeDate(it.deadline)) || '-'}</td>
         <td data-label="키워드" class="ellipsis-cell" title="${escapeHtml(it.keyword)}">${escapeHtml(it.keyword) || '-'}</td>
-        <td data-label="" class="actions-cell">
-          <button class="del-btn" onclick="deleteItem('${it.id}')" title="삭제">✕</button>
-        </td>
       </tr>
     `;
   }).join('');
