@@ -453,6 +453,9 @@
             <option value="놀러와체험단">놀러와체험단</option>
             <option value="레뷰">레뷰</option>
             <option value="데일리뷰">데일리뷰</option>
+            <option value="파블로체험단">파블로체험단</option>
+            <option value="서울오빠">서울오빠</option>
+            <option value="강남맛집">강남맛집</option>
             <option value="기타">기타</option>
           </select>
         </div>
@@ -534,6 +537,9 @@
           <option value="놀러와체험단">놀러와체험단</option>
           <option value="레뷰">레뷰</option>
           <option value="데일리뷰">데일리뷰</option>
+          <option value="파블로체험단">파블로체험단</option>
+          <option value="서울오빠">서울오빠</option>
+          <option value="강남맛집">강남맛집</option>
           <option value="기타">기타</option>
         </select>
       </div>
@@ -606,7 +612,7 @@ const statusMeta = {
   end:     { label:"종료",       cls:"status-end" }
 };
 
-const platformList = ["디너의여왕","리뷰노트","놀러와체험단","레뷰","데일리뷰","기타"];
+const platformList = ["디너의여왕","리뷰노트","놀러와체험단","레뷰","데일리뷰","파블로체험단","서울오빠","강남맛집","기타"];
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -842,7 +848,7 @@ function render(){
       const bKey = deadlineKey(b) + " " + (normalizeDate(b.resvDate) || "9999-99-99") + " " + (b.resvTime || "99:99");
       return aKey.localeCompare(bKey);
     }
-    if(a.status === "wait"){
+    if(a.status === "wait" || a.status === "done"){
       return deadlineKey(a).localeCompare(deadlineKey(b));
     }
     return 0;
