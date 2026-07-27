@@ -115,7 +115,7 @@
     }
     #bkNav .bk-label{font-size:15.5px;font-weight:700;white-space:nowrap;}
 
-    @media (max-width:640px){
+    @media (max-width:900px){
       #bkNav{
         padding:12px 0 16px;
         margin-bottom:18px;
