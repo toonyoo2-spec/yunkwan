@@ -52,15 +52,20 @@
     
   .form-grid{
     display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .form-row{
+    display:flex;
     flex-wrap:wrap;
     gap:10px;
     align-items:end;
   }
-  .form-grid .field{
+  .form-row .field{
     flex:1 1 170px;
   }
-  .form-grid .field:has(select),
-  .form-grid .field:has(input[type=date]){
+  .form-row .field:has(select),
+  .form-row .field:has(input[type=date]){
     flex:0 1 130px;
   }
     input,select{
@@ -200,10 +205,10 @@
     padding:10px 10px;
     border-bottom:1px solid var(--line);
     vertical-align:middle;
-    white-space: nowrap !important;
+    white-space: nowrap;
   }
   tbody tr:hover{background:#fafaf7;}
-  
+
   .region-badge{
     font-size:11.5px;
     padding:2px 8px;
@@ -213,95 +218,43 @@
     white-space:nowrap;
   }
 
-  .editable-wrap {
-    display: block;
-    width: 100%;
-    min-height: 24px;
+  .name-cell{font-weight:600;}
+
+  .ellipsis-cell{
+    max-width:150px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    cursor:help;
   }
-  .val-span {
-    display: inline-block;
-    width: 100%;
-    padding: 3px 6px;
-    border-radius: 4px;
-    cursor: pointer;
-    white-space: nowrap !important;
-    border: 1px solid transparent;
-    transition: all 0.15s ease;
-  }
-  .val-span:hover {
-    background: #f0eee6;
-    border-color: var(--line);
-  }
-  .name-cell .val-span {
-    font-weight: 600;
+  .wrap-cell{
+    white-space:normal;
+    max-width:180px;
+    line-height:1.4;
   }
 
-  .inline-edit-input {
-    width: 100%;
-    padding: 4px 6px;
-    border: 1px solid var(--accent);
-    border-radius: 4px;
-    font-size: 13px;
-    font-family: inherit;
-    outline: none;
-    box-sizing: border-box;
-  }
-
-  /* 상태 셀 및 예약일시 정렬 컨테이너 */
-  .status-cell-content {
-    display: inline-flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 220px; /* 날짜(125) + 시간(85) + 간격(6) 대략의 폭에 맞춤 */
-  }
-
-  .status-select{
+  .status-badge{
+    display:inline-block;
     font-size:12px;
-    padding:6px 8px;
+    padding:4px 9px;
     border-radius:6px;
-    border:1px solid transparent;
     font-weight:600;
-    cursor:pointer;
-    width:100%;
   }
   .status-wait{background:var(--wait-bg);color:var(--wait-ink);}
   .status-confirm{background:var(--conf-bg);color:var(--conf-ink);}
   .status-done{background:var(--done-bg);color:var(--done-ink);}
   .status-end{background:var(--end-bg);color:var(--end-ink);}
+  .resv-text{font-size:11.5px;color:var(--sub);margin-top:3px;white-space:nowrap;}
 
-  .platform-select{
-    font-size:12px;
-    padding:6px 8px;
-    border-radius:6px;
-    border:1px solid var(--line);
-    background:#f5f4f0;
-    color:var(--ink);
+  .actions-cell{display:flex;gap:6px;justify-content:flex-end;}
+  .edit-btn{
+    background:none;
+    border:none;
     cursor:pointer;
-    width:100%;
+    font-size:15px;
+    line-height:1;
+    padding:2px 4px;
   }
-
-  .resv-row {
-    display:flex;
-    gap:6px;
-    width: 100%;
-  }
-  .resv-input {
-    font-size:12px;
-    padding:6px 6px;
-    border:1px solid var(--line);
-    border-radius:6px;
-    box-sizing: border-box;
-    background: #fff;
-  }
-  .date-short {
-    width: 130px;
-    flex-shrink: 0;
-  }
-  .time-short {
-    width: 84px;
-    flex-shrink: 0;
-  }
-
+  .edit-btn:hover{opacity:0.7;}
   .del-btn{
     background:none;
     border:none;
@@ -309,8 +262,93 @@
     cursor:pointer;
     font-size:16px;
     line-height:1;
+    padding:2px 4px;
   }
   .del-btn:hover{color:#b3452f;}
+
+  /* ---- 수정 모달 ---- */
+  .cal-modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.45);
+    z-index:9998;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .cal-modal-overlay.open{display:flex;}
+  .cal-modal{
+    background:#fff;
+    border-radius:16px;
+    padding:26px;
+    max-width:560px;
+    width:100%;
+    max-height:90vh;
+    overflow-y:auto;
+    position:relative;
+  }
+  .cal-modal-close{
+    position:absolute;
+    top:16px;right:16px;
+    background:none;
+    border:none;
+    font-size:16px;
+    color:var(--sub);
+    cursor:pointer;
+  }
+  .cal-modal-title{font-size:17px;font-weight:700;margin-bottom:16px;}
+  .edit-form-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .edit-form-grid .field.full{grid-column:1/-1;}
+  .edit-form-grid label{
+    display:block;
+    font-size:12px;
+    color:var(--sub);
+    margin-bottom:4px;
+  }
+  .edit-form-grid textarea{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:13.5px;
+    font-family:inherit;
+    resize:vertical;
+    min-height:52px;
+    box-sizing:border-box;
+  }
+  .edit-resv-row{display:flex;gap:8px;}
+  .modal-actions{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    margin-top:20px;
+  }
+  .modal-save-btn{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:10px 24px;
+    border-radius:7px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .modal-save-btn:hover{opacity:0.9;}
+  .modal-del-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--sub);
+    padding:10px 16px;
+    border-radius:7px;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .modal-del-btn:hover{border-color:#b3452f;color:#b3452f;}
 
     
 /* ============================================================
@@ -382,42 +420,9 @@
 
   tbody td .region-badge{ flex-shrink:0; }
 
-  .editable-wrap{ flex:1 1 auto; min-width:0; }
-  .val-span { white-space: normal !important; }
+  .ellipsis-cell, .wrap-cell{ max-width:none; overflow:visible; text-overflow:clip; }
 
-  .status-cell-content {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    flex: 1 1 auto;
-    width: 100%;
-  }
-
-  .status-cell-content .status-select {
-    width: 100% !important;
-    font-size: 13px !important;
-    padding: 7px 10px !important;
-  }
-
-  .status-cell-content .resv-row {
-    width: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-    margin-top: 0 !important;
-  }
-
-  .status-cell-content .date-short {
-    width: 100% !important;
-    font-size: 12px !important;
-    padding: 7px 8px !important;
-  }
-
-  .status-cell-content .time-short {
-    width: 100% !important;
-    font-size: 12px !important;
-    padding: 7px 8px !important;
-  }
+  .edit-form-grid{ grid-template-columns:1fr; }
 }
 </style>
 </head>
@@ -447,60 +452,64 @@
   <div class="panel">
     <h2>새 체험단 등록</h2>
     <div class="form-grid">
-      <div class="field">
-        <label>지역</label>
-        <select id="in-region">
-          <option value="서울">서울</option>
-          <option value="경기">경기</option>
-        </select>
+      <div class="form-row">
+        <div class="field">
+          <label>지역</label>
+          <select id="in-region">
+            <option value="서울">서울</option>
+            <option value="경기">경기</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>체험단 이름</label>
+          <input id="in-name" placeholder="예: OO 맛집 체험단">
+        </div>
+        <div class="field">
+          <label>제공내역</label>
+          <input id="in-provide" placeholder="예: 식사 2인 + 원고료 5만원">
+        </div>
+        <div class="field">
+          <label>주소</label>
+          <input id="in-address" placeholder="예: 서울시 강남구 ...">
+        </div>
+        <div class="field">
+          <label>예약문의</label>
+          <input id="in-contact" placeholder="예: 010-1234-5678">
+        </div>
       </div>
-      <div class="field">
-        <label>체험단 이름</label>
-        <input id="in-name" placeholder="예: OO 맛집 체험단">
-      </div>
-      <div class="field">
-        <label>제공내역</label>
-        <input id="in-provide" placeholder="예: 식사 2인 + 원고료 5만원">
-      </div>
-      <div class="field">
-        <label>주소</label>
-        <input id="in-address" placeholder="예: 서울시 강남구 ...">
-      </div>
-      <div class="field">
-        <label>예약문의</label>
-        <input id="in-contact" placeholder="예: 010-1234-5678">
-      </div>
-      <div class="field">
-        <label>주차장</label>
-        <input id="in-parking" type="text" placeholder="예: 건물 내 무료주차 2시간">
-      </div>
-      <div class="field">
-        <label>마감일자</label>
-        <input id="in-deadline" type="date">
-      </div>
-      <div class="field">
-        <label>키워드</label>
-        <input id="in-keyword" type="text" placeholder="예: 강남맛집, OO맛집">
-      </div>
-      <div class="field">
-        <label>상태</label>
-        <select id="in-status">
-          <option value="wait">예약대기</option>
-          <option value="confirm">예약완료</option>
-          <option value="done">체험완료</option>
-          <option value="end">종료</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>플랫폼</label>
-        <select id="in-platform">
-          <option value="디너의여왕">디너의여왕</option>
-          <option value="리뷰노트">리뷰노트</option>
-          <option value="놀러와체험단">놀러와체험단</option>
-          <option value="레뷰">레뷰</option>
-          <option value="데일리뷰">데일리뷰</option>
-          <option value="기타">기타</option>
-        </select>
+      <div class="form-row">
+        <div class="field">
+          <label>주차장</label>
+          <input id="in-parking" type="text" placeholder="예: 건물 내 무료주차 2시간">
+        </div>
+        <div class="field">
+          <label>마감일자</label>
+          <input id="in-deadline" type="date">
+        </div>
+        <div class="field">
+          <label>키워드</label>
+          <input id="in-keyword" type="text" placeholder="예: 강남맛집, OO맛집">
+        </div>
+        <div class="field">
+          <label>상태</label>
+          <select id="in-status">
+            <option value="wait">예약대기</option>
+            <option value="confirm">예약완료</option>
+            <option value="done">체험완료</option>
+            <option value="end">종료</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>플랫폼</label>
+          <select id="in-platform">
+            <option value="디너의여왕">디너의여왕</option>
+            <option value="리뷰노트">리뷰노트</option>
+            <option value="놀러와체험단">놀러와체험단</option>
+            <option value="레뷰">레뷰</option>
+            <option value="데일리뷰">데일리뷰</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
       </div>
     </div>
     <button class="add-btn" onclick="addItem()">+ 추가하기</button>
@@ -518,7 +527,7 @@
             <th>지역</th>
             <th>체험단 이름</th>
             <th>제공내역</th>
-            <th>상태 / 예약일시</th>
+            <th>상태/예약</th>
             <th>플랫폼</th>
             <th>주소</th>
             <th>예약문의</th>
@@ -534,6 +543,81 @@
     <div class="empty" id="emptyMsg" style="display:none;">등록된 체험단이 없습니다.</div>
   </div>
 
+</div>
+
+<div class="cal-modal-overlay" id="editModalOverlay" onclick="if(event.target===this) closeEditModal()">
+  <div class="cal-modal">
+    <button class="cal-modal-close" onclick="closeEditModal()">✕</button>
+    <h3 class="cal-modal-title">체험단 수정</h3>
+    <div class="edit-form-grid">
+      <div class="field">
+        <label>지역</label>
+        <select id="edit-region">
+          <option value="서울">서울</option>
+          <option value="경기">경기</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>체험단 이름</label>
+        <input id="edit-name">
+      </div>
+      <div class="field full">
+        <label>제공내역</label>
+        <textarea id="edit-provide"></textarea>
+      </div>
+      <div class="field">
+        <label>상태</label>
+        <select id="edit-status" onchange="onEditStatusChange()">
+          <option value="wait">예약대기</option>
+          <option value="confirm">예약완료</option>
+          <option value="done">체험완료</option>
+          <option value="end">종료</option>
+        </select>
+      </div>
+      <div class="field" id="edit-resv-wrap" style="display:none;">
+        <label>예약일시</label>
+        <div class="edit-resv-row">
+          <input type="date" id="edit-resvDate">
+          <select id="edit-resvTime"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>플랫폼</label>
+        <select id="edit-platform">
+          <option value="디너의여왕">디너의여왕</option>
+          <option value="리뷰노트">리뷰노트</option>
+          <option value="놀러와체험단">놀러와체험단</option>
+          <option value="레뷰">레뷰</option>
+          <option value="데일리뷰">데일리뷰</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>주소</label>
+        <input id="edit-address">
+      </div>
+      <div class="field">
+        <label>예약문의</label>
+        <input id="edit-contact">
+      </div>
+      <div class="field">
+        <label>주차장</label>
+        <input id="edit-parking">
+      </div>
+      <div class="field">
+        <label>마감일자</label>
+        <input type="date" id="edit-deadline">
+      </div>
+      <div class="field full">
+        <label>키워드</label>
+        <input id="edit-keyword">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-del-btn" onclick="deleteItemFromModal()">삭제</button>
+      <button class="modal-save-btn" onclick="saveEditModal()">저장</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -567,12 +651,6 @@ const statusMeta = {
 };
 
 const platformList = ["디너의여왕","리뷰노트","놀러와체험단","레뷰","데일리뷰","기타"];
-
-function platformOptions(selected){
-  return platformList.map(p =>
-    `<option value="${p}" ${p===selected?'selected':''}>${p}</option>`
-  ).join('');
-}
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -636,63 +714,83 @@ async function deleteItem(id){
   await loadInitialData();
 }
 
-async function updateStatus(id, value){
-  const { error } = await sb.from('campaigns').update({ status: value }).eq('id', id);
-  if (error) {
-    alert("업데이트 실패: " + error.message);
-    return;
-  }
-  await loadInitialData();
-}
+/* ---- 수정 모달 ---- */
+let editingId = null;
 
-async function updateResv(id, field, value){
-  const { error } = await sb.from('campaigns').update({ [field]: value }).eq('id', id);
-  if (error) {
-    alert("업데이트 실패: " + error.message);
-    return;
-  }
-  await loadInitialData();
-}
-
-async function updatePlatform(id, value){
-  const { error } = await sb.from('campaigns').update({ platform: value }).eq('id', id);
-  if (error) {
-    alert("업데이트 실패: " + error.message);
-    return;
-  }
-  await loadInitialData();
-}
-
-function startInlineEditSpan(span, id, field) {
-  const wrap = span.closest('.editable-wrap');
+function openEditModal(id){
   const it = items.find(i => i.id === id);
-  const isDate = field === 'deadline';
-  const currentValue = isDate ? normalizeDate(it && it.deadline) : span.textContent.trim();
-  const safeValue = String(currentValue).replace(/"/g, '&quot;');
+  if(!it) return;
+  editingId = id;
 
-  wrap.innerHTML = `
-    <input type="${isDate ? 'date' : 'text'}" class="inline-edit-input"
-           value="${safeValue}"
-           placeholder="입력..."
-           onblur="saveInlineEdit('${id}', '${field}', this.value)"
-           onkeydown="if(event.key === 'Enter') this.blur()">
-  `;
-  const input = wrap.querySelector('input');
-  input.focus();
+  document.getElementById('edit-region').value = it.region || '서울';
+  document.getElementById('edit-name').value = it.name || '';
+  document.getElementById('edit-provide').value = it.provide || '';
+  document.getElementById('edit-status').value = it.status || 'wait';
+  document.getElementById('edit-platform').value = it.platform || platformList[0];
+  document.getElementById('edit-address').value = it.address || '';
+  document.getElementById('edit-contact').value = it.contact || '';
+  document.getElementById('edit-parking').value = it.parking || '';
+  document.getElementById('edit-deadline').value = normalizeDate(it.deadline);
+  document.getElementById('edit-keyword').value = it.keyword || '';
+  document.getElementById('edit-resvDate').value = normalizeDate(it.resvDate);
+  document.getElementById('edit-resvTime').innerHTML = '<option value="">시간</option>' + hourOptions(it.resvTime);
+
+  onEditStatusChange();
+  document.getElementById('editModalOverlay').classList.add('open');
 }
 
-async function saveInlineEdit(id, field, value) {
-  const it = items.find(i => i.id === id);
-  if (!it) return;
-  if ((it[field] || "") === value) {
-    render();
+function closeEditModal(){
+  document.getElementById('editModalOverlay').classList.remove('open');
+  editingId = null;
+}
+
+function onEditStatusChange(){
+  const isConfirm = document.getElementById('edit-status').value === 'confirm';
+  document.getElementById('edit-resv-wrap').style.display = isConfirm ? '' : 'none';
+}
+
+async function saveEditModal(){
+  if(!editingId) return;
+
+  const name = document.getElementById('edit-name').value.trim();
+  if(!name){ alert('체험단 이름을 입력해주세요.'); return; }
+
+  const status = document.getElementById('edit-status').value;
+  const payload = {
+    region: document.getElementById('edit-region').value,
+    name,
+    provide: document.getElementById('edit-provide').value.trim(),
+    status,
+    platform: document.getElementById('edit-platform').value,
+    address: document.getElementById('edit-address').value.trim(),
+    contact: document.getElementById('edit-contact').value.trim(),
+    parking: document.getElementById('edit-parking').value.trim(),
+    deadline: document.getElementById('edit-deadline').value || null,
+    keyword: document.getElementById('edit-keyword').value.trim(),
+  };
+  if(status === 'confirm'){
+    payload.resvDate = document.getElementById('edit-resvDate').value;
+    payload.resvTime = document.getElementById('edit-resvTime').value;
+  }
+
+  const { error } = await sb.from('campaigns').update(payload).eq('id', editingId);
+  if (error) {
+    alert("저장 실패: " + error.message);
     return;
   }
-  const payload = (field === 'deadline' && value === "") ? null : value;
-  const { error } = await sb.from('campaigns').update({ [field]: payload }).eq('id', id);
+  closeEditModal();
+  await loadInitialData();
+}
+
+async function deleteItemFromModal(){
+  if(!editingId) return;
+  if(!confirm('이 체험단을 삭제할까요?')) return;
+  const { error } = await sb.from('campaigns').delete().eq('id', editingId);
   if (error) {
-    alert("업데이트 실패: " + error.message);
+    alert("삭제 실패: " + error.message);
+    return;
   }
+  closeEditModal();
   await loadInitialData();
 }
 
@@ -751,71 +849,29 @@ function render(){
   emptyMsg.style.display = "none";
 
   tbody.innerHTML = list.map(it => {
-    const resvBlock = it.status === "confirm" ? `
-      <div class="resv-row">
-        <input type="date" class="resv-input date-short" value="${normalizeDate(it.resvDate)}"
-          onchange="updateResv('${it.id}','resvDate',this.value)">
-        <select class="resv-input time-short" onchange="updateResv('${it.id}','resvTime',this.value)">
-          <option value="">시간</option>
-          ${hourOptions(it.resvTime)}
-        </select>
-      </div>
-    ` : "";
+    const resvText = (it.status === "confirm" && normalizeDate(it.resvDate))
+      ? `${normalizeDate(it.resvDate).slice(5).replace('-', '/')}${it.resvTime ? ' ' + it.resvTime : ''}`
+      : "";
 
     return `
       <tr>
         <td data-label="지역"><span class="region-badge">${it.region}</span></td>
-        <td data-label="체험단 이름" class="name-cell">
-          <div class="editable-wrap">
-            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'name')" title="클릭하여 수정">${escapeHtml(it.name)}</span>
-          </div>
+        <td data-label="체험단 이름" class="name-cell">${escapeHtml(it.name)}</td>
+        <td data-label="제공내역" class="ellipsis-cell" title="${escapeHtml(it.provide)}">${escapeHtml(it.provide) || '-'}</td>
+        <td data-label="상태/예약">
+          <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
+          ${resvText ? `<div class="resv-text">${resvText}</div>` : ''}
         </td>
-        <td data-label="제공내역">
-          <div class="editable-wrap">
-            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'provide')" title="클릭하여 수정">${escapeHtml(it.provide) || '내용 입력...'}</span>
-          </div>
+        <td data-label="플랫폼">${escapeHtml(it.platform)}</td>
+        <td data-label="주소" class="wrap-cell">${escapeHtml(it.address) || '-'}</td>
+        <td data-label="예약문의">${escapeHtml(it.contact) || '-'}</td>
+        <td data-label="주차장">${escapeHtml(it.parking) || '-'}</td>
+        <td data-label="마감일자">${escapeHtml(normalizeDate(it.deadline)) || '-'}</td>
+        <td data-label="키워드" class="wrap-cell">${escapeHtml(it.keyword) || '-'}</td>
+        <td data-label="" class="actions-cell">
+          <button class="edit-btn" onclick="openEditModal('${it.id}')" title="수정">✏️</button>
+          <button class="del-btn" onclick="deleteItem('${it.id}')" title="삭제">✕</button>
         </td>
-        <td data-label="상태 / 예약일시">
-          <div class="status-cell-content">
-            <select class="status-select ${statusMeta[it.status].cls}" onchange="updateStatus('${it.id}', this.value)">
-              ${Object.keys(statusMeta).map(k =>
-                `<option value="${k}" ${k===it.status?'selected':''}>${statusMeta[k].label}</option>`
-              ).join('')}
-            </select>
-            ${resvBlock}
-          </div>
-        </td>
-        <td data-label="플랫폼">
-          <select class="platform-select" onchange="updatePlatform('${it.id}', this.value)">
-            ${platformOptions(it.platform)}
-          </select>
-        </td>
-        <td data-label="주소">
-          <div class="editable-wrap">
-            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'address')" title="클릭하여 수정">${escapeHtml(it.address) || '주소 입력...'}</span>
-          </div>
-        </td>
-        <td data-label="예약문의">
-          <div class="editable-wrap">
-            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'contact')" title="클릭하여 수정">${escapeHtml(it.contact) || '연락처 입력...'}</span>
-          </div>
-        </td>
-        <td data-label="주차장">
-          <div class="editable-wrap">
-            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'parking')" title="클릭하여 수정">${escapeHtml(it.parking) || '주차 정보'}</span>
-          </div>
-        </td>
-        <td data-label="마감일자">
-          <div class="editable-wrap">
-            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'deadline')" title="클릭하여 수정">${escapeHtml(normalizeDate(it.deadline)) || '마감일 입력...'}</span>
-          </div>
-        </td>
-        <td data-label="키워드">
-          <div class="editable-wrap">
-            <span class="val-span" onclick="startInlineEditSpan(this, '${it.id}', 'keyword')" title="클릭하여 수정">${escapeHtml(it.keyword) || '키워드 입력...'}</span>
-          </div>
-        </td>
-        <td data-label=""><button class="del-btn" onclick="deleteItem('${it.id}')">✕</button></td>
       </tr>
     `;
   }).join('');
