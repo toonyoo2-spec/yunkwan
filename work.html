@@ -467,32 +467,6 @@
     </div>
   </div>
 
-  <!-- 곽현 프로젝트 빠른 등록 -->
-  <div class="panel" style="background:#f0f9ff;border:2px solid #3b82f6;">
-    <h2>🔁 곽현 프로젝트 (규칙적인 일)</h2>
-    <div style="margin-bottom:12px;font-size:13px;color:var(--sub);">
-      매일 5만원 / 정산예정일: 2026-08-31 / 결제방식: 현금
-    </div>
-    <div id="gwakStatus" style="margin-bottom:12px;padding:12px;background:rgba(59,130,246,0.1);border-radius:8px;font-size:13px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <span style="font-weight:600;">현재 누적 금액:</span>
-        <span style="font-size:18px;font-weight:800;color:#3b82f6;" id="gwakCurrentAmount">0원</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-weight:600;">작업일 수:</span>
-        <span id="gwakWorkDaysCount">0일</span>
-      </div>
-      <button onclick="openGwakDetail()" style="width:100%;margin-top:10px;padding:8px;background:#fff;border:1px solid #3b82f6;color:#3b82f6;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">📅 작업일 관리 & 정산 히스토리</button>
-    </div>
-    <div class="form-grid">
-      <div class="field">
-        <label>작업일 추가</label>
-        <input type="date" id="quick-workDate">
-      </div>
-      <button class="save-btn" id="quickAddBtn" onclick="addGwakWorkDate()" style="background:#3b82f6;">+ 추가</button>
-    </div>
-  </div>
-
   <div class="panel">
     <h2>새 프로젝트 등록</h2>
     <div class="form-grid">
@@ -1129,67 +1103,6 @@ async function loadOrCreateGwakProject(){
   return gwakProject;
 }
 
-// 곽현 프로젝트 UI 업데이트
-function updateGwakUI(){
-  if(!gwakProject) return;
-
-  const workDates = gwakProject.workDates || [];
-  const amount = workDates.length * GWAK_DAILY_RATE;
-
-  document.getElementById('gwakCurrentAmount').textContent = won(amount);
-  document.getElementById('gwakWorkDaysCount').textContent = workDates.length + '일';
-}
-
-// 작업일 추가
-async function addGwakWorkDate(){
-  const workDate = document.getElementById('quick-workDate').value;
-  if(!workDate){ alert('작업일을 선택해주세요.'); return; }
-
-  const quickBtn = document.getElementById('quickAddBtn');
-  quickBtn.disabled = true;
-
-  if(!gwakProject){
-    await loadOrCreateGwakProject();
-  }
-
-  const workDates = gwakProject.workDates || [];
-
-  // 중복 체크
-  if(workDates.includes(workDate)){
-    quickBtn.disabled = false;
-    alert('이미 등록된 작업일입니다.');
-    return;
-  }
-
-  // 작업일 추가
-  const newWorkDates = [...workDates, workDate].sort();
-  const newAmount = newWorkDates.length * GWAK_DAILY_RATE;
-
-  const { error } = await sb.from('projects')
-    .update({
-      workDates: newWorkDates,
-      currentAmount: newAmount,
-      cost: newAmount
-    })
-    .eq('id', gwakProject.id);
-
-  quickBtn.disabled = false;
-
-  if(error){
-    alert('저장 실패: ' + error.message);
-    return;
-  }
-
-  gwakProject.workDates = newWorkDates;
-  gwakProject.currentAmount = newAmount;
-  gwakProject.cost = newAmount;
-
-  document.getElementById('quick-workDate').value = '';
-  updateGwakUI();
-  await loadProjects();
-  alert('작업일이 추가되었습니다!');
-}
-
 // 곽현 프로젝트 상세 모달 열기
 async function openGwakDetail(){
   if(!gwakProject){
@@ -1568,6 +1481,14 @@ async function onSettlementDateChange(id, value){
 function showDetail(id){
   const p = projects.find(x => x.id === id);
   if(!p) return;
+
+  // 곽현 프로젝트(누적 방식)는 전용 모달로 열기
+  if(p.isAccumulative && p.title === '곽현'){
+    gwakProject = p;
+    openGwakDetail();
+    return;
+  }
+
   const period = p.endDate && p.endDate !== p.startDate
     ? `${p.startDate} ~ ${p.endDate}`
     : p.startDate;
