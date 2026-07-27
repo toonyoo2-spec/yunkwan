@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>곽현 프로젝트 복구</title>
+</head>
+<body>
+<h1>곽현 프로젝트 복구 중...</h1>
+<div id="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script>
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+async function restoreGwakProject(){
+  const statusDiv = document.getElementById('status');
+
+  try {
+    // 먼저 기존 곽현 프로젝트가 있는지 확인
+    const { data: existing, error: fetchError } = await sb
+      .from('projects')
+      .select('*')
+      .eq('title', '곽현')
+      .eq('isAccumulative', true);
+
+    if(fetchError){
+      statusDiv.innerHTML = '<p style="color:red;">조회 실패: ' + fetchError.message + '</p>';
+      return;
+    }
+
+    if(existing && existing.length > 0){
+      statusDiv.innerHTML = '<p style="color:orange;">곽현 프로젝트가 이미 존재합니다. (ID: ' + existing[0].id + ')</p>';
+      return;
+    }
+
+    // 곽현 프로젝트 생성
+    const newGwak = {
+      id: uid(),
+      title: '곽현',
+      manager: '곽현',
+      contact: '곽현',
+      paymentMethod: '현금',
+      startDate: '2026-07-26',
+      endDate: null,
+      settlementDate: '2026-08-31',
+      cost: 0,
+      currentAmount: 0,
+      memo: '규칙적인 일 (누적 방식)',
+      status: '작업중',
+      colorHue: 200,
+      ledgerSynced: false,
+      isRecurring: false,
+      isAccumulative: true,
+      workDates: [],
+      settlementHistory: [],
+      createdAt: new Date().toISOString()
+    };
+
+    const { error: insertError } = await sb.from('projects').insert(newGwak);
+
+    if(insertError){
+      statusDiv.innerHTML = '<p style="color:red;">생성 실패: ' + insertError.message + '</p>';
+      return;
+    }
+
+    statusDiv.innerHTML = `
+      <p style="color:green;">✅ 곽현 프로젝트가 생성되었습니다!</p>
+      <div style="margin-top:20px;padding:15px;background:#f0f9ff;border-radius:8px;">
+        <div><strong>프로젝트명:</strong> 곽현</div>
+        <div><strong>결제방식:</strong> 현금</div>
+        <div><strong>정산예정일:</strong> 2026-08-31</div>
+        <div><strong>현재 누적:</strong> 0원</div>
+        <div><strong>작업일:</strong> 0일</div>
+      </div>
+      <p style="margin-top:20px;">work.html을 새로고침하세요!</p>
+    `;
+
+  } catch(err){
+    statusDiv.innerHTML = '<p style="color:red;">오류: ' + err.message + '</p>';
+  }
+}
+
+// 페이지 로드 시 자동 실행
+restoreGwakProject();
+</script>
+</body>
+</html>
