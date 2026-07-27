@@ -51,10 +51,17 @@
   }
     
   .form-grid{
-    display:grid;
-    grid-template-columns:90px 1.2fr 1.5fr 1fr 1fr 110px 105px 115px;
+    display:flex;
+    flex-wrap:wrap;
     gap:10px;
     align-items:end;
+  }
+  .form-grid .field{
+    flex:1 1 170px;
+  }
+  .form-grid .field:has(select),
+  .form-grid .field:has(input[type=date]){
+    flex:0 1 130px;
   }
     input,select{
     width:100%;
@@ -71,9 +78,7 @@
     border-color:var(--accent);
   }
   .add-btn{
-    grid-column:1/-1;
-    justify-self:start;
-    margin-top:4px;
+    margin-top:14px;
     background:var(--accent);
     color:#fff;
     border:none;
@@ -258,8 +263,7 @@
 
   .summary{ grid-template-columns:repeat(2,1fr); gap:8px; }
 
-  .form-grid{ grid-template-columns:1fr; }
-  .add-btn{ grid-column:auto; width:100%; text-align:center; }
+  .add-btn{ width:100%; text-align:center; }
 
   .toolbar{ flex-direction:column; align-items:stretch; gap:10px; }
   .tabs{ justify-content:flex-start; }
@@ -425,8 +429,8 @@
           <option value="기타">기타</option>
         </select>
       </div>
-      <button class="add-btn" onclick="addItem()">+ 추가하기</button>
     </div>
+    <button class="add-btn" onclick="addItem()">+ 추가하기</button>
   </div>
 
   <div class="panel">
