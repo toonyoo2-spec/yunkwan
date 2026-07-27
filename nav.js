@@ -41,6 +41,12 @@
     #bkNav.collapsed{
       padding:8px 0;
     }
+    #bkNav .bk-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-shrink:0;
+    }
     #bkNav .bk-title{
       font-size:44px;
       font-weight:800;
@@ -68,6 +74,25 @@
     #bkNav .bk-toggle:hover{
       transform:scale(1.05);
       border-color:var(--accent, #3a5a52);
+    }
+    #bkNav .bk-refresh{
+      background:var(--card, #ffffff);
+      border:1px solid var(--line, #e1dfd6);
+      border-radius:8px;
+      padding:8px 12px;
+      cursor:pointer;
+      font-size:18px;
+      line-height:1;
+      color:var(--ink, #22221f);
+      transition:transform .12s ease;
+      flex-shrink:0;
+    }
+    #bkNav .bk-refresh:hover{
+      transform:rotate(60deg);
+      border-color:var(--accent, #3a5a52);
+    }
+    #bkNav .bk-refresh:active{
+      opacity:0.7;
     }
     #bkNav .bk-grid{
       display:flex;
@@ -129,6 +154,11 @@
         font-size:16px;
         min-width:40px;
       }
+      #bkNav .bk-refresh{
+        padding:6px 10px;
+        font-size:16px;
+        min-width:40px;
+      }
       #bkNav .bk-grid{
         width:100%;
         display:grid;
@@ -160,7 +190,10 @@
 
   const navHtml = `
     <header id="bkNav" class="wrap">
-      <a class="bk-title" href="./index.html">BORAKWAN</a>
+      <div class="bk-left">
+        <a class="bk-title" href="./index.html">BORAKWAN</a>
+        <button class="bk-refresh" onclick="location.reload()" title="새로고침">⟳</button>
+      </div>
       <button class="bk-toggle" onclick="window.toggleBkNav()" title="메뉴 접기/펼치기">☰</button>
       <div class="bk-grid">${cardsHtml}</div>
     </header>

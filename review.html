@@ -22,20 +22,6 @@
     gap:16px;
     margin-bottom:24px;
   }
-  .refresh-btn{
-    background:#fff;
-    border:1px solid var(--line);
-    color:var(--sub);
-    padding:9px 16px;
-    border-radius:20px;
-    font-size:13px;
-    font-weight:600;
-    cursor:pointer;
-    font-family:inherit;
-  }
-  .refresh-btn:hover{background:#f5f4f0;}
-  .refresh-btn:active{opacity:0.7;}
-
   .summary{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -165,6 +151,8 @@
 
   table{
     width:100%;
+    min-width:1180px;
+    table-layout:fixed;
     border-collapse:collapse;
     font-size:13.5px;
   }
@@ -198,10 +186,14 @@
   .name-cell{font-weight:600;}
 
   .ellipsis-cell{
-    max-width:150px;
     overflow:hidden;
     text-overflow:ellipsis;
     cursor:help;
+  }
+  thead th,
+  tbody td{
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
 
   .status-badge{
@@ -369,6 +361,8 @@
   .table-wrap { overflow-x: visible; }
   .table-scroll::after{ display:none; }
   table, thead, tbody, tr, th, td{ display:block; width:100%; }
+  table{ min-width:0; table-layout:auto; }
+  colgroup{ display:none; }
   thead{ display:none; }
 
   tbody tr{
@@ -431,7 +425,6 @@
     <div>
       <h1>블로그 체험단 관리</h1>
     </div>
-    <button class="refresh-btn" onclick="location.reload()" title="새로고침">⟳ 새로고침</button>
   </header>
 
   <div class="summary" id="summary"></div>
@@ -513,6 +506,18 @@
     <div class="table-scroll">
       <div class="table-wrap">
         <table>
+          <colgroup>
+            <col style="width:64px;">
+            <col style="width:140px;">
+            <col style="width:170px;">
+            <col style="width:110px;">
+            <col style="width:100px;">
+            <col style="width:170px;">
+            <col style="width:150px;">
+            <col style="width:90px;">
+            <col style="width:100px;">
+            <col style="width:200px;">
+          </colgroup>
           <thead>
             <tr>
               <th>지역</th>
