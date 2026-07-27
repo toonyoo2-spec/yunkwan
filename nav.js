@@ -12,11 +12,11 @@
 (function(){
   const NAV_ITEMS = [
     { href: './index.html',  icon: '🏠', label: '홈' },
+    { href: './ledger.html', icon: '💰', label: '가계부' },
     { href: './review.html', icon: '📋', label: '블로그' },
-    { href: './work.html',   icon: '💼', label: '부업' },
-    { href: './trip.html',   icon: '✈️', label: '여행' },
     { href: './docs.html',   icon: '📁', label: '보관함' },
-    { href: './report.html', icon: '🗞️', label: 'Report' },
+    { href: './report.html', icon: '🗞️', label: '리포트' },
+    { href: './work.html',   icon: '💼', label: '부업' },
   ];
 
   const currentFile = (location.pathname.split('/').pop() || 'index.html');
