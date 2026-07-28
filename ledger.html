@@ -408,7 +408,7 @@ table.tx-table tbody tr.tx-row:hover{background:var(--paper);}
 tr.edit-row{background:var(--paper);}
 tr.edit-row td{padding:12px 10px;}
 .tx-edit-form{
-  display:grid;grid-template-columns:88px 118px 68px 104px 104px 1fr 96px auto;gap:8px;align-items:center;
+  display:grid;grid-template-columns:88px 118px 68px 104px 104px 1fr 96px 118px auto;gap:8px;align-items:center;
 }
 @media (max-width:900px){.tx-edit-form{grid-template-columns:repeat(2,1fr);}}
 .tx-edit-form input, .tx-edit-form select{
@@ -504,26 +504,42 @@ tr.edit-row td{padding:12px 10px;}
   .month-nav h1{font-size:19px;}
 
   .tx-form{
-    grid-template-columns:1fr 1fr;padding:12px;
+    grid-template-columns:1fr 1fr 1fr;padding:12px;gap:6px 8px;
     grid-template-areas:
-      "scope date"
-      "type main"
-      "cat pay"
-      "note note"
-      "amount amount"
-      "btn btn";
+      "scope date pay"
+      "type main cat"
+      "note note amount"
+      "btn btn btn";
   }
   .tx-form #f_scope{grid-area:scope;}
   .tx-form #f_date{grid-area:date;}
+  .tx-form #f_payment{grid-area:pay;}
   .tx-form #f_type{grid-area:type;}
   .tx-form #f_main{grid-area:main;}
   .tx-form #f_category{grid-area:cat;}
-  .tx-form #f_payment{grid-area:pay;}
   .tx-form #f_note{grid-area:note;}
   .tx-form #f_amount{grid-area:amount;}
   .tx-form .add-btn{grid-area:btn;width:100%;height:38px;font-size:13px;font-weight:700;}
+  .tx-form select, .tx-form input{font-size:11.5px;padding:6px;}
 
-  .tx-edit-form{grid-template-columns:1fr;}
+  .tx-edit-form{
+    grid-template-columns:1fr 1fr 1fr;gap:6px 8px;
+    grid-template-areas:
+      "scope date pay"
+      "type main cat"
+      "note note amount"
+      "actions actions actions";
+  }
+  .tx-edit-form .tx-edit-scope{grid-area:scope;}
+  .tx-edit-form .tx-edit-date{grid-area:date;}
+  .tx-edit-form .tx-edit-pay{grid-area:pay;}
+  .tx-edit-form .tx-edit-type{grid-area:type;}
+  .tx-edit-form .tx-edit-main{grid-area:main;}
+  .tx-edit-form .tx-edit-cat{grid-area:cat;}
+  .tx-edit-form .tx-edit-note{grid-area:note;}
+  .tx-edit-form .tx-edit-amount{grid-area:amount;}
+  .tx-edit-form .tx-edit-actions{grid-area:actions;}
+  .tx-edit-form select, .tx-edit-form input{font-size:11.5px;padding:6px;}
   .edit-actions{justify-content:flex-end;}
 
   table.tx-table.tx-table-main thead{display:none;}
@@ -2410,35 +2426,28 @@ function editRowHtml(t){
   return `<tr class="edit-row">
     <td colspan="8">
       <div class="tx-edit-form">
-        <select id="e_scope_${t.id}" onchange="onEditScopeChange('${t.id}')">
+        <select id="e_scope_${t.id}" class="tx-edit-scope" onchange="onEditScopeChange('${t.id}')">
           <option value="" ${!t.scope?'selected':''}>미지정</option>
           ${SCOPES.map(s=>`<option ${s===t.scope?'selected':''}>${s}</option>`).join('')}
         </select>
-        <input type="date" id="e_date_${t.id}" value="${t.date}">
-        <select id="e_type_${t.id}" onchange="onEditTypeChange('${t.id}')">${typesForScope(scope).map(ty=>`<option ${ty===t.type?'selected':''}>${ty}</option>`).join('')}</select>
-        <select id="e_main_${t.id}" onchange="onEditMainChange('${t.id}')">${mainOptions(scope, t.type, t.main)}</select>
-        <select id="e_category_${t.id}">${catOptions(scope, t.type, t.main, t.category)}</select>
-        <input type="text" id="e_note_${t.id}" value="${escapeHtml(t.note)}" placeholder="내용">
-        <input type="number" id="e_amount_${t.id}" value="${t.amount}">
-        <div class="edit-actions">
+        <input type="date" id="e_date_${t.id}" class="tx-edit-date" value="${t.date}">
+        <select id="e_type_${t.id}" class="tx-edit-type" onchange="onEditTypeChange('${t.id}')">${typesForScope(scope).map(ty=>`<option ${ty===t.type?'selected':''}>${ty}</option>`).join('')}</select>
+        <select id="e_main_${t.id}" class="tx-edit-main" onchange="onEditMainChange('${t.id}')">${mainOptions(scope, t.type, t.main)}</select>
+        <select id="e_category_${t.id}" class="tx-edit-cat">${catOptions(scope, t.type, t.main, t.category)}</select>
+        <input type="text" id="e_note_${t.id}" class="tx-edit-note" value="${escapeHtml(t.note)}" placeholder="내용">
+        <input type="number" id="e_amount_${t.id}" class="tx-edit-amount" value="${t.amount}">
+        <select id="e_pay_${t.id}" class="tx-edit-pay">
+          <option value="" ${!t.user?'selected':''}>결제수단</option>
+          ${PAYMENT_METHODS.map(p=>`<option value="${escapeHtml(p)}" ${p===t.user?'selected':''}>${p}</option>`).join('')}
+        </select>
+        <div class="edit-actions tx-edit-actions">
           <button class="ghost-btn primary" onclick="saveEditTx('${t.id}')">저장</button>
           <button class="ghost-btn danger" onclick="deleteEditTx('${t.id}')">삭제</button>
           <button class="ghost-btn" onclick="cancelEditTx()">취소</button>
         </div>
       </div>
-      <div class="payment-toggle" id="paymentToggleEdit_${t.id}" data-selected="${escapeHtml(t.user)}" style="border-bottom:none;padding:10px 0 0;">
-        <span class="payment-toggle-label">결제수단</span>
-        ${PAYMENT_METHODS.map(p=>`<button type="button" class="chip pay-chip ${p===t.user?'active':''}" data-val="${escapeHtml(p)}" onclick="selectPaymentToggle('paymentToggleEdit_${t.id}','${escapeHtml(p)}')">${p}</button>`).join('')}
-      </div>
     </td>
   </tr>`;
-}
-
-function selectPaymentToggle(containerId, val){
-  const c = document.getElementById(containerId);
-  if(!c) return;
-  c.dataset.selected = val;
-  c.querySelectorAll('.pay-chip').forEach(b=> b.classList.toggle('active', b.dataset.val===val));
 }
 
 function startEditTx(id){
@@ -2471,7 +2480,7 @@ function saveEditTx(id){
   const date = document.getElementById('e_date_'+id).value;
   const amount = Number(document.getElementById('e_amount_'+id).value);
   if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
-  const payment = document.getElementById('paymentToggleEdit_'+id)?.dataset.selected || '';
+  const payment = document.getElementById('e_pay_'+id)?.value || '';
   DB.update(id, {
     date, scope: document.getElementById('e_scope_'+id).value || '',
     type: document.getElementById('e_type_'+id).value,

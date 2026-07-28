@@ -256,12 +256,12 @@
     user-select:none;
   }
   .workout-cell:hover{transform:translateY(-1px);}
-  .workout-cell.today{border-color:var(--accent);border-width:1.5px;}
+  .workout-cell.today{border-color:#e0392e;border-width:1.5px;}
   .workout-cell.done.owner-gwan{background:var(--owner-gwan-bg);color:var(--owner-gwan-ink);border-color:var(--owner-gwan-bg);font-weight:700;}
   .workout-cell.done.owner-bora{background:var(--owner-bora-bg);color:var(--owner-bora-ink);border-color:var(--owner-bora-bg);font-weight:700;}
   .workout-cell.missed{background:#fff;color:var(--owner-gwan-ink);border-color:var(--owner-gwan-ink);font-weight:700;}
   .workout-cell.weekend{background:#fdf0ee;color:#b3452f;border-color:#f3d0c8;}
-  .workout-cell.today.weekend{border-color:var(--accent);}
+  .workout-cell.today.weekend{border-color:#e0392e;}
 
   /* ---- 이벤트 상세 팝업 ---- */
   .cal-modal-overlay{
@@ -973,6 +973,21 @@ function workoutRender(){
     <span class="owner-gwan-txt">관 <b>${counts['관']}</b>/${elapsedDays}일</span>
     <span class="owner-bora-txt">보라 <b>${counts['보라']}</b>/${elapsedDays}일</span>
   `;
+
+  requestAnimationFrame(() => {
+    centerWorkoutToday(gwanCells);
+    centerWorkoutToday(boraCells);
+  });
+}
+
+// 오늘 날짜 칸이 항상 가로 스크롤 영역의 정중앙에 오도록 함(달이 시작할 땐 왼쪽 끝이
+// 0 밑으로 못 내려가서 자연히 1일부터 보이고, 말일에 가까워지면 브라우저가 스크롤을
+// 최대치에서 자동으로 멈춰줘서 그 이후로는 따로 처리할 필요가 없음).
+function centerWorkoutToday(container){
+  const todayCell = container.querySelector('.workout-cell.today');
+  if(!todayCell) return;
+  const target = todayCell.offsetLeft - (container.clientWidth / 2) + (todayCell.offsetWidth / 2);
+  container.scrollLeft = Math.max(0, target);
 }
 
 async function workoutToggle(dateStr, owner){

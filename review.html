@@ -244,9 +244,16 @@
   .edit-form-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "region name"
+      "provide provide"
+      "status platform"
+      "resv resv"
+      "address contact"
+      "deadline parking"
+      "keyword keyword";
     gap:12px;
   }
-  .edit-form-grid .field.full{grid-column:1/-1;}
   .edit-form-grid label{
     display:block;
     font-size:12px;
@@ -361,12 +368,23 @@
 
   .table-wrap { overflow-x: visible; }
   .table-scroll::after{ display:none; }
-  table, thead, tbody, tr, th, td{ display:block; width:100%; }
+  table, thead, tbody, tr{ display:block; width:100%; }
   table{ min-width:0; table-layout:auto; }
   colgroup{ display:none; }
   thead{ display:none; }
 
+  /* 지역/이름 → 제공내역 → 주소/예약문의 → 마감일자/상태/플랫폼 → 주차장/키워드,
+     5줄짜리 카드로 압축(기존엔 10개 항목이 각각 한 줄씩이라 세로로 너무 길었음) */
   tbody tr{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    grid-template-areas:
+      "region name name"
+      "provide provide provide"
+      "address address contact"
+      "deadline status platform"
+      "parking keyword keyword";
+    gap:8px 10px;
     background:var(--card);
     border:1px solid var(--line);
     border-radius:12px;
@@ -377,44 +395,48 @@
   }
 
   tbody td{
-    display:flex;
-    align-items:center;
-    justify-content:flex-start;
-    gap:10px;
-    width:100% !important;
-    max-width:100% !important;
-    min-width:0 !important;
-    padding:8px 0;
-    border-bottom:1px dashed var(--line);
+    display:block;
+    min-width:0;
+    padding:0;
+    border-bottom:none;
     box-sizing:border-box;
     white-space: normal !important;
   }
-  tbody td:last-child{ border-bottom:none; padding-bottom: 0; }
 
   tbody td::before{
     content: attr(data-label);
-    flex: 0 0 85px !important;
-    font-size: 12px;
+    display:block;
+    font-size: 10.5px;
     font-weight: 600;
     color: var(--sub);
-    text-align: left;
-  }
-  
-  tbody td:not([data-label]) ::before{ display:none; }
-
-  tbody td select,
-  tbody td input{
-    flex: 1 1 auto;
-    width: 100%;
-    min-width: 0 !important;
-    box-sizing: border-box;
+    margin-bottom:3px;
   }
 
-  tbody td .region-badge{ flex-shrink:0; }
+  td[data-label="지역"]{ grid-area:region; }
+  td[data-label="체험단 이름"]{ grid-area:name; font-weight:700; }
+  td[data-label="제공내역"]{ grid-area:provide; }
+  td[data-label="주소"]{ grid-area:address; }
+  td[data-label="예약문의"]{ grid-area:contact; }
+  td[data-label="마감일자"]{ grid-area:deadline; }
+  td[data-label="상태/예약"]{ grid-area:status; }
+  td[data-label="플랫폼"]{ grid-area:platform; }
+  td[data-label="주차장"]{ grid-area:parking; }
+  td[data-label="키워드"]{ grid-area:keyword; }
 
   .ellipsis-cell{ max-width:none; overflow:visible; text-overflow:clip; }
 
-  .edit-form-grid{ grid-template-columns:1fr; }
+  /* 수정 모달도 목록 카드와 동일한 5줄 구성으로: 지역/이름 → 제공내역 →
+     주소/예약문의 → 마감일자/상태/플랫폼 → 주차장/키워드 (예약일시는 상태=예약완료일 때만 그 아래 표시) */
+  .edit-form-grid{
+    grid-template-columns:1fr 1fr 1fr;
+    grid-template-areas:
+      "region name name"
+      "provide provide provide"
+      "address address contact"
+      "deadline status platform"
+      "resv resv resv"
+      "parking keyword keyword";
+  }
 }
 </style>
 </head>
@@ -547,22 +569,34 @@
     <button class="cal-modal-close" onclick="closeEditModal()">✕</button>
     <h3 class="cal-modal-title">체험단 수정</h3>
     <div class="edit-form-grid">
-      <div class="field">
+      <div class="field" style="grid-area:region;">
         <label>지역</label>
         <select id="edit-region">
           <option value="서울">서울</option>
           <option value="경기">경기</option>
         </select>
       </div>
-      <div class="field">
+      <div class="field" style="grid-area:name;">
         <label>체험단 이름</label>
         <input id="edit-name">
       </div>
-      <div class="field full">
+      <div class="field" style="grid-area:provide;">
         <label>제공내역</label>
         <textarea id="edit-provide"></textarea>
       </div>
-      <div class="field">
+      <div class="field" style="grid-area:address;">
+        <label>주소</label>
+        <input id="edit-address">
+      </div>
+      <div class="field" style="grid-area:contact;">
+        <label>예약문의</label>
+        <input id="edit-contact">
+      </div>
+      <div class="field" style="grid-area:deadline;">
+        <label>마감일자</label>
+        <input type="date" id="edit-deadline">
+      </div>
+      <div class="field" style="grid-area:status;">
         <label>상태</label>
         <select id="edit-status" onchange="onEditStatusChange()">
           <option value="wait">예약대기</option>
@@ -571,14 +605,7 @@
           <option value="end">종료</option>
         </select>
       </div>
-      <div class="field" id="edit-resv-wrap" style="display:none;">
-        <label>예약일시</label>
-        <div class="edit-resv-row">
-          <input type="date" id="edit-resvDate">
-          <select id="edit-resvTime"></select>
-        </div>
-      </div>
-      <div class="field">
+      <div class="field" style="grid-area:platform;">
         <label>플랫폼</label>
         <select id="edit-platform">
           <option value="디너의여왕">디너의여왕</option>
@@ -592,23 +619,18 @@
           <option value="기타">기타</option>
         </select>
       </div>
-      <div class="field">
-        <label>주소</label>
-        <input id="edit-address">
+      <div class="field" id="edit-resv-wrap" style="grid-area:resv;display:none;">
+        <label>예약일시</label>
+        <div class="edit-resv-row">
+          <input type="date" id="edit-resvDate">
+          <select id="edit-resvTime"></select>
+        </div>
       </div>
-      <div class="field">
-        <label>예약문의</label>
-        <input id="edit-contact">
-      </div>
-      <div class="field">
+      <div class="field" style="grid-area:parking;">
         <label>주차장</label>
         <input id="edit-parking">
       </div>
-      <div class="field">
-        <label>마감일자</label>
-        <input type="date" id="edit-deadline">
-      </div>
-      <div class="field full">
+      <div class="field" style="grid-area:keyword;">
         <label>키워드</label>
         <input id="edit-keyword">
       </div>
