@@ -272,12 +272,23 @@ button{font-family:inherit;}
   min-width:0;box-sizing:border-box;overflow:hidden;
 }
 /* 사파리/아이패드에서 type=date 입력이 그리드 칸 너비를 무시하고 원래 크기대로
-   렌더링되면서 옆 칸(결제수단 등)과 겹쳐 보이는 문제 방지용 방어 스타일 */
+   렌더링되면서 옆 칸(결제수단 등)과 겹쳐 보이는 문제 방지용 방어 스타일.
+   + 사파리에서는 select와 달리 화살표/버튼처럼 보이는 표시가 전혀 없어서
+   포맷이 혼자 튀어 보이므로, select와 통일감 있게 달력 아이콘을 붙여줌 */
 .tx-form input[type=date]{
   min-width:0;max-width:100%;
+  -webkit-appearance:none;appearance:none;
+  padding-right:26px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b6a63' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 8px center;
+  background-size:14px 14px;
 }
 .tx-form input[type=date]::-webkit-datetime-edit{
   overflow:hidden;
+}
+.tx-form input[type=date]::-webkit-calendar-picker-indicator{
+  position:absolute;right:0;top:0;width:100%;height:100%;margin:0;padding:0;opacity:0;
 }
 .tx-form .add-btn{
   background:var(--accent);color:#fff;border:none;border-radius:8px;
@@ -412,6 +423,8 @@ footer.foot{
 /* ---- 거래 내역: 클릭해서 수정 ---- */
 table.tx-table tbody tr.tx-row{cursor:pointer;}
 table.tx-table tbody tr.tx-row:hover{background:var(--paper);}
+table.tx-table tbody tr.tx-row-editing{background:var(--paper);}
+table.tx-table tbody tr.tx-row-editing td{border-bottom:none;}
 tr.edit-row{background:var(--paper);}
 tr.edit-row td{padding:12px 10px;}
 .tx-edit-form{
@@ -424,9 +437,18 @@ tr.edit-row td{padding:12px 10px;}
 }
 .tx-edit-form input[type=date]{
   min-width:0;max-width:100%;
+  -webkit-appearance:none;appearance:none;
+  padding-right:26px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b6a63' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 8px center;
+  background-size:14px 14px;
 }
 .tx-edit-form input[type=date]::-webkit-datetime-edit{
   overflow:hidden;
+}
+.tx-edit-form input[type=date]::-webkit-calendar-picker-indicator{
+  position:absolute;right:0;top:0;width:100%;height:100%;margin:0;padding:0;opacity:0;
 }
 .edit-actions{display:flex;gap:6px;}
 .fixed-field{
@@ -790,7 +812,7 @@ const PAYMENT_META = {
    달이 바뀌어도 이 잔고는 계속 이어집니다. */
 const CARD_BALANCE_ANCHOR = '2026-07-27';
 const CARD_STARTING_BALANCE = {
-  "하나[보라]": 5116513,
+  "하나[보라]": 5116534,
   "농협[관]": 1119728,
 };
 
@@ -1917,7 +1939,7 @@ function renderMonth(ym){
           <select id="f_main" onchange="onFormMainChange()"></select>
           <select id="f_category"></select>
           <input type="text" id="f_note" placeholder="내용 (예: 스타벅스)">
-          <input type="number" id="f_amount" placeholder="금액">
+          <input type="text" inputmode="numeric" id="f_amount" placeholder="금액" oninput="formatAmountInput(this)">
           <select id="f_payment" class="pay-quick-select">
             <option value="">결제수단</option>
             ${PAYMENT_METHODS.map(p=>`<option value="${escapeHtml(p)}">${p}</option>`).join('')}
@@ -2373,7 +2395,7 @@ function renderTxTable(ym){
   }
 
   document.getElementById('txBody').innerHTML = tx.length
-    ? tx.map(t => t.id===state.editingTxId ? editRowHtml(t) : displayRowHtml(t)).join('')
+    ? tx.map(t => t.id===state.editingTxId ? (displayRowHtml(t) + editRowHtml(t)) : displayRowHtml(t)).join('')
     : `<tr class="empty-row"><td colspan="8">해당 조건의 거래 내역이 없습니다.</td></tr>`;
 }
 
@@ -2394,8 +2416,11 @@ function displayRowHtml(t){
         ${PAYMENT_METHODS.map(p=>`<option value="${escapeHtml(p)}" ${p===t.user?'selected':''}>${p}</option>`).join('')}
       </select>`;
 
+  // 지금 수정 중인 행이면 살짝 강조해서 아래에 붙는 수정 폼과 연결되어 보이게 함.
+  const isEditingRow = t.id === state.editingTxId;
+
   // PC 화면용: 열이 넉넉해서 구분/날짜/대분류/중분류/소분류/내용/금액/결제수단을 각 칸에 그대로 보여줌.
-  const desktopRow = `<tr class="tx-row tx-row-desktop" onclick="startEditTx('${t.id}')">
+  const desktopRow = `<tr class="tx-row tx-row-desktop${isEditingRow?' tx-row-editing':''}" onclick="startEditTx('${t.id}')">
     <td data-label="구분">${scopeBadge}</td>
     <td class="mono" data-label="날짜" style="color:var(--muted)" title="${t.date}">${t.date.slice(5)}</td>
     <td data-label="대분류"><span class="badge ${TYPE_KEY[t.type]}">${t.type}</span></td>
@@ -2409,7 +2434,7 @@ function displayRowHtml(t){
   // 모바일용: 8줄로 늘어지던 걸 2줄짜리 카드로 압축. 대분류(수입/지출)는 별도 줄 없이
   // 금액 색상(빨강/초록)으로만 구분하고, 결제수단은 작은 셀렉트로 내용 옆에 붙임.
   const scopeDotColor = t.scope ? (SCOPE_COLOR[t.scope] || 'var(--muted)') : 'var(--expense)';
-  const mobileRow = `<tr class="tx-row tx-row-mobile" onclick="startEditTx('${t.id}')">
+  const mobileRow = `<tr class="tx-row tx-row-mobile${isEditingRow?' tx-row-editing':''}" onclick="startEditTx('${t.id}')">
     <td colspan="8">
       <div class="tx-card-line1">
         <span class="tx-card-cat">
@@ -2448,7 +2473,7 @@ function editRowHtml(t){
         <select id="e_main_${t.id}" class="tx-edit-main" onchange="onEditMainChange('${t.id}')">${mainOptions(scope, t.type, t.main)}</select>
         <select id="e_category_${t.id}" class="tx-edit-cat">${catOptions(scope, t.type, t.main, t.category)}</select>
         <input type="text" id="e_note_${t.id}" class="tx-edit-note" value="${escapeHtml(t.note)}" placeholder="내용">
-        <input type="number" id="e_amount_${t.id}" class="tx-edit-amount" value="${t.amount}">
+        <input type="text" inputmode="numeric" id="e_amount_${t.id}" class="tx-edit-amount" value="${Number(t.amount).toLocaleString('ko-KR')}" oninput="formatAmountInput(this)">
         <select id="e_pay_${t.id}" class="tx-edit-pay">
           <option value="" ${!t.user?'selected':''}>결제수단</option>
           ${PAYMENT_METHODS.map(p=>`<option value="${escapeHtml(p)}" ${p===t.user?'selected':''}>${p}</option>`).join('')}
@@ -2491,7 +2516,7 @@ function onEditMainChange(id){
 }
 function saveEditTx(id){
   const date = document.getElementById('e_date_'+id).value;
-  const amount = Number(document.getElementById('e_amount_'+id).value);
+  const amount = parseAmountInput(document.getElementById('e_amount_'+id).value);
   if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
   const payment = document.getElementById('e_pay_'+id)?.value || '';
   DB.update(id, {
@@ -2538,9 +2563,19 @@ function onFormMainChange(){
   const main = document.getElementById('f_main').value;
   document.getElementById('f_category').innerHTML = catOptions(scope, type, main, null);
 }
+/* 금액 입력칸에 입력할 때마다 자동으로 천단위 콤마를 찍어줌(1000 → 1,000).
+   number 입력은 콤마를 표시할 수 없어서 text + inputmode=numeric으로 바꾸고,
+   저장 시점에는 parseAmountInput으로 콤마를 다시 떼어내고 숫자로 읽음. */
+function formatAmountInput(el){
+  const digits = el.value.replace(/[^0-9]/g, '');
+  el.value = digits ? Number(digits).toLocaleString('ko-KR') : '';
+}
+function parseAmountInput(value){
+  return Number((value || '').replace(/[^0-9]/g, '')) || 0;
+}
 function submitTx(ym){
   const date = document.getElementById('f_date').value;
-  const amount = Number(document.getElementById('f_amount').value);
+  const amount = parseAmountInput(document.getElementById('f_amount').value);
   if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
   const payment = document.getElementById('f_payment').value;
   DB.add({
