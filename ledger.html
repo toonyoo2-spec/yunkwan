@@ -656,7 +656,7 @@ async function initAuth(){
    ================================================================================= */
 const BORA_TAXONOMY = {
   "지출": {
-    "생활비": ["식비", "쇼핑", "외식", "배달", "여행", "기타"],
+    "생활비": ["식비", "쇼핑", "여행", "기타"],
     "교통비": ["전기차충전", "주유비", "대중교통", "기타"],
     "통신비": ["핸드폰", "기타"],
     "자동차": ["주차비", "기타"],
@@ -672,7 +672,7 @@ const BORA_TAXONOMY = {
 };
 const GWAN_TAXONOMY = {
   "지출": {
-    "생활비": ["식비", "쇼핑", "외식", "배달", "여행", "기타"],
+    "생활비": ["식비", "쇼핑", "여행", "기타"],
     "교통비": ["대중교통", "기타"],
     "통신비": ["핸드폰", "기타"],
     "자동차": ["주차비", "기타"],
@@ -689,11 +689,11 @@ const GWAN_TAXONOMY = {
 const TAXONOMY = {
   "공동": {
     "지출": {
-      "생활비": ["식비", "쇼핑", "생필품", "여행", "기타"],
-      "교통비": ["대중교통", "주유비", "전기차충전", "기타"],
+      "생활비": ["식비", "쇼핑", "생필품", "자동차할부", "여행", "기타"],
+      "교통비": ["대중교통", "주유비", "전기차충전", "주차비", "기타"],
       "주거비": ["집대출", "관리비", "정수기", "TV인터넷", "기타"],
       "통신비": ["핸드폰", "기타"],
-      "자동차": ["자동차보험", "운전자보험", "할부금", "주차비", "기타"],
+      "건강": ["보험", "기타"],
       "구독": ["OTT", "AI", "쇼핑", "기타"],
       "가족": ["가족", "명절", "생일", "기타"],
       "저축·투자": ["저축", "투자", "기타"]
@@ -777,7 +777,7 @@ function bulkAutoAssignScope(){
    (모든 중분류에 '기타' 소분류가 있어서 항상 뭔가는 채워집니다.) 1차 정리용입니다. */
 const CATEGORY_KEYWORDS = {
   "주거비":   [["관리비", ["관리비"]], ["정수기", ["정수기","코웨이"]], ["TV인터넷", ["tv","인터넷","와이파이"]], ["집대출", ["대출","론","전세","월세","보금자리"]]],
-  "교통비":   [["대중교통", ["버스","지하철","대중교통","교통카드"]], ["주유비", ["주유"]], ["전기차충전", ["충전","차지비"]]],
+  "교통비":   [["대중교통", ["버스","지하철","대중교통","교통카드"]], ["주유비", ["주유"]], ["전기차충전", ["충전","차지비"]], ["주차비", ["주차"]]],
   "자동차":   [["자동차보험", ["자동차보험"]], ["운전자보험", ["운전자보험"]], ["할부금", ["할부"]], ["주차비", ["주차"]]],
   "통신비":   [["핸드폰", ["핸드폰","통신","휴대폰"]]],
   "생활비":   [["식비", ["배달","외식","식당","레스토랑","카페","커피","마트","편의점","식재료","장보기","컬리"]], ["쇼핑", ["쇼핑","쿠팡","화장품"]], ["여행", ["여행","숙소","항공"]]],
@@ -837,17 +837,19 @@ function computeTotalSummary(ym){
   }, 0);
   const cardBillMap = (todayStr() >= `${ym}-12`) ? creditCardExpenseByScope(all, shiftYm(ym,-1)) : {};
   const cardBill = Object.values(cardBillMap).reduce((a,b)=>a+b, 0);
+  const netIncomeExpense = income - expense;
   const balance = income - cashExpense - cardBill;
-  return { income, expense, cashExpense, cardBill, balance };
+  return { income, expense, cashExpense, cardBill, balance, netIncomeExpense };
 }
 
 /* 결제수단별 현황 줄을 계산합니다(DOM 조작 없이 데이터만 반환 — "카드 현황" 카드의
-   서브라인으로 씀). 신용카드(현대카드)는 지금까지 기록된 전체 누적 지출을,
-   체크카드(하나/농협)는 CARD_BALANCE_ANCHOR 이후 거래만 반영한 실제 잔고를
-   돌려줍니다(수입은 +, 지출은 -). 보고 있는 달(ym) 말일까지 누적된 값이라, 다음
-   달로 넘어가도 이 값이 그대로 이어져서 다음 달 거래만큼만 더 반영됩니다. */
+   서브라인으로 씀). 신용카드(현대카드)는 보고 있는 달 1일~말일 사용분만 합산해서
+   보여주고(달이 바뀌면 0원부터 다시 누적), 체크카드(하나/농협)는 CARD_BALANCE_ANCHOR
+   이후 거래만 반영한 실제 잔고를 돌려줍니다(수입은 +, 지출은 -). 이쪽은 계좌
+   잔고 성격이라 다음 달로 넘어가도 값이 그대로 이어집니다. */
 function buildCardStatusLines(ym){
   const all = DB.list();
+  const monthStart = ym + '-01'; // 보고 있는 달 1일부터(신용카드는 매월 여기서 새로 시작)
   const cutoffExclusive = shiftYm(ym,1) + '-01'; // 보고 있는 달 말일까지만 포함(다음 달 1일 미만)
   // 이름 4글자 + 항목 2글자 + 항목 2글자로 세 줄 길이를 맞춰서 나란히 봤을 때 정돈되어 보이게 함.
   const FULL_NAME = { "현대카드[보라]":"현대카드", "하나[보라]":"하나은행", "농협[관]":"농협은행" };
@@ -858,7 +860,7 @@ function buildCardStatusLines(ym){
 
     if(meta.type === '신용카드'){
       const totalSpent = all
-        .filter(t=>t.payment===p && t.type==='지출' && t.date < cutoffExclusive)
+        .filter(t=>t.payment===p && t.type==='지출' && t.date >= monthStart && t.date < cutoffExclusive)
         .reduce((s,t)=>s+Number(t.amount||0), 0);
       return { name, value: won(totalSpent), dotColor: SCOPE_COLOR[meta.person], valueColor:'var(--expense)', payment:p, kind:'card-history' };
     }
@@ -882,9 +884,9 @@ function buildCardStatusLines(ym){
 const DEFAULT_RECURRING_TEMPLATES = [
   { key:"r_loan1",     day:3,  scope:"공동", main:"주거비", category:"집대출",   note:"신용대출",                     amount:108665, payment:"하나[보라]" },
   { key:"r_google_b",  day:9,  scope:"보라", main:"구독",   category:"기타",     note:"보라 구글",                     amount:2400,   payment:"현대카드[보라]" },
-  { key:"r_carloan",   day:10, scope:"공동", main:"자동차", category:"할부금",   note:"자동차할부",                   amount:456520, payment:"하나[보라]" },
+  { key:"r_carloan",   day:10, scope:"공동", main:"생활비", category:"자동차할부", note:"자동차할부",                   amount:456520, payment:"하나[보라]" },
   { key:"r_transit",   day:10, scope:"공동", main:"교통비", category:"대중교통", note:"대중교통",                     amount:80000,  payment:"하나[보라]" },
-  { key:"r_driverins", day:10, scope:"공동", main:"자동차", category:"운전자보험", note:"운전자보험",                 amount:6510,   payment:"하나[보라]" },
+  { key:"r_driverins", day:10, scope:"공동", main:"건강", category:"보험", note:"운전자보험",                 amount:6510,   payment:"하나[보라]" },
   { key:"r_phone_b",   day:12, scope:"보라", main:"통신비", category:"핸드폰",   note:"보라 핸드폰",                   amount:78900,  payment:"현대카드[보라]" },
   { key:"r_coway",     day:12, scope:"공동", main:"주거비", category:"정수기",   note:"코웨이",                       amount:14900,  payment:"현대카드[보라]" },
   { key:"r_google_g",  day:14, scope:"관",   main:"구독",   category:"기타",     note:"관 구글",                       amount:2400,   payment:"농협[관]" },
@@ -1346,7 +1348,7 @@ function cleanupFutureRecurring(){
 const MANUAL_ADDITIONS = [
   { key:'m_20260723_1', date:'2026-07-23', scope:'보라', type:'지출', main:'건강',   category:'실비보험', note:'삼성화재',   amount:22210,   user:'', payment:'' },
   { key:'m_20260723_2', date:'2026-07-23', scope:'보라', type:'지출', main:'생활비', category:'식비',     note:'베라커피',   amount:3800,    user:'', payment:'' },
-  { key:'m_20260723_3', date:'2026-07-23', scope:'공동', type:'지출', main:'자동차', category:'주차비',   note:'모두의주차장', amount:3500,  user:'', payment:'' },
+  { key:'m_20260723_3', date:'2026-07-23', scope:'공동', type:'지출', main:'교통비', category:'주차비',   note:'모두의주차장', amount:3500,  user:'', payment:'' },
   { key:'m_20260723_4', date:'2026-07-23', scope:'공동', type:'지출', main:'생활비', category:'외식',     note:'우야든동',   amount:5000,    user:'', payment:'' },
   { key:'m_20260724_1', date:'2026-07-24', scope:'관',   type:'수입', main:'급여',   category:'월급',     note:'월급',       amount:2000000, user:'', payment:'' },
   { key:'m_20260724_2', date:'2026-07-24', scope:'관',   type:'지출', main:'생활비', category:'식비',     note:'점심',       amount:11000,   user:'', payment:'' },
@@ -1769,7 +1771,7 @@ function renderMonth(ym){
       lines: [
         { name:'수입', value: won(totalSummary.income), dotColor:'var(--income)', valueColor:'var(--income)', onclick:`openTotalIncomeModal('${ym}')` },
         { name:'지출', value: won(totalSummary.expense), dotColor:'var(--expense)', valueColor:'var(--expense)', onclick:`openTotalExpenseModal('${ym}')` },
-        { name:'잔액', value: won(totalSummary.balance), dotColor: totalSummary.balance>=0?'var(--income)':'var(--expense)', valueColor: totalSummary.balance>=0?'var(--income)':'var(--expense)', onclick:`openTotalBalanceModal('${ym}')` },
+        { name:'수입-지출', value: won(totalSummary.netIncomeExpense), dotColor: totalSummary.netIncomeExpense>=0?'var(--income)':'var(--expense)', valueColor: totalSummary.netIncomeExpense>=0?'var(--income)':'var(--expense)', onclick:`openTotalBalanceModal('${ym}')` },
       ],
     },
     {
@@ -2094,8 +2096,7 @@ function openTotalBalanceModal(ym){
   const s = computeTotalSummary(ym);
   const rows = [
     { label:'수입', value: s.income, sign:'+' },
-    { label:'현금성 지출', value: s.cashExpense, sign:'-' },
-    { label:'카드 청구액(전월 사용분)', value: s.cardBill, sign:'-' },
+    { label:'지출', value: s.expense, sign:'-' },
   ];
   const rowsHtml = rows.map(r=>`
     <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px;">
@@ -2104,12 +2105,12 @@ function openTotalBalanceModal(ym){
     </div>
   `).join('');
   openModal(`
-    <h3 class="display">${mm}월 잔액</h3>
-    <div class="modal-sub">수입에서 현금성 지출과 이번 달 청구된 카드 대금을 뺀 값이에요.</div>
+    <h3 class="display">${mm}월 수입-지출</h3>
+    <div class="modal-sub">이번 달 수입에서 이번 달 지출을 뺀 값이에요.</div>
     ${rowsHtml}
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;">
-      <span style="font-weight:700;">잔액</span>
-      <span class="mono" style="font-weight:700;font-size:16px;color:${s.balance>=0?'var(--income)':'var(--expense)'};">${won(s.balance)}</span>
+      <span style="font-weight:700;">수입-지출</span>
+      <span class="mono" style="font-weight:700;font-size:16px;color:${s.netIncomeExpense>=0?'var(--income)':'var(--expense)'};">${won(s.netIncomeExpense)}</span>
     </div>
   `);
 }
@@ -2133,16 +2134,17 @@ function openScopeExpenseModal(ym, scope){
 /* ---- "카드 현황" 팝업 ---- */
 function openCardHistoryModal(ym, payment){
   const [yy,mm] = ym.split('-').map(Number);
+  const monthStart = ym + '-01';
   const cutoffExclusive = shiftYm(ym,1) + '-01';
   const name = payment.replace(/\[.*?\]/, '');
   const items = DB.list()
-    .filter(t=>t.payment===payment && t.type==='지출' && t.date < cutoffExclusive)
+    .filter(t=>t.payment===payment && t.type==='지출' && t.date >= monthStart && t.date < cutoffExclusive)
     .sort((a,b)=> a.date < b.date ? 1 : -1);
   const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
-  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">아직 기록된 지출 내역이 없어요.</div>`;
+  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 기록된 지출 내역이 없어요.</div>`;
   openModal(`
-    <h3 class="display">${name} 누적 지출 내역</h3>
-    <div class="modal-sub">${mm}월 말 기준 누적 ${won(total)} · 총 ${items.length}건</div>
+    <h3 class="display">${name} 이번 달 사용 내역</h3>
+    <div class="modal-sub">${mm}월 사용 ${won(total)} · 총 ${items.length}건</div>
     ${listHtml}
   `);
 }
