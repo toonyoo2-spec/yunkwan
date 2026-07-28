@@ -855,7 +855,7 @@ function openDetailModal(id){
         } else if(label === '예약문의'){
           valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
         } else if(label === '주차장' && it.address){
-          valueHtml = `<a href="https://app.modu.kr/map/keyword?keyword=${encodeURIComponent(it.address)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+          valueHtml = `<a href="https://app.modu.kr/map/search?keyword=${encodeURIComponent(it.address)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
         }
         return `
         <div class="detail-row">
