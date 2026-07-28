@@ -69,13 +69,15 @@
   }
     input,select{
     width:100%;
-    padding:9px 10px;
+    height:38px;
+    padding:0 10px;
     border:1px solid var(--line);
     border-radius:7px;
     font-size:13.5px;
     background:#fff;
     color:var(--ink);
     font-family:inherit;
+    box-sizing:border-box;
   }
   input:focus,select:focus{
     outline:none;
@@ -347,7 +349,10 @@
 @media (max-width:1080px){
 
   body{ padding:16px 10px 40px; overflow-x: hidden; }
-  .wrap{ max-width:100%; width:100%; overflow-x: hidden; }
+  /* 공용 메뉴바(#bkNav)도 class="wrap"을 쓰기 때문에, 여기서 .wrap을 그대로 건드리면
+     이 페이지에서만(820px가 아닌 1080px부터) 메뉴바가 옆 여백 없이 커져버림 →
+     이 페이지 콘텐츠 영역(#appContent)에만 적용되도록 범위를 좁힘 */
+  #appContent{ max-width:100%; width:100%; overflow-x: hidden; }
 
   header{ align-items:flex-start; }
 
