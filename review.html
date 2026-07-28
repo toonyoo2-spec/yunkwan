@@ -364,6 +364,10 @@
     text-decoration:underline;
     text-underline-offset:2px;
   }
+  .detail-hint{
+    font-size:11px;
+    color:var(--sub);
+  }
   .detail-actions{
     display:flex;
     justify-content:space-between;
@@ -855,7 +859,10 @@ function openDetailModal(id){
         } else if(label === '예약문의'){
           valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
         } else if(label === '주차장' && it.address){
-          valueHtml = `<a href="https://app.modu.kr/map/search?keyword=${encodeURIComponent(it.address)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+          // 모두의주차장 앱의 정확한 검색 딥링크를 몰라서(전에 시도한 링크는 존재하지
+          // 않는 페이지로 연결됨) 대신 주소를 클립보드에 복사해주고, 앱에서 직접
+          // 붙여넣기 하도록 안내함 — 확실하게 동작하는 방식.
+          valueHtml = `<a href="#" onclick="event.preventDefault();copyAddressForParking(this)">${escapeHtml(value)}</a> <span class="detail-hint">(눌러서 주소 복사)</span>`;
         }
         return `
         <div class="detail-row">
@@ -873,6 +880,23 @@ function openDetailModal(id){
 function closeDetailModal(){
   document.getElementById('detailModalOverlay').classList.remove('open');
   detailModalId = null;
+}
+
+/* 모두의주차장은 정확한 검색 딥링크를 확인 못 해서(추측한 링크가 존재하지 않는
+   페이지로 연결됨), 대신 주소를 클립보드에 복사해주고 사용자가 앱에서
+   직접 붙여넣기 하도록 안내함. */
+async function copyAddressForParking(el){
+  if(!detailModalId) return;
+  const it = items.find(i => i.id === detailModalId);
+  if(!it || !it.address) return;
+  try{
+    await navigator.clipboard.writeText(it.address);
+    const original = el.textContent;
+    el.textContent = '복사됨! 모두의주차장에서 붙여넣기 하세요';
+    setTimeout(() => { el.textContent = original; }, 2000);
+  }catch(err){
+    alert('주소 복사에 실패했어요: ' + it.address);
+  }
 }
 
 function editFromDetailModal(){
