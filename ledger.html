@@ -450,12 +450,12 @@ tr.edit-row td{padding:12px 10px;}
 .chip.sub{font-size:11.5px;padding:4px 10px;}
 .note-search{
   border:1px solid var(--line-strong);border-radius:100px;padding:6px 12px;font-size:12px;
-  background:var(--surface);color:var(--ink);width:160px;
+  background:var(--surface);color:var(--ink);width:160px;flex:0 0 auto;
 }
 @media (max-width:480px){
-  /* 좁은 화면에서는 margin-left:auto로 인해 검색창이 어색하게 치우쳐 보이므로,
-     자기 줄을 온전히 차지하도록 함 */
-  .note-search{width:100%;flex:1 1 100%;margin-left:0 !important;box-sizing:border-box;}
+  /* 좁은 화면에서는 전체/수입/지출 칩과 같은 줄에 넣되, 작게 만들어서
+     공간이 부족하면 그 줄 오른쪽에 붙은 채로 다음 줄로 자연스럽게 넘어가게 함 */
+  .note-search{width:112px;font-size:11.5px;padding:6px 10px;}
 }
 
 /* ---- 캘린더 셀 클릭 ---- */
@@ -503,8 +503,25 @@ tr.edit-row td{padding:12px 10px;}
   .kpis{grid-template-columns:repeat(2,1fr);}
   .month-nav h1{font-size:19px;}
 
-  .tx-form{grid-template-columns:1fr;padding:12px;}
-  .tx-form .add-btn{width:100%;height:38px;font-size:13px;font-weight:700;}
+  .tx-form{
+    grid-template-columns:1fr 1fr;padding:12px;
+    grid-template-areas:
+      "scope date"
+      "type main"
+      "cat pay"
+      "note note"
+      "amount amount"
+      "btn btn";
+  }
+  .tx-form #f_scope{grid-area:scope;}
+  .tx-form #f_date{grid-area:date;}
+  .tx-form #f_type{grid-area:type;}
+  .tx-form #f_main{grid-area:main;}
+  .tx-form #f_category{grid-area:cat;}
+  .tx-form #f_payment{grid-area:pay;}
+  .tx-form #f_note{grid-area:note;}
+  .tx-form #f_amount{grid-area:amount;}
+  .tx-form .add-btn{grid-area:btn;width:100%;height:38px;font-size:13px;font-weight:700;}
 
   .tx-edit-form{grid-template-columns:1fr;}
   .edit-actions{justify-content:flex-end;}
@@ -514,25 +531,38 @@ tr.edit-row td{padding:12px 10px;}
   table.tx-table.tx-table-main tbody,
   table.tx-table.tx-table-main tr,
   table.tx-table.tx-table-main td{display:block;width:100%;}
-  table.tx-table.tx-table-main tr.tx-row{
+
+  /* 폰 화면에서는 8칸짜리 desktop 행은 숨기고, 2줄로 압축된 mobile 카드 행만 보여줌 */
+  table.tx-table.tx-table-main tr.tx-row-desktop{display:none;}
+  table.tx-table.tx-table-main tr.tx-row-mobile{
     border:1px solid var(--paper-line);border-radius:var(--radius-s);
     padding:10px 12px;margin-bottom:8px;
   }
-  table.tx-table.tx-table-main td{
-    display:flex;justify-content:space-between;align-items:center;gap:10px;
-    padding:4px 0;border-bottom:none;text-align:right;
+  table.tx-table.tx-table-main tr.tx-row-mobile td{padding:0;border-bottom:none;}
+  .tx-card-line1{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .tx-card-cat{display:flex;align-items:center;gap:6px;min-width:0;font-size:13.5px;font-weight:600;}
+  .tx-card-cat .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .tx-card-cat-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tx-card-cat .fixed-tag{font-weight:500;flex-shrink:0;}
+  .tx-card-main{color:var(--muted);font-weight:400;font-size:12px;}
+  .tx-card-amt{font-size:14px;font-weight:700;flex-shrink:0;}
+  .tx-card-line2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:4px;}
+  .tx-card-note{
+    color:var(--muted);font-size:11.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
-  table.tx-table.tx-table-main td::before{
-    content:attr(data-label);color:var(--muted);font-size:11px;font-weight:600;
-    text-align:left;flex-shrink:0;
+  .tx-card-pay{flex-shrink:0;}
+  .tx-card-pay .pay-quick-select{
+    width:auto;max-width:96px;border:none;background:transparent;color:var(--muted);
+    font-size:11px;padding:2px 4px;text-align:right;
   }
-  table.tx-table.tx-table-main td.amt{font-size:14px;font-weight:700;}
+
   table.tx-table.tx-table-main tr.empty-row{border:none;padding:0;}
   table.tx-table.tx-table-main tr.empty-row td{display:block;text-align:center;padding:24px 0;}
-  table.tx-table.tx-table-main tr.empty-row td::before{content:none;}
   table.tx-table.tx-table-main tr.edit-row{border:1px solid var(--line-strong);border-radius:var(--radius-s);margin-bottom:8px;}
   table.tx-table.tx-table-main tr.edit-row td{display:block;padding:10px;}
-  table.tx-table.tx-table-main tr.edit-row td::before{content:none;}
+}
+@media (min-width:641px){
+  table.tx-table.tx-table-main tr.tx-row-mobile{display:none;}
 }
 </style>
 </head>
@@ -2260,11 +2290,11 @@ function renderTxToolbar(ym){
   document.getElementById('txToolbar').innerHTML = `
     <div class="filters">
       ${scopeChips.map(s=>`<button class="chip ${state.scopeFilter===s?'active':''}" onclick="setScopeFilter('${s}')">${s}</button>`).join('')}
-      <input type="text" class="note-search" id="noteSearch" placeholder="내용 검색" value="${escapeHtml(state.noteFilter)}"
-             oninput="state.noteFilter=this.value; renderTxTable('${ym}')" style="margin-left:auto;">
     </div>
     <div class="filters">
       ${['전체',...TYPES].map(t=>`<button class="chip ${state.monthTxFilter===t?'active':''}" onclick="setTypeFilter('${t}')">${t}</button>`).join('')}
+      <input type="text" class="note-search" id="noteSearch" placeholder="내용 검색" value="${escapeHtml(state.noteFilter)}"
+             oninput="state.noteFilter=this.value; renderTxTable('${ym}')" style="margin-left:auto;">
     </div>
     ${mainRow}
     ${catRow}
@@ -2329,7 +2359,14 @@ function displayRowHtml(t){
   const catLabel = t.category
     ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterCat('${escapeJsAttr(t.type)}','${escapeJsAttr(t.main)}','${escapeJsAttr(t.category)}')">${escapeHtml(t.category)}</span>`
     : `<span style="color:var(--expense);">미지정</span>`;
-  return `<tr class="tx-row" onclick="startEditTx('${t.id}')">
+  const paySelect = `
+      <select class="pay-quick-select" onchange="quickSetPayment('${t.id}', this.value)">
+        <option value="" ${!t.user?'selected':''}>미지정</option>
+        ${PAYMENT_METHODS.map(p=>`<option value="${escapeHtml(p)}" ${p===t.user?'selected':''}>${p}</option>`).join('')}
+      </select>`;
+
+  // PC 화면용: 열이 넉넉해서 구분/날짜/대분류/중분류/소분류/내용/금액/결제수단을 각 칸에 그대로 보여줌.
+  const desktopRow = `<tr class="tx-row tx-row-desktop" onclick="startEditTx('${t.id}')">
     <td data-label="구분">${scopeBadge}</td>
     <td class="mono" data-label="날짜" style="color:var(--muted)" title="${t.date}">${t.date.slice(5)}</td>
     <td data-label="대분류"><span class="badge ${TYPE_KEY[t.type]}">${t.type}</span></td>
@@ -2337,13 +2374,30 @@ function displayRowHtml(t){
     <td data-label="소분류" style="font-weight:600" title="${escapeHtml(t.category)}">${catLabel}</td>
     <td data-label="내용" title="${escapeHtml(t.note)}">${escapeHtml(t.note)}</td>
     <td class="amt ${TYPE_KEY[t.type]}" data-label="금액">${Number(t.amount).toLocaleString('ko-KR')}</td>
-    <td data-label="결제수단" onclick="event.stopPropagation()">
-      <select class="pay-quick-select" onchange="quickSetPayment('${t.id}', this.value)">
-        <option value="" ${!t.user?'selected':''}>미지정</option>
-        ${PAYMENT_METHODS.map(p=>`<option value="${escapeHtml(p)}" ${p===t.user?'selected':''}>${p}</option>`).join('')}
-      </select>
+    <td data-label="결제수단" onclick="event.stopPropagation()">${paySelect}</td>
+  </tr>`;
+
+  // 모바일용: 8줄로 늘어지던 걸 2줄짜리 카드로 압축. 대분류(수입/지출)는 별도 줄 없이
+  // 금액 색상(빨강/초록)으로만 구분하고, 결제수단은 작은 셀렉트로 내용 옆에 붙임.
+  const scopeDotColor = t.scope ? (SCOPE_COLOR[t.scope] || 'var(--muted)') : 'var(--expense)';
+  const mobileRow = `<tr class="tx-row tx-row-mobile" onclick="startEditTx('${t.id}')">
+    <td colspan="8">
+      <div class="tx-card-line1">
+        <span class="tx-card-cat">
+          <i class="dot" style="background:${scopeDotColor};" title="${escapeHtml(t.scope||'미지정')}"></i>
+          <span class="tx-card-cat-text" title="${escapeHtml(t.main)} · ${escapeHtml(t.category)}">${catLabel}<span class="tx-card-main"> · ${mainLabel}</span></span>
+          ${fixedTag}
+        </span>
+        <span class="tx-card-amt amt ${TYPE_KEY[t.type]}">${Number(t.amount).toLocaleString('ko-KR')}원</span>
+      </div>
+      <div class="tx-card-line2">
+        <span class="tx-card-note" title="${escapeHtml(t.note)}">${t.date.slice(5)} · ${escapeHtml(t.note)||'&nbsp;'}</span>
+        <span class="tx-card-pay" onclick="event.stopPropagation()">${paySelect}</span>
+      </div>
     </td>
   </tr>`;
+
+  return desktopRow + mobileRow;
 }
 
 function quickSetPayment(id, value){
