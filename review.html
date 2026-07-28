@@ -104,6 +104,10 @@
     outline:none;
     border-color:var(--accent);
   }
+  input[readonly]{
+    background:#f4f3f0;
+    color:var(--sub);
+  }
   .add-btn{
     margin-top:14px;
     background:var(--accent);
@@ -493,8 +497,8 @@
       </div>
       <div class="form-row">
         <div class="field">
-          <label>주차장</label>
-          <input id="in-parking" type="text" placeholder="예: 건물 내 무료주차 2시간">
+          <label>주차장 (주소와 자동 동일)</label>
+          <input id="in-parking" type="text" placeholder="주소 입력 시 자동으로 채워집니다" readonly>
         </div>
         <div class="field">
           <label>마감일자</label>
@@ -630,8 +634,8 @@
         </div>
       </div>
       <div class="field" style="grid-area:parking;">
-        <label>주차장</label>
-        <input id="edit-parking">
+        <label>주차장 (주소와 자동 동일)</label>
+        <input id="edit-parking" readonly>
       </div>
       <div class="field" style="grid-area:keyword;">
         <label>키워드</label>
@@ -705,7 +709,7 @@ async function addItem(){
   const provide = document.getElementById('in-provide').value.trim();
   const address = document.getElementById('in-address').value.trim();
   const contact = document.getElementById('in-contact').value.trim();
-  const parking = document.getElementById('in-parking').value.trim();
+  const parking = address;
   const deadline = document.getElementById('in-deadline').value || null;
   const keyword = document.getElementById('in-keyword').value.trim();
   const status = document.getElementById('in-status').value;
@@ -754,7 +758,7 @@ function openEditModal(id){
   document.getElementById('edit-platform').value = it.platform || platformList[0];
   document.getElementById('edit-address').value = it.address || '';
   document.getElementById('edit-contact').value = it.contact || '';
-  document.getElementById('edit-parking').value = it.parking || '';
+  document.getElementById('edit-parking').value = it.address || '';
   document.getElementById('edit-deadline').value = normalizeDate(it.deadline);
   document.getElementById('edit-keyword').value = it.keyword || '';
   document.getElementById('edit-resvDate').value = normalizeDate(it.resvDate);
@@ -788,7 +792,7 @@ async function saveEditModal(){
     platform: document.getElementById('edit-platform').value,
     address: document.getElementById('edit-address').value.trim(),
     contact: document.getElementById('edit-contact').value.trim(),
-    parking: document.getElementById('edit-parking').value.trim(),
+    parking: document.getElementById('edit-address').value.trim(),
     deadline: document.getElementById('edit-deadline').value || null,
     keyword: document.getElementById('edit-keyword').value.trim(),
   };
@@ -1019,6 +1023,14 @@ async function loadInitialData(){
   render();
 }
 loadInitialData();
+
+// 주차장 필드는 주소와 항상 동일하게 자동 입력(모두의주차장 검색 링크용)
+document.getElementById('in-address').addEventListener('input', function(){
+  document.getElementById('in-parking').value = this.value;
+});
+document.getElementById('edit-address').addEventListener('input', function(){
+  document.getElementById('edit-parking').value = this.value;
+});
 
 // 다른 사람이 같은 테이블을 수정하면(다른 탭/기기 포함) 실시간으로 반영
 sb.channel('campaigns-changes')
