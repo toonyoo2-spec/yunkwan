@@ -145,6 +145,7 @@
   .cal-cell.other-month{background:transparent;border-color:transparent;}
   .cal-cell.today{border-color:var(--accent);background:#f0f0ee;}
   .cal-daynum{font-size:11.5px;color:var(--sub);}
+  .cal-daynum.weekend{color:#b3452f;}
   .cal-cell.today .cal-daynum{color:var(--accent);font-weight:700;}
   .cal-daynum-row{
     display:flex;
@@ -259,6 +260,8 @@
   .workout-cell.done.owner-gwan{background:var(--owner-gwan-bg);color:var(--owner-gwan-ink);border-color:var(--owner-gwan-bg);font-weight:700;}
   .workout-cell.done.owner-bora{background:var(--owner-bora-bg);color:var(--owner-bora-ink);border-color:var(--owner-bora-bg);font-weight:700;}
   .workout-cell.missed{background:#fff;color:var(--owner-gwan-ink);border-color:var(--owner-gwan-ink);font-weight:700;}
+  .workout-cell.weekend{background:#fdf0ee;color:#b3452f;border-color:#f3d0c8;}
+  .workout-cell.today.weekend{border-color:var(--accent);}
 
   /* ---- 이벤트 상세 팝업 ---- */
   .cal-modal-overlay{
@@ -787,6 +790,8 @@ function calRender(){
   for(let d = 1; d <= daysInMonth; d++){
     const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isToday = dateStr === todayStr;
+    const dow = (startOffset + d - 1) % 7;
+    const isWeekend = dow === 0 || dow === 6;
     const rc = calDateRowCol(dateStr, y, m);
     const dayEntries = (byDate[dateStr] || []).slice().sort((a,b) => {
       const ta = a.kind === 'campaign' ? (a.data.resvTime||"") : (a.data.time||"");
@@ -817,7 +822,7 @@ function calRender(){
     const gwanPlanned = workoutItems.some(w => w.date === dateStr && w.owner === '관');
     const boraPlanned = workoutItems.some(w => w.date === dateStr && w.owner === '보라');
     const isFuture = dateStr > todayStr;
-    const gwanMissed = !isFuture && dateStr !== todayStr && !gwanPlanned;
+    const gwanMissed = !isFuture && dateStr !== todayStr && !gwanPlanned && !isWeekend;
 
     workoutDotsHtml = `<div class="cal-workout-dots">
       ${gwanMissed
@@ -826,7 +831,7 @@ function calRender(){
       <span class="wo-dot bora ${boraPlanned?'done':''}" title="보라 운동${isFuture?' 예정':(boraPlanned?' 완료':' 안함')}"></span>
     </div>`;
 
-    cells.push(`<div class="cal-cell ${isToday?'today':''}"><div class="cal-daynum-row"><div class="cal-daynum">${d}</div>${workoutDotsHtml}</div>${slotsHtml}${eventsHtml}</div>`);
+    cells.push(`<div class="cal-cell ${isToday?'today':''}"><div class="cal-daynum-row"><div class="cal-daynum ${isWeekend?'weekend':''}">${d}</div>${workoutDotsHtml}</div>${slotsHtml}${eventsHtml}</div>`);
   }
 
   const totalSoFar = startOffset + daysInMonth;
@@ -950,14 +955,16 @@ function workoutRender(){
     let html = '';
     for(let d = 1; d <= daysInMonth; d++){
       const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dow = new Date(y, m, d).getDay();
+      const isWeekend = dow === 0 || dow === 6;
       const isDone = doneSet.has(`${dateStr}_${owner}`);
       const isToday = dateStr === todayStr;
       const isPast = dateStr < todayStr;
-      const isMissed = owner === '관' && isPast && !isDone;
+      const isMissed = owner === '관' && isPast && !isDone && !isWeekend;
       if(isDone && d <= elapsedDays) counts[owner]++;
       const label = isMissed ? 'X' : d;
-      const titleSuffix = isDone ? ' (운동함)' : (isMissed ? ' (운동 안함)' : '');
-      html += `<div class="workout-cell ${isDone ? 'done '+ownerClass : ''} ${isToday ? 'today' : ''} ${isMissed ? 'missed' : ''}" onclick="workoutToggle('${dateStr}','${owner}')" title="${dateStr} · ${escapeHtml(owner)}${titleSuffix}">${label}</div>`;
+      const titleSuffix = isDone ? ' (운동함)' : (isMissed ? ' (운동 안함)' : (isWeekend ? ' (주말)' : ''));
+      html += `<div class="workout-cell ${isDone ? 'done '+ownerClass : ''} ${isToday ? 'today' : ''} ${isMissed ? 'missed' : ''} ${(!isDone && isWeekend) ? 'weekend' : ''}" onclick="workoutToggle('${dateStr}','${owner}')" title="${dateStr} · ${escapeHtml(owner)}${titleSuffix}">${label}</div>`;
     }
     (owner === '관' ? gwanCells : boraCells).innerHTML = html;
   });
