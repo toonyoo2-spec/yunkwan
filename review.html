@@ -355,7 +355,7 @@
     white-space:pre-wrap;
     word-break:break-word;
   }
-  .detail-value .address-link{
+  .detail-value a{
     color:var(--accent);
     text-decoration:underline;
     text-underline-offset:2px;
@@ -844,16 +844,22 @@ function openDetailModal(id){
       ${resvText ? `<span class="resv-text">${resvText}</span>` : ''}
     </div>
     <div class="detail-rows">
-      ${rows.map(([label, value]) => `
+      ${rows.map(([label, value]) => {
+        let valueHtml = escapeHtml(value);
+        if(label === '주소'){
+          valueHtml = `<a href="https://map.naver.com/p/search/${encodeURIComponent(value)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+        } else if(label === '예약문의'){
+          valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
+        } else if(label === '주차장' && it.address){
+          valueHtml = `<a href="https://app.modu.kr/map/keyword?keyword=${encodeURIComponent(it.address)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+        }
+        return `
         <div class="detail-row">
           <div class="detail-label">${label}</div>
-          <div class="detail-value">${
-            label === '주소'
-              ? `<a href="https://map.naver.com/p/search/${encodeURIComponent(value)}" target="_blank" rel="noopener" class="address-link">${escapeHtml(value)}</a>`
-              : escapeHtml(value)
-          }</div>
+          <div class="detail-value">${valueHtml}</div>
         </div>
-      `).join('')}
+      `;
+      }).join('')}
     </div>
   `;
   detailModalId = id;

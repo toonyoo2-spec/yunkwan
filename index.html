@@ -322,6 +322,7 @@
   }
   .cal-modal-row .k{color:var(--sub);flex-shrink:0;}
   .cal-modal-row .v{text-align:right;word-break:break-all;}
+  .cal-modal-row .v a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
   
   .cal-modal-actions {
     display: flex;
@@ -1143,12 +1144,23 @@ function calShowDetail(id, kind){
 
   const rows = Object.keys(calFieldLabels)
     .filter(key => it[key])
-    .map(key => `
+    .map(key => {
+      const value = it[key];
+      let valueHtml = escapeHtml(value);
+      if(key === 'address'){
+        valueHtml = `<a href="https://map.naver.com/p/search/${encodeURIComponent(value)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+      } else if(key === 'contact'){
+        valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
+      } else if(key === 'parking' && it.address){
+        valueHtml = `<a href="https://app.modu.kr/map/keyword?keyword=${encodeURIComponent(it.address)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+      }
+      return `
       <div class="cal-modal-row">
         <span class="k">${calFieldLabels[key]}</span>
-        <span class="v">${escapeHtml(it[key])}</span>
+        <span class="v">${valueHtml}</span>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
   document.getElementById('calModalBody').innerHTML = `
     <div class="cal-modal-title">${escapeHtml(it.name)}</div>
