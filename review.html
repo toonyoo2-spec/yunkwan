@@ -78,6 +78,17 @@
     color:var(--ink);
     font-family:inherit;
     box-sizing:border-box;
+    min-width:0;
+    overflow:hidden;
+  }
+  /* 사파리/아이패드에서 type=date 입력이 칸 너비를 무시하고 렌더링되면서
+     옆 필드와 겹쳐 보이는 문제 방지용 방어 스타일 */
+  input[type=date]{
+    min-width:0;
+    max-width:100%;
+  }
+  input[type=date]::-webkit-datetime-edit{
+    overflow:hidden;
   }
   input:focus,select:focus{
     outline:none;
