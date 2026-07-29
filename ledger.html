@@ -52,9 +52,9 @@
 }
 
 *{box-sizing:border-box;}
-/* html/body/#app에 overflow-x:hidden을 걸면 그 안의 sticky 요소(#bkNav, .tabs-wrap)의
+/* html/body/#app에 overflow-x:hidden을 걸면 그 안의 sticky 요소(#bkNav)의
    position:sticky가 깨져서 상단 고정이 안 됨(overflow가 visible이 아닌 조상이 있으면
-   sticky가 그 조상 기준으로 갇혀버림) → .tabs-wrap의 형제(sibling)인 #view에만 적용 */
+   sticky가 그 조상 기준으로 갇혀버림) → #bkNav와 무관한 #view에만 적용 */
 #view{overflow-x:hidden;}
 body{
   -webkit-font-smoothing:antialiased;
@@ -91,14 +91,13 @@ button{font-family:inherit;}
 .ghost-btn:hover{border-color:var(--ink);color:var(--ink);}
 
 /* ---- 탭(폴더 인덱스탭) 네비게이션 ----
-   공용 메뉴바(#bkNav) 바로 아래에 이어 붙게, #bkNav의 실제 높이를 JS에서
-   --bknav-h 변수로 채워 넣고 그만큼 top을 띄워서 고정합니다(높이가 접힘/펼침·
-   반응형으로 바뀌어도 ResizeObserver가 값을 계속 갱신해요). */
+   상단 고정을 높이 계산 없이 확실하게 만들려고, JS에서 이 .tabs-wrap 자체를
+   공용 메뉴바(#bkNav, 이미 position:sticky) 안으로 옮겨 붙입니다(render() 참고).
+   그러면 nav와 한 덩어리로 같이 고정되어서, nav 높이가 반응형·접힘으로 바뀌어도
+   틀어질 일이 없어요. */
 .tabs-wrap{
-  position:sticky;
-  top:var(--bknav-h, 0px);
-  z-index:90;
-  background:var(--bg, #f6f5f1);
+  flex-basis:100%;
+  width:100%;
   border-bottom:2px solid var(--ink);
   margin-bottom:26px;
 }
@@ -439,13 +438,13 @@ footer.foot{
 .year-item:hover{background:var(--paper);}
 .year-item.active{background:var(--ink);color:var(--paper);}
 
-/* 모바일에서는 연도 선택 버튼을 탭 줄에서 빼서 화면 우상단으로 올림. 뷰포트 기준
-   고정(position:fixed)이라 .tabs-wrap이 sticky여도 위치가 어긋나지 않고, 스크롤해서
-   거래내역까지 내려가도 계속 눌러서 다른 달로 이동할 수 있음. PC는 그대로 tabs-row
-   안에 둠(요청: "PC 유지 가능하면 제일 베스트"). */
+/* 모바일에서는 연도 선택 버튼을 탭 줄에서 빼서 .tabs-wrap이 속한 #bkNav 기준
+   우측 하단으로 올림(#bkNav는 위치 지정된 요소라 안전한 기준점). #bkNav 우상단은
+   접기 버튼(☰)이 이미 쓰고 있어서 하단(=탭 줄과 같은 높이)에 둠. PC는 그대로
+   tabs-row 안에 둠(요청: "PC 유지 가능하면 제일 베스트"). */
 #app{position:relative;}
 @media (max-width:640px){
-  .year-select{position:fixed;top:calc(var(--bknav-h, 0px) + 10px);right:14px;z-index:95;}
+  .year-select{position:absolute;top:auto;bottom:14px;right:0;}
   .year-btn{border-radius:20px;border-bottom:2px solid var(--ink);padding:7px 12px;font-size:13px;box-shadow:var(--shadow-card);}
 }
 
@@ -1597,6 +1596,14 @@ function render(){
     <div id="view"></div>
     <footer class="foot">yunkwan.cloud · ledger.html — 데이터는 Supabase에 저장되며 로그인한 모든 기기에서 동기화됩니다.</footer>
   `;
+
+  // 탭 줄을 공용 메뉴바(#bkNav, 이미 position:sticky) 안으로 옮겨 붙여서 같은
+  // 덩어리로 상단 고정합니다 — 높이를 몰라도 항상 정확히 붙어요. render()가
+  // #app.innerHTML을 다시 그릴 때마다(달 이동 등) .tabs-wrap도 새로 만들어지므로
+  // 매번 옮겨줘야 합니다.
+  const bkNav = document.getElementById('bkNav');
+  const tabsWrapEl = app.querySelector('.tabs-wrap');
+  if(bkNav && tabsWrapEl) bkNav.appendChild(tabsWrapEl);
 
   if(state.view === 'summary') renderSummary();
   else renderMonth(state.view);
@@ -2819,17 +2826,6 @@ function submitTx(ym){
   renderMonth(ymOf(date));
   if(ymOf(date) !== ym) location.hash = '#/' + ymOf(date);
 }
-
-/* .tabs-wrap이 공용 메뉴바(#bkNav) 바로 아래에 붙어 고정되도록, #bkNav의 실제
-   높이를 --bknav-h로 계속 반영합니다. 접힘/펼침·반응형으로 높이가 바뀌어도
-   ResizeObserver가 자동으로 값을 갱신해요. */
-(function initTabsWrapStickyOffset(){
-  const nav = document.getElementById('bkNav');
-  if(!nav) return;
-  const update = () => document.documentElement.style.setProperty('--bknav-h', nav.offsetHeight + 'px');
-  update();
-  new ResizeObserver(update).observe(nav);
-})();
 
 /* =================================================================================
    8. 부팅
