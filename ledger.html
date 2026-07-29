@@ -1925,10 +1925,7 @@ function renderMonth(ym){
       <div class="card review-card">
         <div class="section-head">
           <h2>지출 리뷰</h2>
-          <div style="display:flex;gap:6px;">
-            <button class="ghost-btn" onclick="reanalyzeScopeReview('${ym}')" style="font-size:11px;">↻ 다시 분석</button>
-            <button class="ghost-btn" id="aiReviewBtn" onclick="aiReanalyzeScopeReview('${ym}')" style="font-size:11px;">✨ AI 분석</button>
-          </div>
+          <button class="ghost-btn" id="aiReviewBtn" onclick="aiReanalyzeScopeReview('${ym}')" style="font-size:11px;">✨ AI 분석</button>
         </div>
         <div class="pill-note" id="scopeReviewNote">⚙︎ 규칙 기반 자동 분석 · 'AI 분석'을 누르면 Gemini가 요약해줘요</div>
         <div id="scopeReviewWrap"></div>
