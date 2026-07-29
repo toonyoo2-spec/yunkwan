@@ -52,10 +52,10 @@
 }
 
 *{box-sizing:border-box;}
-/* html/body에 overflow-x:hidden을 걸면 공용 메뉴바(#bkNav)의 position:sticky가
-   깨져서 상단 고정이 안 됐음(overflow가 visible이 아닌 조상이 있으면 sticky가
-   그 조상 기준으로 갇혀버림) → body 대신 콘텐츠 영역(#app)에만 적용 */
-#app{overflow-x:hidden;}
+/* html/body/#app에 overflow-x:hidden을 걸면 그 안의 sticky 요소(#bkNav, .tabs-wrap)의
+   position:sticky가 깨져서 상단 고정이 안 됨(overflow가 visible이 아닌 조상이 있으면
+   sticky가 그 조상 기준으로 갇혀버림) → .tabs-wrap의 형제(sibling)인 #view에만 적용 */
+#view{overflow-x:hidden;}
 body{
   -webkit-font-smoothing:antialiased;
   min-height:100vh;
@@ -90,8 +90,15 @@ button{font-family:inherit;}
 }
 .ghost-btn:hover{border-color:var(--ink);color:var(--ink);}
 
-/* ---- 탭(폴더 인덱스탭) 네비게이션 ---- */
+/* ---- 탭(폴더 인덱스탭) 네비게이션 ----
+   공용 메뉴바(#bkNav) 바로 아래에 이어 붙게, #bkNav의 실제 높이를 JS에서
+   --bknav-h 변수로 채워 넣고 그만큼 top을 띄워서 고정합니다(높이가 접힘/펼침·
+   반응형으로 바뀌어도 ResizeObserver가 값을 계속 갱신해요). */
 .tabs-wrap{
+  position:sticky;
+  top:var(--bknav-h, 0px);
+  z-index:90;
+  background:var(--bg, #f6f5f1);
   border-bottom:2px solid var(--ink);
   margin-bottom:26px;
 }
@@ -367,6 +374,19 @@ tr.scope-divider td{
 .review-stats .item{font-size:12px;color:var(--ink-soft);}
 .review-stats .item b{display:block;font-family:var(--font);font-size:17px;color:var(--ink);}
 .save-note{font-size:11px;color:var(--muted);margin-top:8px;}
+
+/* ---- 지출 리뷰 카드(한눈에 보기 쉽게: 헤드라인 한 줄 + 칩 목록으로 분리) ---- */
+.review-item{margin-bottom:18px;}
+.review-item.review-overall{padding-bottom:14px;border-bottom:1px dashed var(--line);}
+.review-headline{font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-top:4px;}
+.review-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.review-chip{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;
+}
+.review-chip.up{background:var(--expense-soft);color:var(--expense);}
+.review-chip.down{background:var(--income-soft);color:var(--income);}
+.review-comment{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5;}
 
 /* =========================================================
    Summary 전용
@@ -2093,6 +2113,89 @@ function reanalyzeScopeReview(ym){
     alert('다시 분석하는 중 오류가 발생했어요: ' + err.message);
   }
 }
+/* ym월 지출 리뷰용 데이터를 계산합니다(전체 + 공동/보라/관). 규칙 기반 렌더링과
+   AI 분석(코멘트 한 줄만 Gemini가 채움) 양쪽이 이 계산 결과를 그대로 재사용해서,
+   숫자·카테고리 칩은 항상 우리 코드가 만드는 똑같은 모양으로 나옵니다 —
+   Gemini의 문장 구성/띄어쓰기에 좌우되지 않아요. */
+function computeScopeReviewData(ym){
+  const all = DB.list();
+  const sumByMain = txs => txs.reduce((m,t)=>{ m[t.main] = (m[t.main]||0) + Number(t.amount); return m; }, {});
+
+  // "같은 년도 평균" = ym과 같은 해의, ym 이전(1월~직전월)까지 지난 달들의 월평균.
+  // 연초(1월)라 지난 달이 없으면 카테고리 비교는 생략한다.
+  const [yy, mm] = ym.split('-').map(Number);
+  const yearMonths = [];
+  for(let m=1; m<mm; m++) yearMonths.push(yy + '-' + String(m).padStart(2,'0'));
+  const elapsedCount = yearMonths.length;
+
+  function buildOne(filterFn){
+    const cur = filterFn(monthTx(all, ym));
+    const total = cur.reduce((s,t)=>s+Number(t.amount),0);
+    const pTotal = filterFn(monthTx(all, shiftYm(ym,-1))).reduce((s,t)=>s+Number(t.amount),0);
+    const yearTx = yearMonths.reduce((acc,m)=> acc.concat(filterFn(monthTx(all, m))), []);
+    const yearMainTotals = sumByMain(yearTx);
+    const yearTotalSum = yearTx.reduce((s,t)=>s+Number(t.amount),0);
+    const yearAvgTotal = elapsedCount ? yearTotalSum/elapsedCount : 0;
+
+    let headline;
+    if(total===0){
+      headline = '이번 달 지출 기록이 아직 없어요.';
+    } else {
+      const parts = [];
+      if(pTotal){
+        const d = (total-pTotal)/pTotal*100;
+        parts.push(`전월 대비 ${Math.abs(d).toFixed(0)}% ${d>=0?'증가':'감소'}`);
+      }
+      if(yearAvgTotal){
+        const d2 = (total-yearAvgTotal)/yearAvgTotal*100;
+        parts.push(`${yy}년 평균 대비 ${Math.abs(d2).toFixed(0)}% ${d2>=0?'높음':'낮음'}`);
+      }
+      headline = parts.length ? parts.join(' · ') : '아직 비교할 데이터가 없어요.';
+    }
+
+    // 중분류(main)별로 "같은 년도 평균" 대비 얼마나 많이/적게 썼는지. 1만원 미만은 노이즈로 제외.
+    let increased = [], decreased = [];
+    if(elapsedCount > 0){
+      const curByMain = sumByMain(cur);
+      const yearAvgByMain = {};
+      Object.keys(yearMainTotals).forEach(k => { yearAvgByMain[k] = yearMainTotals[k] / elapsedCount; });
+      const mains = new Set([...Object.keys(curByMain), ...Object.keys(yearAvgByMain)]);
+      const deltas = Array.from(mains)
+        .filter(m => m)
+        .map(m => ({ main: m, delta: (curByMain[m]||0) - (yearAvgByMain[m]||0) }))
+        .filter(d => Math.abs(d.delta) >= 10000)
+        .sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta));
+      increased = deltas.filter(d=>d.delta>0).slice(0,3);
+      decreased = deltas.filter(d=>d.delta<0).slice(0,3);
+    }
+
+    return { total, headline, increased, decreased };
+  }
+
+  const overall = buildOne(txs => txs.filter(t=>t.type==='지출'));
+  const scopes = {};
+  SCOPES.forEach(scope=>{ scopes[scope] = buildOne(txs => txs.filter(t=>t.type==='지출' && t.scope===scope)); });
+  return { overall, scopes };
+}
+
+/* 지출 리뷰 카드 한 칸(전체 또는 공동/보라/관 하나)을 렌더링합니다. 헤드라인 한 줄
+   + 카테고리 증감 칩으로 구조를 고정해서, 숫자가 몇 개든 항상 한눈에 읽히게 합니다. */
+function reviewCardHtml({ label, bold, total, headline, increased, decreased, comment }){
+  const chip = (d, dir) => `<span class="review-chip ${dir}">${dir==='up'?'▲':'▼'} ${escapeHtml(d.main)} ${won(Math.abs(d.delta))}</span>`;
+  const chipsHtml = (increased.length || decreased.length)
+    ? `<div class="review-chips">${increased.map(d=>chip(d,'up')).join('')}${decreased.map(d=>chip(d,'down')).join('')}</div>`
+    : '';
+  const commentHtml = comment ? `<div class="review-comment">${escapeHtml(comment)}</div>` : '';
+  return `
+    <div class="cat-row review-item ${bold?'review-overall':''}">
+      <div class="top"><span class="name" style="font-size:14px;${bold?'font-weight:800;':''}">${escapeHtml(label)}</span><span class="amt">${won(total)}</span></div>
+      <div class="review-headline">${escapeHtml(headline)}</div>
+      ${chipsHtml}
+      ${commentHtml}
+    </div>
+  `;
+}
+
 async function aiReanalyzeScopeReview(ym){
   const btn = document.getElementById('aiReviewBtn');
   const wrap = document.getElementById('scopeReviewWrap');
@@ -2115,26 +2218,12 @@ async function aiReanalyzeScopeReview(ym){
     }
     if(data?.error) throw new Error(data.error);
 
-    const all = DB.list();
-    const allCurTotal = monthTx(all, ym).filter(t=>t.type==='지출').reduce((s,t)=>s+Number(t.amount),0);
-    const overallCard = `
-      <div class="cat-row" style="margin-bottom:18px;padding-bottom:14px;border-bottom:1px dashed var(--line);">
-        <div class="top"><span class="name" style="font-size:14px;font-weight:800;">전체</span><span class="amt">${won(allCurTotal)}</span></div>
-        <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px;">${escapeHtml(data.analysis?.['전체'] || '분석 결과를 받지 못했어요.')}</div>
-      </div>
-    `;
-    const scopeCards = SCOPES.map(scope=>{
-      const curTotal = monthTx(all, ym).filter(t=>t.type==='지출' && t.scope===scope).reduce((s,t)=>s+Number(t.amount),0);
-      const narrative = data.analysis?.[scope] || '분석 결과를 받지 못했어요.';
-      return `
-        <div class="cat-row" style="margin-bottom:16px;">
-          <div class="top"><span class="name" style="font-size:14px;">${scope}</span><span class="amt">${won(curTotal)}</span></div>
-          <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px;">${escapeHtml(narrative)}</div>
-        </div>
-      `;
-    }).join('');
+    const reviewData = computeScopeReviewData(ym);
+    const comments = data.comments || {};
+    const overallCard = reviewCardHtml({ label:'전체', bold:true, ...reviewData.overall, comment: comments['전체'] });
+    const scopeCards = SCOPES.map(scope => reviewCardHtml({ label:scope, ...reviewData.scopes[scope], comment: comments[scope] })).join('');
     wrap.innerHTML = overallCard + scopeCards;
-    if(note) note.textContent = '✨ Gemini AI 분석 결과';
+    if(note) note.textContent = '✨ 규칙 기반 분석 + Gemini 코멘트';
   }catch(err){
     console.error('AI 지출 리뷰 중 오류:', err);
     alert('AI 분석 중 오류가 발생했어요: ' + err.message);
@@ -2143,109 +2232,12 @@ async function aiReanalyzeScopeReview(ym){
     if(wrap){ requestAnimationFrame(()=>{ wrap.style.opacity = '1'; }); }
   }
 }
+
 function renderScopeReviews(ym){
-  const all = DB.list();
   const wrap = document.getElementById('scopeReviewWrap');
-  const sumByMain = txs => txs.reduce((m,t)=>{ m[t.main] = (m[t.main]||0) + Number(t.amount); return m; }, {});
-
-  // "같은 년도 평균" = ym과 같은 해의, ym 이전(1월~직전월)까지 지난 달들의 월평균.
-  // 연초(1월)라 지난 달이 없으면 카테고리 비교는 생략한다.
-  const [yy, mm] = ym.split('-').map(Number);
-  const yearMonths = [];
-  for(let m=1; m<mm; m++) yearMonths.push(yy + '-' + String(m).padStart(2,'0'));
-  const elapsedCount = yearMonths.length;
-
-  // 전체(공동+보라+관 합산) 큰 그림
-  const allCurTotal = monthTx(all, ym).filter(t=>t.type==='지출').reduce((s,t)=>s+Number(t.amount),0);
-  const allPrevTotal = monthTx(all, shiftYm(ym,-1)).filter(t=>t.type==='지출').reduce((s,t)=>s+Number(t.amount),0);
-  const allYearTotal = yearMonths.reduce((s,m)=> s + monthTx(all, m).filter(t=>t.type==='지출').reduce((s2,t)=>s2+Number(t.amount),0), 0);
-  const allYearAvg = elapsedCount ? allYearTotal/elapsedCount : 0;
-
-  let overallNarrative;
-  if(allCurTotal===0){
-    overallNarrative = '이번 달 지출 기록이 아직 없어요.';
-  } else {
-    const parts = [];
-    if(allPrevTotal){
-      const d = (allCurTotal-allPrevTotal)/allPrevTotal*100;
-      parts.push(`전월 대비 ${Math.abs(d).toFixed(0)}% ${d>=0?'늘었고':'줄었고'}`);
-    }
-    if(allYearAvg){
-      const d2 = (allCurTotal-allYearAvg)/allYearAvg*100;
-      parts.push(`${yy}년 월평균(${won(allYearAvg)}) 대비 ${Math.abs(d2).toFixed(0)}% ${d2>=0?'높아요':'낮아요'}`);
-    }
-    overallNarrative = parts.length
-      ? `이번 달 전체 지출은 ${won(allCurTotal)}로, ${parts.join(', ')}.`
-      : `이번 달 전체 지출은 ${won(allCurTotal)}이에요. 아직 비교할 데이터가 부족해요.`;
-  }
-
-  const overallCard = `
-    <div class="cat-row" style="margin-bottom:18px;padding-bottom:14px;border-bottom:1px dashed var(--line);">
-      <div class="top"><span class="name" style="font-size:14px;font-weight:800;">전체</span><span class="amt">${won(allCurTotal)}</span></div>
-      <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px;">${overallNarrative}</div>
-    </div>
-  `;
-
-  const scopeCards = SCOPES.map(scope=>{
-    const cur = monthTx(all, ym).filter(t=>t.type==='지출' && t.scope===scope);
-    const curTotal = cur.reduce((s,t)=>s+Number(t.amount),0);
-
-    const prevTx = monthTx(all, shiftYm(ym,-1)).filter(t=>t.type==='지출' && t.scope===scope);
-    const pTotal = prevTx.reduce((s,t)=>s+Number(t.amount),0);
-
-    const yearTx = yearMonths.reduce((acc,m)=> acc.concat(monthTx(all, m).filter(t=>t.type==='지출' && t.scope===scope)), []);
-    const yearMainTotals = sumByMain(yearTx);
-    const yearTotalSum = yearTx.reduce((s,t)=>s+Number(t.amount),0);
-    const yearAvgTotal = elapsedCount ? yearTotalSum/elapsedCount : 0;
-
-    let narrative;
-    if(curTotal===0){
-      narrative = `이번 달 ${scope} 지출 기록이 아직 없어요.`;
-    } else {
-      const parts = [];
-      if(pTotal){
-        const d = (curTotal-pTotal)/pTotal*100;
-        parts.push(`전월 대비 ${Math.abs(d).toFixed(0)}% ${d>=0?'늘었고':'줄었고'}`);
-      }
-      if(yearAvgTotal){
-        const d2 = (curTotal-yearAvgTotal)/yearAvgTotal*100;
-        parts.push(`${yy}년 평균(${won(yearAvgTotal)}) 대비 ${Math.abs(d2).toFixed(0)}% ${d2>=0?'높아요':'낮아요'}`);
-      }
-      narrative = parts.length
-        ? `이번 달 ${scope} 지출은 ${won(curTotal)}로, ${parts.join(', ')}.`
-        : `이번 달 ${scope} 지출은 ${won(curTotal)}이에요. 아직 비교할 데이터가 없어요.`;
-    }
-
-    // 중분류(main)별로 "같은 년도 평균" 대비 얼마나 많이/적게 썼는지 계산.
-    // 1만원 미만의 미세한 차이는 노이즈로 보고 문장에서 제외.
-    let deltaNarrative = '';
-    if(elapsedCount > 0){
-      const curByMain = sumByMain(cur);
-      const yearAvgByMain = {};
-      Object.keys(yearMainTotals).forEach(k => { yearAvgByMain[k] = yearMainTotals[k] / elapsedCount; });
-      const mains = new Set([...Object.keys(curByMain), ...Object.keys(yearAvgByMain)]);
-      const deltas = Array.from(mains)
-        .filter(m => m)
-        .map(m => ({ main: m, delta: (curByMain[m]||0) - (yearAvgByMain[m]||0) }))
-        .filter(d => Math.abs(d.delta) >= 10000)
-        .sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta));
-
-      const increased = deltas.filter(d=>d.delta>0).slice(0,2);
-      const decreased = deltas.filter(d=>d.delta<0).slice(0,2);
-      const parts = [];
-      if(increased.length) parts.push(increased.map(d=>`${d.main} 평균보다 ${won(d.delta)} 많이`).join(', '));
-      if(decreased.length) parts.push(decreased.map(d=>`${d.main} 평균보다 ${won(Math.abs(d.delta))} 적게`).join(', '));
-      if(parts.length) deltaNarrative = ` 카테고리별로는 ${parts.join(', ')} 썼어요.`;
-    }
-
-    return `
-      <div class="cat-row" style="margin-bottom:16px;">
-        <div class="top"><span class="name" style="font-size:14px;">${scope}</span><span class="amt">${won(curTotal)}</span></div>
-        <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px;">${narrative}${deltaNarrative}</div>
-      </div>
-    `;
-  }).join('');
-
+  const data = computeScopeReviewData(ym);
+  const overallCard = reviewCardHtml({ label:'전체', bold:true, ...data.overall });
+  const scopeCards = SCOPES.map(scope => reviewCardHtml({ label:scope, ...data.scopes[scope] })).join('');
   wrap.innerHTML = overallCard + scopeCards;
 }
 
@@ -2825,6 +2817,17 @@ function submitTx(ym){
   renderMonth(ymOf(date));
   if(ymOf(date) !== ym) location.hash = '#/' + ymOf(date);
 }
+
+/* .tabs-wrap이 공용 메뉴바(#bkNav) 바로 아래에 붙어 고정되도록, #bkNav의 실제
+   높이를 --bknav-h로 계속 반영합니다. 접힘/펼침·반응형으로 높이가 바뀌어도
+   ResizeObserver가 자동으로 값을 갱신해요. */
+(function initTabsWrapStickyOffset(){
+  const nav = document.getElementById('bkNav');
+  if(!nav) return;
+  const update = () => document.documentElement.style.setProperty('--bknav-h', nav.offsetHeight + 'px');
+  update();
+  new ResizeObserver(update).observe(nav);
+})();
 
 /* =================================================================================
    8. 부팅
