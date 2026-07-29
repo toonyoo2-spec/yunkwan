@@ -436,6 +436,36 @@ tr.edit-row td{padding:12px 10px;}
   width:100%;margin-top:5px;border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px;
   font-size:12.5px;font-family:var(--font);background:var(--paper);color:var(--ink);
 }
+.budget-card{padding:16px 18px;cursor:pointer;display:flex;flex-direction:column;gap:6px;justify-content:center;height:100%;}
+.budget-card .budget-top{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;color:var(--ink-soft);}
+.budget-card .budget-top .hint{font-size:11.5px;color:var(--muted);font-weight:600;}
+.budget-card .budget-value{font-family:var(--font);font-size:19px;font-weight:700;}
+.budget-card .budget-value.muted{color:var(--muted);font-size:14px;font-weight:600;}
+
+/* ---- 상단 요약(지출/수입 큰 숫자) ---- */
+.summary-strip{display:flex;gap:28px;flex-wrap:wrap;padding:16px 18px;}
+.summary-strip .item{display:flex;flex-direction:column;gap:3px;}
+.summary-strip .item .k{font-size:12.5px;color:var(--muted);font-weight:600;}
+.summary-strip .item .v{font-family:var(--font);font-size:23px;font-weight:800;}
+.summary-strip .item.expense .v{color:var(--ink);}
+.summary-strip .item.income .v{color:var(--income);}
+
+/* ---- 카테고리별 지출 도넛 ---- */
+.donut-wrap{display:flex;justify-content:center;padding:6px 0 8px;}
+.donut-wrap canvas{max-width:200px;max-height:200px;}
+.cat-dot-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px dashed var(--line);}
+.cat-dot-row:last-child{border-bottom:none;}
+.cat-dot-row .left{display:flex;align-items:center;gap:8px;color:var(--ink-soft);font-weight:600;min-width:0;}
+.cat-dot-row .left .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.cat-dot-row .left .pct{color:var(--muted);font-weight:500;font-size:12px;flex-shrink:0;}
+.cat-dot-row .amt{font-family:var(--font);font-weight:700;flex-shrink:0;}
+
+/* ---- 고정 지출(정기 자동이체) 요약 카드 ---- */
+.fixed-spend-rows{display:flex;flex-direction:column;gap:2px;margin:6px 0 12px;}
+.fixed-spend-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--line);}
+.fixed-spend-row:last-child{border-bottom:none;}
+.fixed-spend-row .k{color:var(--ink-soft);font-weight:600;}
+.fixed-spend-row .v{font-family:var(--font);font-weight:700;}
 .compare-select{
   border:1px solid var(--line-strong);border-radius:8px;padding:5px 8px;font-size:12px;
   background:var(--surface);color:var(--ink-soft);font-family:inherit;
@@ -1857,18 +1887,9 @@ function renderMonth(ym){
   const totalSummary = computeTotalSummary(ym);
   const unassignedCount = tx.filter(t=>!t.scope).length;
 
-  // 상단 3개 카드: ① 전체(수입/지출/잔액) ② 지출(공동/보라/관이) ③ 카드 현황(현대/하나/농협)
-  // 지출 카드의 이름은 전부 2글자로("관"->"관이") 맞춰서 나란히 봤을 때 정돈되어 보이게 함.
+  // 지출/카드현황 카드: 이름은 전부 2글자로("관"->"관이") 맞춰서 나란히 봤을 때 정돈되어 보이게 함.
   const SCOPE_LABEL = { "공동":"공동", "보라":"보라", "관":"과니" };
   const kpiBlocks = [
-    {
-      label: '전체', extraClass: 'kpi-total',
-      lines: [
-        { name:'수입', value: won(totalSummary.income), dotColor:'var(--income)', valueColor:'var(--income)', onclick:`openTotalIncomeModal('${ym}')` },
-        { name:'지출', value: won(totalSummary.expense), dotColor:'var(--expense)', valueColor:'var(--expense)', onclick:`openTotalExpenseModal('${ym}')` },
-        { name:'수입-지출', value: won(totalSummary.netIncomeExpense), dotColor: totalSummary.netIncomeExpense>=0?'var(--income)':'var(--expense)', valueColor: totalSummary.netIncomeExpense>=0?'var(--income)':'var(--expense)', onclick:`openTotalBalanceModal('${ym}')` },
-      ],
-    },
     {
       label: '지출',
       lines: scopeSummary.map(s => ({
@@ -1888,6 +1909,10 @@ function renderMonth(ym){
     },
   ];
 
+  const [budgetYear] = ym.split('-').map(Number);
+  const monthlyBudget = getMonthlyBudget(budgetYear);
+  const budgetDiff = monthlyBudget - totalSummary.expense;
+
   document.getElementById('view').innerHTML = `
     <div class="month-nav">
       <button class="move" onclick="location.hash='#/${prevYm(ym)}'">‹ 이전 달</button>
@@ -1895,7 +1920,50 @@ function renderMonth(ym){
       <button class="move" onclick="location.hash='#/${nextYm(ym)}'">다음 달 ›</button>
     </div>
 
-    <div class="grid kpis" style="grid-template-columns:repeat(3,1fr);">
+    <div class="grid two-col section">
+      <div class="card">
+        <div class="summary-strip">
+          <div class="item expense" style="cursor:pointer;" onclick="openTotalExpenseModal('${ym}')">
+            <span class="k">지출</span><span class="v">${won(totalSummary.expense)}</span>
+          </div>
+          <div class="item income" style="cursor:pointer;" onclick="openTotalIncomeModal('${ym}')">
+            <span class="k">수입</span><span class="v">${won(totalSummary.income)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card budget-card" onclick="setMonthlyBudget('${ym}')">
+        <div class="budget-top">
+          <span>📅 이번 달 예산</span>
+          ${monthlyBudget ? `<span class="hint">눌러서 수정</span>` : `<span class="hint">눌러서 설정</span>`}
+        </div>
+        ${monthlyBudget
+          ? `<div class="budget-value" style="color:${budgetDiff<0?'var(--expense)':'var(--ink)'};">${budgetDiff<0 ? won(Math.abs(budgetDiff))+' 초과' : won(budgetDiff)+' 남음'}</div>`
+          : `<div class="budget-value muted">예산을 설정해보세요</div>`}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="card">
+        <div class="section-head"><h2>지출 속도</h2><span class="hint">이번 달 vs 지난달</span></div>
+        <canvas id="chartPace"></canvas>
+      </div>
+    </div>
+
+    <div class="grid two-col section">
+      <div class="card cat-list-card">
+        <div class="section-head"><h2>카테고리별 지출</h2></div>
+        <div id="catTabs"></div>
+        <div class="donut-wrap" id="donutWrap"><canvas id="chartCategoryDonut"></canvas></div>
+        <div id="catListWrap"></div>
+      </div>
+      <div class="card">
+        <div class="section-head"><h2>고정 지출</h2><span class="hint">정기 자동이체</span></div>
+        <div id="fixedSpendWrap"></div>
+        <button class="ghost-btn" style="width:100%;justify-content:center;display:flex;" onclick="location.hash='#/summary'">고정 지출 관리</button>
+      </div>
+    </div>
+
+    <div class="grid two-col section">
       ${kpiBlocks.map(block => `
         <div class="card kpi ${block.extraClass||''}">
           <div class="label">${block.label}</div>
@@ -1920,14 +1988,6 @@ function renderMonth(ym){
         <div class="section-head"><h2>지출 캘린더</h2><span class="hint">일별 지출 합계</span></div>
         <div id="calWrap"></div>
       </div>
-      <div class="card cat-list-card">
-        <div class="section-head"><h2>분류별 리스트업</h2></div>
-        <div id="catTabs"></div>
-        <div id="catListWrap"></div>
-      </div>
-    </div>
-
-    <div class="grid two-col section">
       <div class="card chart-card">
         <div class="section-head">
           <h2>지출 비교</h2>
@@ -1935,6 +1995,9 @@ function renderMonth(ym){
         </div>
         <canvas id="chartCompare"></canvas>
       </div>
+    </div>
+
+    <div class="section">
       <div class="card review-card">
         <div class="section-head">
           <h2>지출 리뷰</h2>
@@ -1977,6 +2040,8 @@ function renderMonth(ym){
 
   renderCalendar(y,m,tx);
   renderCatList(ym);
+  renderFixedSpendingCard(ym);
+  renderSpendingPaceChart(ym);
   renderTxToolbar(ym);
   renderTxTable(ym);
   renderScopeReviews(ym);
@@ -1986,6 +2051,114 @@ function renderMonth(ym){
 
 /* ---- 전월/선택월 대비 지출 비교 차트 ---- */
 let _compareChart = null;
+let _paceChart = null;
+let _categoryDonutChart = null;
+
+/* ---- 이번 달 총예산: budgets 테이블에 category='__total__'로 저장(연도별 1개 값).
+   기존 카테고리별 예산 스캐폴딩(getBudgets/saveBudgets)을 그대로 재사용합니다. */
+function getMonthlyBudget(year){
+  return Number(DB.getBudgets(year)['__total__'] || 0);
+}
+function setMonthlyBudget(ym){
+  const [yy] = ym.split('-').map(Number);
+  const cur = getMonthlyBudget(yy);
+  const input = prompt(`${yy}년 매월 반복될 총예산을 입력하세요 (원):`, cur ? String(cur) : '');
+  if(input === null) return;
+  const amount = Number(String(input).replace(/[^0-9]/g,''));
+  if(!input.trim()){ return; }
+  const map = { ...DB.getBudgets(yy), '__total__': amount };
+  DB.saveBudgets(yy, map);
+  renderMonth(ym);
+}
+
+/* ---- 고정 지출(정기 자동이체) 이번 달 요약: 실제 auto-fill 로직(ensureRecurringForMonth)과
+   같은 기준(날짜·스킵)으로 계산해서, 실제 채워진 거래와 항상 일치하게 합니다. */
+function computeFixedSpendingSummary(ym){
+  const [y,m] = ym.split('-').map(Number);
+  const dim = daysInMonth(y,m);
+  const templates = DB.getRecurringTemplates() || [];
+  const skips = new Set(DB.getRecurringSkips());
+  const today = todayStr();
+  let happened = 0, upcoming = 0, count = 0;
+  templates.forEach(tpl=>{
+    if(tpl.endYm && ym >= tpl.endYm) return;
+    if(skips.has(tpl.key + '|' + ym)) return;
+    const day = Math.min(tpl.day, dim);
+    const date = ym + '-' + String(day).padStart(2,'0');
+    count++;
+    if(date <= today) happened += Number(tpl.amount);
+    else upcoming += Number(tpl.amount);
+  });
+  return { happened, upcoming, total: happened + upcoming, count };
+}
+function renderFixedSpendingCard(ym){
+  const wrap = document.getElementById('fixedSpendWrap');
+  if(!wrap) return;
+  const s = computeFixedSpendingSummary(ym);
+  wrap.innerHTML = s.count ? `
+    <div class="fixed-spend-rows">
+      <div class="fixed-spend-row"><span class="k">나간 고정 지출</span><span class="v" style="color:var(--expense);">${won(s.happened)}</span></div>
+      <div class="fixed-spend-row"><span class="k">예정된 고정 지출</span><span class="v" style="color:var(--muted);">${won(s.upcoming)}</span></div>
+      <div class="fixed-spend-row"><span class="k" style="font-weight:800;color:var(--ink);">총 ${s.count}건</span><span class="v" style="font-weight:800;">${won(s.total)}</span></div>
+    </div>
+  ` : `<div style="color:var(--muted);font-size:13px;padding:14px 0;">등록된 정기 자동이체가 없어요.</div>`;
+}
+
+/* ---- 지출 속도: 이번 달 vs 지난달 "누적" 지출을 날짜별로 그려서 페이스를 비교합니다.
+   지난달이 이번 달보다 짧으면(예: 2월→3월) 마지막 값에서 평평하게 이어 그립니다. */
+function computeDailyCumulative(ym){
+  const [y,m] = ym.split('-').map(Number);
+  const dim = daysInMonth(y,m);
+  const tx = monthTx(DB.list(), ym).filter(t=>t.type==='지출');
+  const byDay = {};
+  tx.forEach(t=>{ const d = Number(t.date.split('-')[2]); byDay[d] = (byDay[d]||0) + Number(t.amount); });
+  const cum = [];
+  let running = 0;
+  for(let d=1; d<=dim; d++){ running += (byDay[d]||0); cum.push(running); }
+  return cum;
+}
+function renderSpendingPaceChart(ym){
+  const canvas = document.getElementById('chartPace');
+  if(!canvas) return;
+  if(typeof Chart === 'undefined'){ canvas.replaceWith(chartFallbackNode()); return; }
+
+  const [y,m] = ym.split('-').map(Number);
+  const dim = daysInMonth(y,m);
+  const curCum = computeDailyCumulative(ym);
+  const prevYm = shiftYm(ym,-1);
+  const [,pm] = prevYm.split('-').map(Number);
+  const prevDim = daysInMonth(Number(prevYm.split('-')[0]), pm);
+  const prevCumFull = computeDailyCumulative(prevYm);
+  const prevCum = [];
+  for(let d=1; d<=dim; d++){
+    prevCum.push(d <= prevDim ? prevCumFull[d-1] : prevCumFull[prevDim-1]);
+  }
+  const budget = getMonthlyBudget(y);
+  const labels = Array.from({length:dim}, (_,i)=> String(i+1));
+
+  const datasets = [
+    { label:'이번 달 지출', data:curCum, borderColor:'#5B4FE8', backgroundColor:'transparent', borderWidth:2.5, pointRadius:0, tension:0.15 },
+    { label:'지난달 지출', data:prevCum, borderColor:'#B7B4C7', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.15 },
+  ];
+  if(budget > 0){
+    datasets.push({ label:'예산', data:Array(dim).fill(budget), borderColor:'#C9A227', borderWidth:1.5, borderDash:[5,4], pointRadius:0 });
+  }
+
+  if(_paceChart) _paceChart.destroy();
+  _paceChart = new Chart(canvas, {
+    type:'line',
+    data:{ labels, datasets },
+    options:{
+      responsive:true,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{ position:'top', labels:{boxWidth:10,font:{size:11}} } },
+      scales:{
+        x:{ ticks:{ font:{size:10}, maxTicksLimit:8 }, grid:{display:false} },
+        y:{ ticks:{ callback:v=>wonShort(v), font:{size:10} }, grid:{color:'#EFEDE4'} },
+      },
+    },
+  });
+}
 function compareOptions(ym){
   const opts = [];
   for(let i=1;i<=12;i++){
@@ -2434,6 +2607,8 @@ function openCardBalanceModal(ym, payment){
 }
 
 /* ---- 카테고리 리스트업 ---- */
+const CATEGORY_PALETTE = ['#12A67F','#2F6FE4','#7B5CF0','#D6469A','#F0A63A','#4FB3BF','#E85C5C','#8AA624','#9C6ADE','#5C7CFA'];
+
 function renderCatList(ym){
   const scopeOptions = ['전체', ...SCOPES];
   document.getElementById('catTabs').innerHTML = `<div class="cat-tabs">${scopeOptions.map(s=>`<button class="cat-tab ${state.catScope===s?'active':''}" onclick="setCatScope('${s}')">${s}</button>`).join('')}</div>`;
@@ -2441,7 +2616,10 @@ function renderCatList(ym){
   let tx = monthTx(DB.list(), ym).filter(t=>t.type==='지출');
   if(state.catScope !== '전체') tx = tx.filter(t=>t.scope===state.catScope);
 
+  const donutWrap = document.getElementById('donutWrap');
+
   if(state.catDrillMain !== null){
+    if(donutWrap) donutWrap.style.display = 'none';
     const mainLabel = state.catDrillMain || '미분류';
     const mainTx = tx.filter(t=> (t.main||'') === state.catDrillMain);
     const total = mainTx.reduce((s,t)=>s+Number(t.amount),0);
@@ -2451,11 +2629,11 @@ function renderCatList(ym){
 
     document.getElementById('catListWrap').innerHTML = `
       <button class="ghost-btn" style="margin-bottom:10px;" onclick="setCatDrill(null)">← ${mainLabel}</button>
-      ${rows.length ? rows.map(([cat,amt])=>{
-        const w = total ? (amt/total*100) : 0;
-        return `<div class="cat-row">
-          <div class="top"><span class="name">${cat}</span><span class="amt">${won(amt)}</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:var(--expense)"></div></div>
+      ${rows.length ? rows.map(([cat,amt],i)=>{
+        const pct = total ? (amt/total*100) : 0;
+        return `<div class="cat-dot-row">
+          <span class="left"><i class="dot" style="background:${CATEGORY_PALETTE[i%CATEGORY_PALETTE.length]}"></i>${cat}<span class="pct">${pct.toFixed(0)}%</span></span>
+          <span class="amt">${won(amt)}</span>
         </div>`;
       }).join('') : `<div style="color:var(--muted);font-size:13px;padding:20px 0;">세부 내역이 없습니다.</div>`}
     `;
@@ -2467,11 +2645,27 @@ function renderCatList(ym){
   tx.forEach(t=>{ const key = t.main || '미분류'; map[key] = (map[key]||0) + Number(t.amount); });
   const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
 
-  document.getElementById('catListWrap').innerHTML = rows.length ? rows.map(([main,amt])=>{
-    const w = total ? (amt/total*100) : 0;
-    return `<div class="cat-row" style="cursor:pointer;" onclick="setCatDrill('${main==='미분류'?'':main}')">
-      <div class="top"><span class="name">${main}</span><span class="amt">${won(amt)}</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:var(--expense)"></div></div>
+  if(donutWrap){
+    donutWrap.style.display = rows.length ? 'flex' : 'none';
+    if(rows.length && typeof Chart !== 'undefined'){
+      const canvas = document.getElementById('chartCategoryDonut');
+      if(_categoryDonutChart) _categoryDonutChart.destroy();
+      _categoryDonutChart = new Chart(canvas, {
+        type:'doughnut',
+        data:{
+          labels: rows.map(([main])=>main),
+          datasets:[{ data: rows.map(([,amt])=>amt), backgroundColor: rows.map((_,i)=>CATEGORY_PALETTE[i%CATEGORY_PALETTE.length]), borderWidth:0 }],
+        },
+        options:{ cutout:'68%', plugins:{ legend:{ display:false } } },
+      });
+    }
+  }
+
+  document.getElementById('catListWrap').innerHTML = rows.length ? rows.map(([main,amt],i)=>{
+    const pct = total ? (amt/total*100) : 0;
+    return `<div class="cat-dot-row" style="cursor:pointer;" onclick="setCatDrill('${main==='미분류'?'':main}')">
+      <span class="left"><i class="dot" style="background:${CATEGORY_PALETTE[i%CATEGORY_PALETTE.length]}"></i>${main}<span class="pct">${pct.toFixed(0)}%</span></span>
+      <span class="amt">${won(amt)}</span>
     </div>`;
   }).join('') : `<div style="color:var(--muted);font-size:13px;padding:20px 0;">이번 달 ${state.catScope} 지출 내역이 없습니다.</div>`;
 }
