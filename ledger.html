@@ -588,13 +588,17 @@ tr.edit-row td{padding:12px 10px;}
   .tx-form .add-btn{grid-area:btn;width:100%;height:38px;font-size:13px;font-weight:700;}
   .tx-form select, .tx-form input{font-size:11.5px;height:32px;padding:0 6px;}
 
-  /* 정기 자동이체 추가 폼은 필드 id가 f_*가 아니라 위 grid-template-areas가 적용되지 않으므로,
-     이름 있는 영역 없이 순서대로 3칸씩 자연스럽게 줄바꿈되도록 별도 처리 */
+  /* 정기 자동이체 추가 폼: 1줄(일·구분·중분류·소분류 4칸) + 2줄(내용·금액·결제수단 3칸) +
+     3줄(추가 버튼) — 12칸 그리드로 나눠서 각 줄이 원하는 칸 수로 딱 맞게 배치되게 함 */
   .tx-form-recur{
     grid-template-areas:none;
-    grid-template-columns:1fr 1fr 1fr;
+    grid-template-columns:repeat(12,1fr);
   }
-  .tx-form-recur .add-btn{grid-column:1/-1;width:100%;height:38px;font-size:13px;font-weight:700;}
+  .tx-form-recur #rc_day, .tx-form-recur #rc_scope,
+  .tx-form-recur #rc_main, .tx-form-recur #rc_category{grid-column:span 3;}
+  .tx-form-recur #rc_note, .tx-form-recur #rc_amount,
+  .tx-form-recur #rc_payment{grid-column:span 4;}
+  .tx-form-recur .add-btn{grid-row:auto;grid-column:1/-1;width:100%;height:38px;font-size:13px;font-weight:700;}
 
   .tx-edit-form{
     grid-template-columns:1fr 1fr 1fr;gap:6px 8px;
