@@ -439,12 +439,14 @@ footer.foot{
 .year-item:hover{background:var(--paper);}
 .year-item.active{background:var(--ink);color:var(--paper);}
 
-/* 모바일에서는 연도 선택 버튼을 탭 줄에서 빼서 화면 우상단(#app 기준)으로 올림.
-   PC는 그대로 tabs-row 안에 둠(요청: "PC 유지 가능하면 제일 베스트"). */
+/* 모바일에서는 연도 선택 버튼을 탭 줄에서 빼서 화면 우상단으로 올림. 뷰포트 기준
+   고정(position:fixed)이라 .tabs-wrap이 sticky여도 위치가 어긋나지 않고, 스크롤해서
+   거래내역까지 내려가도 계속 눌러서 다른 달로 이동할 수 있음. PC는 그대로 tabs-row
+   안에 둠(요청: "PC 유지 가능하면 제일 베스트"). */
 #app{position:relative;}
 @media (max-width:640px){
-  .year-select{position:absolute;top:0;right:0;}
-  .year-btn{border-radius:20px;border-bottom:2px solid var(--ink);padding:7px 12px;font-size:13px;}
+  .year-select{position:fixed;top:calc(var(--bknav-h, 0px) + 10px);right:14px;z-index:95;}
+  .year-btn{border-radius:20px;border-bottom:2px solid var(--ink);padding:7px 12px;font-size:13px;box-shadow:var(--shadow-card);}
 }
 
 /* ---- 거래 내역: 클릭해서 수정 ---- */
