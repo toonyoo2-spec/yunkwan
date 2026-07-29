@@ -220,6 +220,7 @@ button{font-family:inherit;}
 .cal-cell.empty{border:none;background:transparent;}
 .cal-cell .d{font-size:11px;color:var(--muted);font-weight:600;}
 .cal-cell .amt{font-size:10.5px;font-weight:700;color:var(--expense);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-cell .amt.card-bill-pending{color:var(--muted);font-weight:600;opacity:.75;}
 .cal-cell.today{border:1.5px solid var(--ink);}
 .cal-legend{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:var(--muted);}
 .cal-legend .sw{width:12px;height:12px;border-radius:3px;}
@@ -2253,6 +2254,11 @@ function renderCalendar(y,m,tx){
   const dim = daysInMonth(y,m);
   const firstDow = new Date(y, m-1, 1).getDay(); // JS getDay()가 이미 0=일..6=토라 그대로 씀
 
+  // 신용카드 결제일(매월 12일)에 청구될 전월 사용 누적액 — 실제 지출/잔고에는 아직
+  // 반영 전(비활성)이라, 정보용으로만 흐린 글씨로 보여줍니다. 전월 카드 내역이
+  // 바뀌면 이 숫자도 바로 같이 바뀌어요(지출 색칠 강도·합계엔 영향 없음).
+  const pendingBillTotal = Object.values(creditCardExpenseByScope(DB.list(), shiftYm(ym,-1))).reduce((s,v)=>s+v, 0);
+
   let html = DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
   for(let i=0;i<firstDow;i++) html += `<div class="cal-cell empty"></div>`;
   const today = new Date();
@@ -2262,9 +2268,13 @@ function renderCalendar(y,m,tx){
     const intensity = amt / max;
     const bg = amt ? `rgba(181,73,91,${0.08 + intensity*0.35})` : 'var(--paper)';
     const isToday = isThisMonth && today.getDate()===d;
+    const billBadge = (d===12 && pendingBillTotal>0)
+      ? `<span class="amt card-bill-pending" title="전월 카드 사용 누적 · 결제 예정(지출 집계엔 포함 안 됨)">카드 ${wonShort(pendingBillTotal)}</span>`
+      : '';
     html += `<div class="cal-cell ${isToday?'today':''}" style="background:${bg}" onclick="openDayModal('${ym}',${d})">
       <span class="d">${d}</span>
       <span class="amt">${amt? wonShort(amt):''}</span>
+      ${billBadge}
     </div>`;
   }
   document.getElementById('calWrap').innerHTML = `<div class="cal-grid">${html}</div>
