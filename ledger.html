@@ -819,6 +819,15 @@ const CARD_STARTING_BALANCE = {
   "농협[관]": 1126916,
 };
 
+/* 신용카드 결제수단×월 별 "누적 시작값" 예외 처리. 개별 거래로 다 기록하지 못했지만
+   실제로는 이미 쓴 금액이 있을 때 씁니다. anchor 날짜 전(그 날짜 포함 이전)까지는
+   이 base 금액으로 갈음하고(그 이전 개별 거래는 무시), anchor 이후 새로 기록되는
+   거래만 그 위에 더해집니다. 2026-07-29 기준 실제 카드 사용액에 맞춰 넣어둔 값. */
+const CREDIT_CARD_BASE_OVERRIDES = {
+  // "결제수단|YYYY-MM": { anchor:'YYYY-MM-DD'(이 날짜부터 거래를 더함), amount }
+  "현대카드[보라]|2026-07": { anchor: '2026-07-30', amount: 2156086 },
+};
+
 /* ---- 미지정(구분 없음) 거래 일괄 자동 분류 ----
    완벽하진 않을 수 있어 1차 정리용입니다. 실행 후 사람이 직접 확인/수정하는 걸 전제로 합니다. */
 function guessScope(t){
@@ -891,16 +900,30 @@ function bulkAutoAssignCategory(){
   render();
 }
 
+/* 신용카드 결제수단 p의 ym월 사용 총액. CREDIT_CARD_BASE_OVERRIDES에 예외가 있으면
+   anchor 날짜 이전 개별 거래는 무시하고 base 금액으로 갈음한 뒤, anchor 이후
+   거래만 그 위에 더합니다(없으면 평소처럼 그 달 전체를 그대로 합산). */
+function creditCardMonthTotal(list, payment, ym){
+  const cutoffExclusive = shiftYm(ym,1) + '-01';
+  const override = CREDIT_CARD_BASE_OVERRIDES[`${payment}|${ym}`];
+  const rangeStart = override ? override.anchor : (ym + '-01');
+  const base = override ? override.amount : 0;
+  const sum = list
+    .filter(t=>t.payment===payment && t.type==='지출' && t.date >= rangeStart && t.date < cutoffExclusive)
+    .reduce((s,t)=>s+Number(t.amount||0), 0);
+  return base + sum;
+}
+
 /* ym월에 신용카드로 쓴 지출을 실소유자(person) 기준으로 합산합니다.
    (익월 12일 청구일에 "전체" 잔액에서만 차감할 때 씀 — PAYMENT_META의 type을 보고
    판단하므로, 신용카드가 늘어도 이름을 따로 하드코딩할 필요 없음) */
 function creditCardExpenseByScope(list, ym){
   const result = {};
-  monthTx(list, ym).forEach(t=>{
-    if(t.type !== '지출') return;
-    const meta = t.payment ? PAYMENT_META[t.payment] : null;
-    if(!meta || meta.type !== '신용카드') return;
-    result[meta.person] = (result[meta.person]||0) + Number(t.amount||0);
+  PAYMENT_METHODS.filter(p => PAYMENT_META[p].type === '신용카드').forEach(p=>{
+    const total = creditCardMonthTotal(list, p, ym);
+    if(total > 0){
+      result[PAYMENT_META[p].person] = (result[PAYMENT_META[p].person]||0) + total;
+    }
   });
   return result;
 }
@@ -967,7 +990,6 @@ function computeTotalSummary(ym){
    잔고 성격이라 다음 달로 넘어가도 값이 그대로 이어집니다. */
 function buildCardStatusLines(ym){
   const all = DB.list();
-  const monthStart = ym + '-01'; // 보고 있는 달 1일부터(신용카드는 매월 여기서 새로 시작)
   const cutoffExclusive = shiftYm(ym,1) + '-01'; // 보고 있는 달 말일까지만 포함(다음 달 1일 미만)
   // 이름 4글자 + 항목 2글자 + 항목 2글자로 세 줄 길이를 맞춰서 나란히 봤을 때 정돈되어 보이게 함.
   const FULL_NAME = { "현대카드[보라]":"현대카드", "하나[보라]":"하나은행", "농협[관]":"농협은행" };
@@ -977,9 +999,7 @@ function buildCardStatusLines(ym){
     const name = FULL_NAME[p] || p;
 
     if(meta.type === '신용카드'){
-      const totalSpent = all
-        .filter(t=>t.payment===p && t.type==='지출' && t.date >= monthStart && t.date < cutoffExclusive)
-        .reduce((s,t)=>s+Number(t.amount||0), 0);
+      const totalSpent = creditCardMonthTotal(all, p, ym);
       return { name, value: won(totalSpent), dotColor: SCOPE_COLOR[meta.person], valueColor:'var(--expense)', payment:p, kind:'card-history' };
     }
 
@@ -2386,16 +2406,22 @@ function openCardBillPreviewModal(ym){
   const [yy,mm] = ym.split('-').map(Number);
   const prevYm = shiftYm(ym,-1);
   const [py,pm] = prevYm.split('-').map(Number);
+  const cutoffExclusive = ym + '-01';
   const cards = PAYMENT_METHODS.filter(p => PAYMENT_META[p].type==='신용카드');
-  const items = DB.list()
-    .filter(t=>t.type==='지출' && cards.includes(t.payment) && t.date >= prevYm+'-01' && t.date < ym+'-01')
-    .sort((a,b)=> a.date < b.date ? 1 : -1);
-  const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
+  const total = cards.reduce((s,p)=> s + creditCardMonthTotal(DB.list(), p, prevYm), 0);
+  const items = cards.flatMap(p=>{
+    const override = CREDIT_CARD_BASE_OVERRIDES[`${p}|${prevYm}`];
+    const rangeStart = override ? override.anchor : (prevYm + '-01');
+    return DB.list().filter(t=>t.payment===p && t.type==='지출' && t.date >= rangeStart && t.date < cutoffExclusive);
+  }).sort((a,b)=> a.date < b.date ? 1 : -1);
+  const override = cards.map(p => CREDIT_CARD_BASE_OVERRIDES[`${p}|${prevYm}`]).find(Boolean);
   const activated = todayStr() >= `${ym}-12`;
-  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">${pm}월 카드 사용 내역이 없어요.</div>`;
+  const overrideNote = override ? `<div style="color:var(--muted);font-size:12px;margin:-4px 0 10px;">* ${override.anchor} 이전 누적 ${won(override.amount)} 포함 (그 이전 개별 내역은 생략, ${override.anchor} 이후 내역만 아래 표시)</div>` : '';
+  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">${override?'':`${pm}월 카드 사용 내역이 없어요.`}</div>`;
   openModal(`
     <h3 class="display">${mm}월 12일 현대카드 결제 ${activated?'':'예정'}</h3>
     <div class="modal-sub">${pm}월 사용분 합계 ${won(total)} · 총 ${items.length}건${activated?' · 하나은행에서 이미 반영됨':' · 12일에 하나은행 잔고에서 자동으로 빠져요'}</div>
+    ${overrideNote}
     ${listHtml}
   `);
 }
@@ -2403,17 +2429,20 @@ function openCardBillPreviewModal(ym){
 /* ---- "카드 현황" 팝업 ---- */
 function openCardHistoryModal(ym, payment){
   const [yy,mm] = ym.split('-').map(Number);
-  const monthStart = ym + '-01';
   const cutoffExclusive = shiftYm(ym,1) + '-01';
   const name = payment.replace(/\[.*?\]/, '');
+  const override = CREDIT_CARD_BASE_OVERRIDES[`${payment}|${ym}`];
+  const rangeStart = override ? override.anchor : (ym + '-01');
   const items = DB.list()
-    .filter(t=>t.payment===payment && t.type==='지출' && t.date >= monthStart && t.date < cutoffExclusive)
+    .filter(t=>t.payment===payment && t.type==='지출' && t.date >= rangeStart && t.date < cutoffExclusive)
     .sort((a,b)=> a.date < b.date ? 1 : -1);
-  const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
-  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 기록된 지출 내역이 없어요.</div>`;
+  const total = creditCardMonthTotal(DB.list(), payment, ym);
+  const overrideNote = override ? `<div style="color:var(--muted);font-size:12px;margin:-4px 0 10px;">* ${override.anchor} 이전 누적 ${won(override.amount)} 포함 (그 이전 개별 내역은 생략, ${override.anchor} 이후 내역만 아래 표시)</div>` : '';
+  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">${override?'':'이번 달 기록된 지출 내역이 없어요.'}</div>`;
   openModal(`
     <h3 class="display">${name} 이번 달 사용 내역</h3>
-    <div class="modal-sub">${mm}월 사용 ${won(total)} · 총 ${items.length}건</div>
+    <div class="modal-sub">${mm}월 사용 ${won(total)} · 총 ${items.length}건${override?' (+ 누적 반영)':''}</div>
+    ${overrideNote}
     ${listHtml}
   `);
 }
