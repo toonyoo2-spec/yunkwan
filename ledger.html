@@ -2047,7 +2047,18 @@ async function aiReanalyzeScopeReview(ym){
   if(wrap){ wrap.style.transition = 'opacity .12s ease'; wrap.style.opacity = '0.4'; }
   try{
     const { data, error } = await sb.functions.invoke('analyze-spending', { body: { ym } });
-    if(error) throw error;
+    if(error){
+      // supabase-js는 Edge Function이 non-2xx를 반환하면 진짜 에러 메시지 대신
+      // "non-2xx status code"라는 뭉뚱그린 문구만 줘서, 응답 본문(context)을 직접 읽어옴
+      let detail = error.message;
+      if(error.context && typeof error.context.json === 'function'){
+        try{
+          const body = await error.context.json();
+          if(body?.error) detail = body.error;
+        }catch(_){/* 본문이 JSON이 아니면 원래 메시지 유지 */}
+      }
+      throw new Error(detail);
+    }
     if(data?.error) throw new Error(data.error);
 
     const all = DB.list();
