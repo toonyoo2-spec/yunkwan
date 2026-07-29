@@ -804,8 +804,8 @@ const DOW = ["일","월","화","수","목","금","토"];
    ================================================================================= */
 const PAYMENT_METHODS = ["현대카드[보라]", "하나[보라]", "농협[관]"];
 const PAYMENT_META = {
-  "현대카드[보라]": { person:"보라", type:"신용카드", desc:"1~31일 사용분이 익월 12일에 한 번에 청구돼요." },
-  "하나[보라]":     { person:"보라", type:"체크카드", desc:"보라 수입에서 즉시 빠져나가요." },
+  "현대카드[보라]": { person:"보라", type:"신용카드", desc:"1~31일 사용분이 익월 12일에 한 번에 청구돼요. 청구일에 하나은행 잔고에서 자동으로 빠져나가요." },
+  "하나[보라]":     { person:"보라", type:"체크카드", desc:"보라 수입에서 즉시 빠져나가요. 현대카드 대금도 매월 12일에 여기서 자동으로 빠져나가요." },
   "농협[관]":       { person:"관",   type:"체크카드", desc:"관 수입에서 즉시 빠져나가요." },
 };
 /* 하나/농협 카드는 실제 통장 잔고를 그대로 추적합니다. 아래 시작 잔고는 2026-07-26
@@ -904,6 +904,41 @@ function creditCardExpenseByScope(list, ym){
   return result;
 }
 
+/* 신용카드 대금이 결제일(매월 12일)에 같은 사람 명의의 체크카드 계좌에서 자동으로
+   빠져나가는 것처럼 "가상 이벤트"를 계산해줍니다. 실제 거래로 저장하지 않고
+   그때그때 카드 사용 내역에서 다시 계산하기 때문에, 카드 내역이 바뀌면 대금도
+   자동으로 같이 바뀌고, 지출 통계(월별 지출)에는 전혀 영향을 주지 않습니다 —
+   1~말일 사용분은 쓴 그 달에 이미 지출로 잡혀 있으므로, 결제되는(다음 달) 달에는
+   잔고에서만 빠지고 지출로는 잡히지 않아요. 결제일(12일)이 아직 안 지났으면(오늘
+   날짜 기준) 활성화되지 않아 반영되지 않습니다. */
+function creditCardBillEvents(payment, rangeStart, rangeEndExclusive){
+  const meta = PAYMENT_META[payment];
+  if(!meta || meta.type === '신용카드') return [];
+  const cards = PAYMENT_METHODS.filter(p => PAYMENT_META[p].type==='신용카드' && PAYMENT_META[p].person===meta.person);
+  if(!cards.length) return [];
+
+  const all = DB.list();
+  const today = todayStr();
+  const events = [];
+  let [by, bm] = rangeStart.slice(0,7).split('-').map(Number);
+  while(true){
+    const billYm = by + '-' + String(bm).padStart(2,'0');
+    const billDate = billYm + '-12';
+    if(billDate >= rangeEndExclusive) break;
+    if(billDate >= rangeStart && billDate <= today){
+      const spendYm = shiftYm(billYm, -1);
+      const spendByPerson = creditCardExpenseByScope(all, spendYm);
+      const amount = spendByPerson[meta.person] || 0;
+      if(amount > 0){
+        const cardNames = cards.map(c => c.replace(/\[.*?\]/, '')).join('/');
+        events.push({ date: billDate, amount, label: `${cardNames} 대금 (${spendYm.slice(5)}월 사용분)` });
+      }
+    }
+    bm += 1; if(bm > 12){ bm = 1; by += 1; }
+  }
+  return events;
+}
+
 /* "전체" 카드(수입/지출/잔액)의 숫자를 계산합니다. renderMonth와 잔액 팝업(openTotalBalanceModal)이
    똑같은 계산식을 공유해야 서로 어긋나지 않아서 여기 한 곳으로 모았습니다. */
 function computeTotalSummary(ym){
@@ -954,7 +989,8 @@ function buildCardStatusLines(ym){
         if(t.type==='수입') return s + Number(t.amount||0);
         return s;
       }, 0);
-    const balance = (CARD_STARTING_BALANCE[p]||0) + netChange;
+    const billTotal = creditCardBillEvents(p, CARD_BALANCE_ANCHOR, cutoffExclusive).reduce((s,e)=>s+e.amount, 0);
+    const balance = (CARD_STARTING_BALANCE[p]||0) + netChange - billTotal;
     return { name, value: won(balance), dotColor: SCOPE_COLOR[meta.person], valueColor: balance>=0?'var(--income)':'var(--expense)', payment:p, kind:'card-balance' };
   });
 }
@@ -2368,22 +2404,37 @@ function openCardBalanceModal(ym, payment){
   }, 0);
 
   const beforeTx = all.filter(t=>t.payment===payment && t.date >= CARD_BALANCE_ANCHOR && t.date < monthLowerBound);
-  const prevBalance = (CARD_STARTING_BALANCE[payment]||0) + netChange(beforeTx);
+  const beforeBillTotal = creditCardBillEvents(payment, CARD_BALANCE_ANCHOR, monthLowerBound).reduce((s,e)=>s+e.amount, 0);
+  const prevBalance = (CARD_STARTING_BALANCE[payment]||0) + netChange(beforeTx) - beforeBillTotal;
 
   const monthItems = all
     .filter(t=>t.payment===payment && t.date >= monthLowerBound && t.date < nextMonthStart)
     .sort((a,b)=> a.date < b.date ? 1 : -1);
-  const nowBalance = prevBalance + netChange(monthItems);
+  const monthBillEvents = creditCardBillEvents(payment, monthLowerBound, nextMonthStart);
+  const monthBillTotal = monthBillEvents.reduce((s,e)=>s+e.amount, 0);
+  const nowBalance = prevBalance + netChange(monthItems) - monthBillTotal;
 
-  const listHtml = monthItems.length ? `<ul class="modal-tx-list">${monthItems.map(t=>{
-    const signed = t.type==='지출' ? -Number(t.amount||0) : Number(t.amount||0);
-    return `
-    <li>
-      <span class="badge ${TYPE_KEY[t.type]}">${t.date.slice(5)}</span>
-      <span class="n">${t.category||''}${t.note?` · ${t.note}`:''}</span>
-      <span class="a amt ${TYPE_KEY[t.type]}">${signed>=0?'+':''}${signed.toLocaleString('ko-KR')}원</span>
-    </li>
-  `;}).join('')}</ul>` : `<div style="color:var(--muted);font-size:13px;">이번 달 반영된 거래가 없어요.</div>`;
+  const entries = [
+    ...monthItems.map(t=>{
+      const signed = t.type==='지출' ? -Number(t.amount||0) : Number(t.amount||0);
+      return { date:t.date, node: `
+        <li>
+          <span class="badge ${TYPE_KEY[t.type]}">${t.date.slice(5)}</span>
+          <span class="n">${t.category||''}${t.note?` · ${t.note}`:''}</span>
+          <span class="a amt ${TYPE_KEY[t.type]}">${signed>=0?'+':''}${signed.toLocaleString('ko-KR')}원</span>
+        </li>
+      `};
+    }),
+    ...monthBillEvents.map(e => ({ date:e.date, node: `
+      <li>
+        <span class="badge fixed-badge">${e.date.slice(5)}</span>
+        <span class="n">${e.label}</span>
+        <span class="a amt expense">-${e.amount.toLocaleString('ko-KR')}원</span>
+      </li>
+    `})),
+  ].sort((a,b)=> a.date < b.date ? 1 : -1);
+
+  const listHtml = entries.length ? `<ul class="modal-tx-list">${entries.map(en=>en.node).join('')}</ul>` : `<div style="color:var(--muted);font-size:13px;">이번 달 반영된 거래가 없어요.</div>`;
 
   openModal(`
     <h3 class="display">${name} 통장 잔고</h3>
