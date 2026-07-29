@@ -98,7 +98,9 @@
     overflow:hidden;
   }
   input[type=date]::-webkit-calendar-picker-indicator{
-    position:absolute;right:0;top:0;width:100%;height:100%;margin:0;padding:0;opacity:0;
+    /* width/height:100%+position:absolute를 썼더니 사파리에서 이 투명 클릭영역이
+       인풋 범위를 벗어나 옆 필드까지 덮어버리는 버그가 있었음 → opacity만 낮춤 */
+    opacity:0;
   }
   input:focus,select:focus{
     outline:none;
