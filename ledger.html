@@ -2059,7 +2059,14 @@ async function aiReanalyzeScopeReview(ym){
     if(data?.error) throw new Error(data.error);
 
     const all = DB.list();
-    wrap.innerHTML = SCOPES.map(scope=>{
+    const allCurTotal = monthTx(all, ym).filter(t=>t.type==='지출').reduce((s,t)=>s+Number(t.amount),0);
+    const overallCard = `
+      <div class="cat-row" style="margin-bottom:18px;padding-bottom:14px;border-bottom:1px dashed var(--line);">
+        <div class="top"><span class="name" style="font-size:14px;font-weight:800;">전체</span><span class="amt">${won(allCurTotal)}</span></div>
+        <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px;">${escapeHtml(data.analysis?.['전체'] || '분석 결과를 받지 못했어요.')}</div>
+      </div>
+    `;
+    const scopeCards = SCOPES.map(scope=>{
       const curTotal = monthTx(all, ym).filter(t=>t.type==='지출' && t.scope===scope).reduce((s,t)=>s+Number(t.amount),0);
       const narrative = data.analysis?.[scope] || '분석 결과를 받지 못했어요.';
       return `
@@ -2069,6 +2076,7 @@ async function aiReanalyzeScopeReview(ym){
         </div>
       `;
     }).join('');
+    wrap.innerHTML = overallCard + scopeCards;
     if(note) note.textContent = '✨ Gemini AI 분석 결과';
   }catch(err){
     console.error('AI 지출 리뷰 중 오류:', err);
@@ -2081,54 +2089,96 @@ async function aiReanalyzeScopeReview(ym){
 function renderScopeReviews(ym){
   const all = DB.list();
   const wrap = document.getElementById('scopeReviewWrap');
-  wrap.innerHTML = SCOPES.map(scope=>{
+  const sumByMain = txs => txs.reduce((m,t)=>{ m[t.main] = (m[t.main]||0) + Number(t.amount); return m; }, {});
+
+  // "같은 년도 평균" = ym과 같은 해의, ym 이전(1월~직전월)까지 지난 달들의 월평균.
+  // 연초(1월)라 지난 달이 없으면 카테고리 비교는 생략한다.
+  const [yy, mm] = ym.split('-').map(Number);
+  const yearMonths = [];
+  for(let m=1; m<mm; m++) yearMonths.push(yy + '-' + String(m).padStart(2,'0'));
+  const elapsedCount = yearMonths.length;
+
+  // 전체(공동+보라+관 합산) 큰 그림
+  const allCurTotal = monthTx(all, ym).filter(t=>t.type==='지출').reduce((s,t)=>s+Number(t.amount),0);
+  const allPrevTotal = monthTx(all, shiftYm(ym,-1)).filter(t=>t.type==='지출').reduce((s,t)=>s+Number(t.amount),0);
+  const allYearTotal = yearMonths.reduce((s,m)=> s + monthTx(all, m).filter(t=>t.type==='지출').reduce((s2,t)=>s2+Number(t.amount),0), 0);
+  const allYearAvg = elapsedCount ? allYearTotal/elapsedCount : 0;
+
+  let overallNarrative;
+  if(allCurTotal===0){
+    overallNarrative = '이번 달 지출 기록이 아직 없어요.';
+  } else {
+    const parts = [];
+    if(allPrevTotal){
+      const d = (allCurTotal-allPrevTotal)/allPrevTotal*100;
+      parts.push(`전월 대비 ${Math.abs(d).toFixed(0)}% ${d>=0?'늘었고':'줄었고'}`);
+    }
+    if(allYearAvg){
+      const d2 = (allCurTotal-allYearAvg)/allYearAvg*100;
+      parts.push(`${yy}년 월평균(${won(allYearAvg)}) 대비 ${Math.abs(d2).toFixed(0)}% ${d2>=0?'높아요':'낮아요'}`);
+    }
+    overallNarrative = parts.length
+      ? `이번 달 전체 지출은 ${won(allCurTotal)}로, ${parts.join(', ')}.`
+      : `이번 달 전체 지출은 ${won(allCurTotal)}이에요. 아직 비교할 데이터가 부족해요.`;
+  }
+
+  const overallCard = `
+    <div class="cat-row" style="margin-bottom:18px;padding-bottom:14px;border-bottom:1px dashed var(--line);">
+      <div class="top"><span class="name" style="font-size:14px;font-weight:800;">전체</span><span class="amt">${won(allCurTotal)}</span></div>
+      <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px;">${overallNarrative}</div>
+    </div>
+  `;
+
+  const scopeCards = SCOPES.map(scope=>{
     const cur = monthTx(all, ym).filter(t=>t.type==='지출' && t.scope===scope);
     const curTotal = cur.reduce((s,t)=>s+Number(t.amount),0);
 
-    const pYm = shiftYm(ym,-1);
-    const prevTx = monthTx(all, pYm).filter(t=>t.type==='지출' && t.scope===scope);
+    const prevTx = monthTx(all, shiftYm(ym,-1)).filter(t=>t.type==='지출' && t.scope===scope);
     const pTotal = prevTx.reduce((s,t)=>s+Number(t.amount),0);
 
-    const histTotals = [];
-    for(let i=1;i<=6;i++){
-      const hy = shiftYm(ym,-i);
-      const hAmt = monthTx(all, hy).filter(t=>t.type==='지출' && t.scope===scope).reduce((s,t)=>s+Number(t.amount),0);
-      if(hAmt>0) histTotals.push(hAmt);
-    }
-    const avg = histTotals.length ? histTotals.reduce((s,v)=>s+v,0)/histTotals.length : 0;
+    const yearTx = yearMonths.reduce((acc,m)=> acc.concat(monthTx(all, m).filter(t=>t.type==='지출' && t.scope===scope)), []);
+    const yearMainTotals = sumByMain(yearTx);
+    const yearTotalSum = yearTx.reduce((s,t)=>s+Number(t.amount),0);
+    const yearAvgTotal = elapsedCount ? yearTotalSum/elapsedCount : 0;
 
     let narrative;
     if(curTotal===0){
       narrative = `이번 달 ${scope} 지출 기록이 아직 없어요.`;
-    } else if(!pTotal && !avg){
-      narrative = `이번 달 ${scope} 지출은 ${won(curTotal)}이에요. 아직 비교할 이전 데이터가 없어요.`;
     } else {
-      const base = pTotal || avg;
-      const diffPct = base ? ((curTotal-base)/base*100) : 0;
-      const dir = diffPct>=0 ? '늘었어요' : '줄었어요';
-      narrative = `이번 달 ${scope} 지출은 ${won(curTotal)}로, ${pTotal? '전월':'최근 평균'} 대비 ${Math.abs(diffPct).toFixed(0)}% ${dir}.`;
+      const parts = [];
+      if(pTotal){
+        const d = (curTotal-pTotal)/pTotal*100;
+        parts.push(`전월 대비 ${Math.abs(d).toFixed(0)}% ${d>=0?'늘었고':'줄었고'}`);
+      }
+      if(yearAvgTotal){
+        const d2 = (curTotal-yearAvgTotal)/yearAvgTotal*100;
+        parts.push(`${yy}년 평균(${won(yearAvgTotal)}) 대비 ${Math.abs(d2).toFixed(0)}% ${d2>=0?'높아요':'낮아요'}`);
+      }
+      narrative = parts.length
+        ? `이번 달 ${scope} 지출은 ${won(curTotal)}로, ${parts.join(', ')}.`
+        : `이번 달 ${scope} 지출은 ${won(curTotal)}이에요. 아직 비교할 데이터가 없어요.`;
     }
 
-    // 중분류(main)별로 전월 대비 얼마나 늘고 줄었는지 계산 — 전월 데이터가 있을 때만.
-    // 1만원 미만의 미세한 변화는 노이즈로 보고 문장에서 제외.
+    // 중분류(main)별로 "같은 년도 평균" 대비 얼마나 많이/적게 썼는지 계산.
+    // 1만원 미만의 미세한 차이는 노이즈로 보고 문장에서 제외.
     let deltaNarrative = '';
-    if(pTotal){
-      const sumByMain = txs => txs.reduce((m,t)=>{ m[t.main] = (m[t.main]||0) + Number(t.amount); return m; }, {});
+    if(elapsedCount > 0){
       const curByMain = sumByMain(cur);
-      const prevByMain = sumByMain(prevTx);
-      const mains = new Set([...Object.keys(curByMain), ...Object.keys(prevByMain)]);
+      const yearAvgByMain = {};
+      Object.keys(yearMainTotals).forEach(k => { yearAvgByMain[k] = yearMainTotals[k] / elapsedCount; });
+      const mains = new Set([...Object.keys(curByMain), ...Object.keys(yearAvgByMain)]);
       const deltas = Array.from(mains)
         .filter(m => m)
-        .map(m => ({ main: m, delta: (curByMain[m]||0) - (prevByMain[m]||0) }))
+        .map(m => ({ main: m, delta: (curByMain[m]||0) - (yearAvgByMain[m]||0) }))
         .filter(d => Math.abs(d.delta) >= 10000)
         .sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta));
 
       const increased = deltas.filter(d=>d.delta>0).slice(0,2);
       const decreased = deltas.filter(d=>d.delta<0).slice(0,2);
       const parts = [];
-      if(increased.length) parts.push(increased.map(d=>`${d.main} ${won(d.delta)}`).join(', ') + ' 늘고');
-      if(decreased.length) parts.push(decreased.map(d=>`${d.main} ${won(Math.abs(d.delta))}`).join(', ') + ' 줄었어요');
-      if(parts.length) deltaNarrative = ` ${parts.join(', ')}.`;
+      if(increased.length) parts.push(increased.map(d=>`${d.main} 평균보다 ${won(d.delta)} 많이`).join(', '));
+      if(decreased.length) parts.push(decreased.map(d=>`${d.main} 평균보다 ${won(Math.abs(d.delta))} 적게`).join(', '));
+      if(parts.length) deltaNarrative = ` 카테고리별로는 ${parts.join(', ')} 썼어요.`;
     }
 
     return `
@@ -2138,6 +2188,8 @@ function renderScopeReviews(ym){
       </div>
     `;
   }).join('');
+
+  wrap.innerHTML = overallCard + scopeCards;
 }
 
 function nextYm(ym){
