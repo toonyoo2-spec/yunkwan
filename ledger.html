@@ -1517,7 +1517,9 @@ function render(){
         </div>
       </div>
       <div class="actions">
-        <button class="ghost-btn" onclick="location.hash='#/summary'" style="${isSummary?'border-color:var(--ink);color:var(--ink);font-weight:700;':''}">연간 요약</button>
+        ${isSummary
+          ? `<button class="ghost-btn" onclick="goToLastMonth()">‹ 가계부</button>`
+          : `<button class="ghost-btn" onclick="location.hash='#/summary'">연간 요약</button>`}
       </div>
     </div>
     <div id="view"></div>
@@ -1526,6 +1528,12 @@ function render(){
 
   if(isSummary) renderSummary();
   else renderMonth(state.view);
+}
+
+// 연간 요약에서 다시 월별 보기로 돌아갈 때, 마지막으로 보던 달(state.currentYm)로
+// 돌아갑니다 — 없으면(첫 방문 등) 오늘이 속한 달로.
+function goToLastMonth(){
+  location.hash = '#/' + (state.currentYm || todayStr().slice(0,7));
 }
 
 /* =================================================================================
