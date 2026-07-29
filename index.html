@@ -321,8 +321,13 @@
     font-size:13px;
   }
   .cal-modal-row .k{color:var(--sub);flex-shrink:0;}
-  .cal-modal-row .v{text-align:right;word-break:break-all;}
+  .cal-modal-row .v{text-align:right;word-break:break-all;display:flex;align-items:center;justify-content:flex-end;gap:8px;}
   .cal-modal-row .v a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;}
+  .cal-copy-addr-btn{
+    flex-shrink:0;border:1px solid var(--line);background:var(--card);color:var(--sub);
+    border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;white-space:nowrap;
+  }
+  .cal-copy-addr-btn:hover{border-color:var(--accent);color:var(--accent);}
   
   .cal-modal-actions {
     display: flex;
@@ -1152,7 +1157,11 @@ function calShowDetail(id, kind){
       } else if(key === 'contact'){
         valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
       } else if(key === 'parking' && it.address){
-        valueHtml = `<a href="https://app.modu.kr/map/keyword?keyword=${encodeURIComponent(it.address)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+        // 모두의 주차장 앱의 정확한 딥링크(URL scheme)를 공식적으로 확인할 수 없어서,
+        // 설치되어 있으면 앱이 열리고 없으면 플레이스토어로 이동하는 안드로이드 표준
+        // intent 링크를 씀. 주소는 앱에 자동으로 넘어가지 않으니 복사 버튼으로 보완.
+        valueHtml = `<a href="intent://details?id=com.parkingshare.mobile#Intent;scheme=market;package=com.android.vending;end" target="_blank" rel="noopener">${escapeHtml(value)}</a>
+          <button type="button" class="cal-copy-addr-btn" data-address="${escapeHtml(it.address)}" onclick="event.stopPropagation();copyParkingAddress(this)">주소 복사</button>`;
       }
       return `
       <div class="cal-modal-row">
@@ -1170,6 +1179,17 @@ function calShowDetail(id, kind){
     ${rows}
   `;
   document.getElementById('calModalOverlay').classList.add('open');
+}
+
+function copyParkingAddress(btn){
+  const address = btn.dataset.address;
+  navigator.clipboard.writeText(address).then(()=>{
+    const original = btn.textContent;
+    btn.textContent = '복사됨 ✓';
+    setTimeout(()=>{ btn.textContent = original; }, 1500);
+  }).catch(()=>{
+    alert('복사에 실패했어요. 직접 선택해서 복사해주세요:\n' + address);
+  });
 }
 
 function calCloseDetail(){
