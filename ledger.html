@@ -2039,7 +2039,8 @@ function renderScopeReviews(ym){
     const curTotal = cur.reduce((s,t)=>s+Number(t.amount),0);
 
     const pYm = shiftYm(ym,-1);
-    const pTotal = monthTx(all, pYm).filter(t=>t.type==='지출' && t.scope===scope).reduce((s,t)=>s+Number(t.amount),0);
+    const prevTx = monthTx(all, pYm).filter(t=>t.type==='지출' && t.scope===scope);
+    const pTotal = prevTx.reduce((s,t)=>s+Number(t.amount),0);
 
     const histTotals = [];
     for(let i=1;i<=6;i++){
@@ -2061,10 +2062,32 @@ function renderScopeReviews(ym){
       narrative = `이번 달 ${scope} 지출은 ${won(curTotal)}로, ${pTotal? '전월':'최근 평균'} 대비 ${Math.abs(diffPct).toFixed(0)}% ${dir}.`;
     }
 
+    // 중분류(main)별로 전월 대비 얼마나 늘고 줄었는지 계산 — 전월 데이터가 있을 때만.
+    // 1만원 미만의 미세한 변화는 노이즈로 보고 문장에서 제외.
+    let deltaNarrative = '';
+    if(pTotal){
+      const sumByMain = txs => txs.reduce((m,t)=>{ m[t.main] = (m[t.main]||0) + Number(t.amount); return m; }, {});
+      const curByMain = sumByMain(cur);
+      const prevByMain = sumByMain(prevTx);
+      const mains = new Set([...Object.keys(curByMain), ...Object.keys(prevByMain)]);
+      const deltas = Array.from(mains)
+        .filter(m => m)
+        .map(m => ({ main: m, delta: (curByMain[m]||0) - (prevByMain[m]||0) }))
+        .filter(d => Math.abs(d.delta) >= 10000)
+        .sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+      const increased = deltas.filter(d=>d.delta>0).slice(0,2);
+      const decreased = deltas.filter(d=>d.delta<0).slice(0,2);
+      const parts = [];
+      if(increased.length) parts.push(increased.map(d=>`${d.main} ${won(d.delta)}`).join(', ') + ' 늘고');
+      if(decreased.length) parts.push(decreased.map(d=>`${d.main} ${won(Math.abs(d.delta))}`).join(', ') + ' 줄었어요');
+      if(parts.length) deltaNarrative = ` ${parts.join(', ')}.`;
+    }
+
     return `
       <div class="cat-row" style="margin-bottom:16px;">
         <div class="top"><span class="name" style="font-size:14px;">${scope}</span><span class="amt">${won(curTotal)}</span></div>
-        <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px;">${narrative}</div>
+        <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px;">${narrative}${deltaNarrative}</div>
       </div>
     `;
   }).join('');
