@@ -1923,8 +1923,14 @@ function renderMonth(ym){
         <canvas id="chartCompare"></canvas>
       </div>
       <div class="card review-card">
-        <div class="section-head"><h2>지출 리뷰</h2><button class="ghost-btn" onclick="reanalyzeScopeReview('${ym}')" style="font-size:11px;">↻ 다시 분석</button></div>
-        <div class="pill-note">⚙︎ 규칙 기반 자동 분석 · 추후 실제 AI 요약으로 교체 예정</div>
+        <div class="section-head">
+          <h2>지출 리뷰</h2>
+          <div style="display:flex;gap:6px;">
+            <button class="ghost-btn" onclick="reanalyzeScopeReview('${ym}')" style="font-size:11px;">↻ 다시 분석</button>
+            <button class="ghost-btn" id="aiReviewBtn" onclick="aiReanalyzeScopeReview('${ym}')" style="font-size:11px;">✨ AI 분석</button>
+          </div>
+        </div>
+        <div class="pill-note" id="scopeReviewNote">⚙︎ 규칙 기반 자동 분석 · 'AI 분석'을 누르면 Gemini가 요약해줘요</div>
         <div id="scopeReviewWrap"></div>
       </div>
     </div>
@@ -2014,8 +2020,8 @@ function renderCompareChart(ym){
 }
 
 /* ---- 지출 리뷰: 구분(공동/보라/관)별 규칙 기반 자동 분석 ----
-   TODO[AI]: 아래 계산을 서버(Supabase Edge Function 등)에서
-   거래내역을 Claude API로 보내 자연어 요약을 받아오는 방식으로 교체 예정.
+   기본은 아래 규칙 기반 계산이고, "✨ AI 분석" 버튼을 누르면 Supabase Edge
+   Function(analyze-spending)이 같은 데이터를 Gemini로 보내 자연어 요약을 받아온다.
 */
 function reanalyzeScopeReview(ym){
   try{
@@ -2025,10 +2031,43 @@ function reanalyzeScopeReview(ym){
       wrap.style.opacity = '0.25';
     }
     renderScopeReviews(ym);
+    const note = document.getElementById('scopeReviewNote');
+    if(note) note.textContent = "⚙︎ 규칙 기반 자동 분석 · 'AI 분석'을 누르면 Gemini가 요약해줘요";
     if(wrap){ requestAnimationFrame(()=>{ wrap.style.opacity = '1'; }); }
   }catch(err){
     console.error('지출 리뷰 재분석 중 오류:', err);
     alert('다시 분석하는 중 오류가 발생했어요: ' + err.message);
+  }
+}
+async function aiReanalyzeScopeReview(ym){
+  const btn = document.getElementById('aiReviewBtn');
+  const wrap = document.getElementById('scopeReviewWrap');
+  const note = document.getElementById('scopeReviewNote');
+  if(btn){ btn.disabled = true; btn.textContent = '분석 중...'; }
+  if(wrap){ wrap.style.transition = 'opacity .12s ease'; wrap.style.opacity = '0.4'; }
+  try{
+    const { data, error } = await sb.functions.invoke('analyze-spending', { body: { ym } });
+    if(error) throw error;
+    if(data?.error) throw new Error(data.error);
+
+    const all = DB.list();
+    wrap.innerHTML = SCOPES.map(scope=>{
+      const curTotal = monthTx(all, ym).filter(t=>t.type==='지출' && t.scope===scope).reduce((s,t)=>s+Number(t.amount),0);
+      const narrative = data.analysis?.[scope] || '분석 결과를 받지 못했어요.';
+      return `
+        <div class="cat-row" style="margin-bottom:16px;">
+          <div class="top"><span class="name" style="font-size:14px;">${scope}</span><span class="amt">${won(curTotal)}</span></div>
+          <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.6;margin-top:4px;">${escapeHtml(narrative)}</div>
+        </div>
+      `;
+    }).join('');
+    if(note) note.textContent = '✨ Gemini AI 분석 결과';
+  }catch(err){
+    console.error('AI 지출 리뷰 중 오류:', err);
+    alert('AI 분석 중 오류가 발생했어요: ' + err.message);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '✨ AI 분석'; }
+    if(wrap){ requestAnimationFrame(()=>{ wrap.style.opacity = '1'; }); }
   }
 }
 function renderScopeReviews(ym){
