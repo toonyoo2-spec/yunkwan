@@ -283,6 +283,16 @@ table.tx-table td.amt.income{color:var(--income);}
 table.tx-table td.amt.saving{color:var(--saving);}
 table.tx-table td.amt.invest{color:var(--invest);}
 
+/* ---- 거래 내역: 날짜별 묶음 헤더(그 날 지출 합계 표시) ---- */
+table.tx-table-main tr.tx-date-header td{
+  border-bottom:none;padding:14px 4px 6px;background:transparent;
+  display:flex;justify-content:space-between;align-items:baseline;
+  width:100%;box-sizing:border-box;
+}
+table.tx-table-main tr.tx-date-header:first-child td{padding-top:4px;}
+table.tx-table-main tr.tx-date-header span{font-size:12.5px;color:var(--muted);font-weight:700;}
+table.tx-table-main tr.tx-date-header .tx-date-total{color:var(--ink-soft);}
+
 /* 거래내역 표(tx-table-main) 컬럼 폭 최적화 */
 table.tx-table-main{table-layout:fixed;}
 table.tx-table-main th:nth-child(1),table.tx-table-main td:nth-child(1){width:92px;}   /* 구분 */
@@ -593,28 +603,31 @@ tr.edit-row td{padding:12px 10px;}
   table.tx-table.tx-table-main tr,
   table.tx-table.tx-table-main td{display:block;width:100%;}
 
-  /* 폰 화면에서는 8칸짜리 desktop 행은 숨기고, 2줄로 압축된 mobile 카드 행만 보여줌 */
+  /* 폰 화면에서는 8칸짜리 desktop 행은 숨기고, 아이콘이 있는 리스트형 mobile 행만 보여줌
+     (뱅크샐러드 스타일 — 낱개 박스가 아니라 점선 구분선으로만 나뉜 리스트) */
   table.tx-table.tx-table-main tr.tx-row-desktop{display:none;}
   table.tx-table.tx-table-main tr.tx-row-mobile{
-    border:1px solid var(--paper-line);border-radius:var(--radius-s);
-    padding:10px 12px;margin-bottom:8px;
+    border-bottom:1px dashed var(--line);
+    padding:12px 2px;
   }
+  table.tx-table.tx-table-main tr.tx-row-mobile:last-child{border-bottom:none;}
   table.tx-table.tx-table-main tr.tx-row-mobile td{padding:0;border-bottom:none;}
-  .tx-card-line1{display:flex;justify-content:space-between;align-items:center;gap:10px;}
-  .tx-card-cat{display:flex;align-items:center;gap:6px;min-width:0;font-size:13.5px;font-weight:600;}
-  .tx-card-cat .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-  .tx-card-cat-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .tx-card-cat .fixed-tag{font-weight:500;flex-shrink:0;}
-  .tx-card-main{color:var(--muted);font-weight:400;font-size:12px;}
-  .tx-card-amt{font-size:14px;font-weight:700;flex-shrink:0;}
-  .tx-card-line2{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:4px;}
-  .tx-card-note{
-    color:var(--muted);font-size:11.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  .tx-card-line1{display:flex;align-items:center;gap:11px;}
+  .tx-card-icon{
+    width:38px;height:38px;border-radius:50%;flex-shrink:0;
+    background:var(--paper);display:flex;align-items:center;justify-content:center;font-size:17px;
   }
-  .tx-card-pay{flex-shrink:0;}
-  .tx-card-pay .pay-quick-select{
+  .tx-card-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+  .tx-card-title{font-size:14.5px;font-weight:700;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tx-card-title .fixed-tag{font-weight:500;margin-left:2px;}
+  .tx-card-sub{
+    color:var(--muted);font-size:11.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    display:flex;align-items:center;
+  }
+  .tx-card-amt{font-size:14.5px;font-weight:700;flex-shrink:0;}
+  .tx-card-sub .pay-quick-select{
     width:auto;max-width:96px;border:none;background:transparent;color:var(--muted);
-    font-size:11px;padding:2px 4px;text-align:right;
+    font-size:11.5px;padding:0;
   }
 
   table.tx-table.tx-table-main tr.empty-row{border:none;padding:0;}
@@ -883,6 +896,21 @@ const CATEGORY_KEYWORDS = {
   "급여":     [["월급", ["월급","급여"]], ["상여금", ["상여","보너스"]]],
   "기타소득": [["부업", ["부업"]]],
 };
+/* 소분류(우선) → 중분류 순으로 찾아서 거래 내역 리스트에 아이콘으로 보여줌 */
+const CATEGORY_ICON = {
+  "식비":"🍚", "쇼핑":"🛍️", "생필품":"🧴", "자동차할부":"🚙", "여행":"✈️",
+  "대중교통":"🚌", "주유비":"⛽", "전기차충전":"🔌", "주차비":"🅿️",
+  "집대출":"🏠", "관리비":"🏢", "정수기":"💧", "TV인터넷":"📶",
+  "보험":"🛡️", "실비보험":"🛡️", "OTT":"🎬", "AI":"🤖",
+  "가족":"👪", "지인":"🤝", "명절":"🎎", "생일":"🎂",
+  "저축":"💰", "투자":"📈", "핸드폰":"📱", "병원비":"🏥", "운동":"💪",
+  "월급":"💵", "상여금":"🎁", "부업":"💼",
+  "생활비":"🛒", "교통비":"🚗", "통신비":"📞", "주거비":"🏠", "건강":"💊",
+  "구독":"🔁", "경조사":"🎁", "저축·투자":"💰", "급여":"💵", "기타소득":"💵",
+};
+function categoryIcon(t){
+  return CATEGORY_ICON[t.category] || CATEGORY_ICON[t.main] || (t.type==='수입' ? '💵' : '🧾');
+}
 function guessCategory(t){
   if(!t.main) return '';
   const note = (t.note || '').toLowerCase();
@@ -2859,9 +2887,30 @@ function renderTxTable(ym){
     tx = tx.filter(t=> (t.note||'').toLowerCase().includes(q));
   }
 
-  document.getElementById('txBody').innerHTML = tx.length
-    ? tx.map(t => t.id===state.editingTxId ? (displayRowHtml(t) + editRowHtml(t)) : displayRowHtml(t)).join('')
-    : `<tr class="empty-row"><td colspan="8">해당 조건의 거래 내역이 없습니다.</td></tr>`;
+  const body = document.getElementById('txBody');
+  if(!tx.length){
+    body.innerHTML = `<tr class="empty-row"><td colspan="8">해당 조건의 거래 내역이 없습니다.</td></tr>`;
+    return;
+  }
+
+  // 날짜별로 묶어서 그 날 지출 합계를 헤더 줄에 보여줌(하루 단위로 한눈에 훑어볼 수 있게).
+  const groups = [];
+  let cur = null;
+  tx.forEach(t=>{
+    if(!cur || cur.date !== t.date){ cur = { date: t.date, items: [] }; groups.push(cur); }
+    cur.items.push(t);
+  });
+  const todayD = todayStr();
+  body.innerHTML = groups.map(g=>{
+    const dayExpense = g.items.filter(t=>t.type==='지출').reduce((s,t)=>s+Number(t.amount),0);
+    const [, mmStr, ddStr] = g.date.split('-');
+    const mm = Number(mmStr), dd = Number(ddStr);
+    const dow = DOW[new Date(g.date+'T00:00:00').getDay()];
+    const dateLabel = g.date===todayD ? `${dd}일 오늘` : `${mm}/${dd} ${dow}요일`;
+    const headerRow = `<tr class="tx-date-header"><td colspan="8"><span>${dateLabel}</span><span class="tx-date-total">${dayExpense ? '-'+won(dayExpense) : ''}</span></td></tr>`;
+    const rowsHtml = g.items.map(t => t.id===state.editingTxId ? (displayRowHtml(t) + editRowHtml(t)) : displayRowHtml(t)).join('');
+    return headerRow + rowsHtml;
+  }).join('');
 }
 
 function displayRowHtml(t){
@@ -2896,22 +2945,20 @@ function displayRowHtml(t){
     <td data-label="결제수단" onclick="event.stopPropagation()">${paySelect}</td>
   </tr>`;
 
-  // 모바일용: 8줄로 늘어지던 걸 2줄짜리 카드로 압축. 대분류(수입/지출)는 별도 줄 없이
-  // 금액 색상(빨강/초록)으로만 구분하고, 결제수단은 작은 셀렉트로 내용 옆에 붙임.
+  // 모바일용: 뱅크샐러드 스타일 리스트 행 — 카테고리 아이콘(구분 색 링) + 내용(굵게) +
+  // 중분류·소분류·결제수단(작게, 회색) + 우측 금액. 날짜는 renderTxTable의 날짜별
+  // 헤더 줄에서 한 번만 보여주므로 행 자체에는 넣지 않음.
   const scopeDotColor = t.scope ? (SCOPE_COLOR[t.scope] || 'var(--muted)') : 'var(--expense)';
+  const titleText = escapeHtml(t.note) || escapeHtml(t.category) || '내용 없음';
   const mobileRow = `<tr class="tx-row tx-row-mobile${isEditingRow?' tx-row-editing':''}" onclick="startEditTx('${t.id}')">
     <td colspan="8">
       <div class="tx-card-line1">
-        <span class="tx-card-cat">
-          <i class="dot" style="background:${scopeDotColor};" title="${escapeHtml(t.scope||'미지정')}"></i>
-          <span class="tx-card-cat-text" title="${escapeHtml(t.main)} · ${escapeHtml(t.category)}">${catLabel}<span class="tx-card-main"> · ${mainLabel}</span></span>
-          ${fixedTag}
+        <span class="tx-card-icon" style="box-shadow:0 0 0 2px ${scopeDotColor} inset;" title="${escapeHtml(t.scope||'미지정')}">${categoryIcon(t)}</span>
+        <span class="tx-card-body">
+          <span class="tx-card-title" title="${escapeHtml(t.note)}">${titleText}${fixedTag}</span>
+          <span class="tx-card-sub">${mainLabel} · ${catLabel} · <span onclick="event.stopPropagation()">${paySelect}</span></span>
         </span>
-        <span class="tx-card-amt amt ${TYPE_KEY[t.type]}">${Number(t.amount).toLocaleString('ko-KR')}원</span>
-      </div>
-      <div class="tx-card-line2">
-        <span class="tx-card-note" title="${escapeHtml(t.note)}">${t.date.slice(5)} · ${escapeHtml(t.note)||'&nbsp;'}</span>
-        <span class="tx-card-pay" onclick="event.stopPropagation()">${paySelect}</span>
+        <span class="tx-card-amt amt ${TYPE_KEY[t.type]}">${t.type==='지출'?'-':'+'}${Number(t.amount).toLocaleString('ko-KR')}원</span>
       </div>
     </td>
   </tr>`;
