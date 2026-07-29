@@ -2579,8 +2579,9 @@ function computeScopeReviewData(ym){
 
 /* 지출 리뷰 카드 한 칸(전체 또는 공동/보라/관 하나)을 렌더링합니다. 헤드라인 한 줄
    + 카테고리 증감 칩으로 구조를 고정해서, 숫자가 몇 개든 항상 한눈에 읽히게 합니다. */
-function reviewCardHtml({ label, bold, total, headline, increased, decreased, comment }){
-  const chip = (d, dir) => `<span class="review-chip ${dir}">${dir==='up'?'▲':'▼'} ${escapeHtml(d.main)} ${won(Math.abs(d.delta))}</span>`;
+function reviewCardHtml({ label, bold, total, headline, increased, decreased, comment, ym, scope }){
+  const scopeArg = scope ? `'${escapeJsAttr(scope)}'` : 'null';
+  const chip = (d, dir) => `<span class="review-chip ${dir}" style="cursor:pointer;" onclick="openMainBreakdownModal('${ym}', ${scopeArg}, '${escapeJsAttr(d.main)}')" title="눌러서 소분류별 비중 보기">${dir==='up'?'▲':'▼'} ${escapeHtml(d.main)} ${won(Math.abs(d.delta))}</span>`;
   const chipsHtml = (increased.length || decreased.length)
     ? `<div class="review-chips">${increased.map(d=>chip(d,'up')).join('')}${decreased.map(d=>chip(d,'down')).join('')}</div>`
     : '';
@@ -2619,8 +2620,8 @@ async function aiReanalyzeScopeReview(ym){
 
     const reviewData = computeScopeReviewData(ym);
     const comments = data.comments || {};
-    const overallCard = reviewCardHtml({ label:'전체', bold:true, ...reviewData.overall, comment: comments['전체'] });
-    const scopeCards = SCOPES.map(scope => reviewCardHtml({ label:scope, ...reviewData.scopes[scope], comment: comments[scope] })).join('');
+    const overallCard = reviewCardHtml({ label:'전체', bold:true, ...reviewData.overall, comment: comments['전체'], ym, scope:null });
+    const scopeCards = SCOPES.map(scope => reviewCardHtml({ label:scope, ...reviewData.scopes[scope], comment: comments[scope], ym, scope })).join('');
     wrap.innerHTML = overallCard + scopeCards;
     if(note) note.textContent = '✨ 규칙 기반 분석 + Gemini 코멘트';
   }catch(err){
@@ -2635,9 +2636,33 @@ async function aiReanalyzeScopeReview(ym){
 function renderScopeReviews(ym){
   const wrap = document.getElementById('scopeReviewWrap');
   const data = computeScopeReviewData(ym);
-  const overallCard = reviewCardHtml({ label:'전체', bold:true, ...data.overall });
-  const scopeCards = SCOPES.map(scope => reviewCardHtml({ label:scope, ...data.scopes[scope] })).join('');
+  const overallCard = reviewCardHtml({ label:'전체', bold:true, ...data.overall, ym, scope:null });
+  const scopeCards = SCOPES.map(scope => reviewCardHtml({ label:scope, ...data.scopes[scope], ym, scope })).join('');
   wrap.innerHTML = overallCard + scopeCards;
+}
+
+/* 지출 리뷰의 ▲/▼ 칩(중분류 증감)을 누르면 그 중분류를 소분류별로 나눠서 비중(%)을 보여줌.
+   이 계산은 규칙 기반(우리 코드)이라 'AI 분석'을 눌러도 값이 바뀌지 않음 —
+   Gemini는 코멘트 한 줄만 덧붙일 뿐, 숫자·비중 계산에는 관여하지 않음. */
+function openMainBreakdownModal(ym, scope, main){
+  let tx = monthTx(DB.list(), ym).filter(t=>t.type==='지출' && t.main===main);
+  if(scope) tx = tx.filter(t=>t.scope===scope);
+  const total = tx.reduce((s,t)=>s+Number(t.amount),0);
+  const byCat = {};
+  tx.forEach(t=>{ const c = t.category || '기타'; byCat[c] = (byCat[c]||0) + Number(t.amount); });
+  const rows = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const rowsHtml = rows.length ? rows.map(([cat,amt],i)=>{
+    const pct = total ? (amt/total*100) : 0;
+    return `<div class="cat-dot-row">
+      <span class="left"><i class="dot" style="background:${CATEGORY_PALETTE[i%CATEGORY_PALETTE.length]}"></i>${escapeHtml(cat)}<span class="pct">${pct.toFixed(0)}%</span></span>
+      <span class="amt">${won(amt)}</span>
+    </div>`;
+  }).join('') : `<div style="color:var(--muted);font-size:13px;">이번 달 ${escapeHtml(main)} 지출 내역이 없어요.</div>`;
+  openModal(`
+    <h3 class="display">${escapeHtml(main)}${scope?` · ${escapeHtml(scope)}`:''}</h3>
+    <div class="modal-sub">이번 달 소분류별 비중 · 합계 ${won(total)}</div>
+    ${rowsHtml}
+  `);
 }
 
 function nextYm(ym){
