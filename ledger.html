@@ -239,6 +239,8 @@ button{font-family:inherit;}
   gap:8px;padding:14px 18px;background:var(--paper);border-bottom:1px solid var(--line);
   align-items:center;
 }
+/* 정기 자동이체 추가 폼: 날짜(수입/지출 없이 매월 며칠) 기준이라 컬럼 구성이 달라서 따로 둠 */
+.tx-form-recur{grid-template-columns:56px 84px 1fr 1fr 1fr 90px 120px 40px;}
 .tx-form input, .tx-form select{
   width:100%;height:34px;border:1px solid var(--line-strong);border-radius:8px;padding:0 8px;
   font-size:12.5px;font-family:inherit;background:var(--surface);color:var(--ink);
@@ -586,6 +588,14 @@ tr.edit-row td{padding:12px 10px;}
   .tx-form .add-btn{grid-area:btn;width:100%;height:38px;font-size:13px;font-weight:700;}
   .tx-form select, .tx-form input{font-size:11.5px;height:32px;padding:0 6px;}
 
+  /* 정기 자동이체 추가 폼은 필드 id가 f_*가 아니라 위 grid-template-areas가 적용되지 않으므로,
+     이름 있는 영역 없이 순서대로 3칸씩 자연스럽게 줄바꿈되도록 별도 처리 */
+  .tx-form-recur{
+    grid-template-areas:none;
+    grid-template-columns:1fr 1fr 1fr;
+  }
+  .tx-form-recur .add-btn{grid-column:1/-1;width:100%;height:38px;font-size:13px;font-weight:700;}
+
   .tx-edit-form{
     grid-template-columns:1fr 1fr 1fr;gap:6px 8px;
     grid-template-areas:
@@ -909,15 +919,15 @@ const CATEGORY_KEYWORDS = {
    이모지는 기기·폰트에 따라 다르게(때론 깨져) 보이므로, 직접 그린 라인 아이콘(SVG)을 씀 —
    어느 기기에서나 동일하고 정돈되게 보임. */
 const CATEGORY_ICON = {
-  "식비":"restaurant", "외식":"restaurant", "쇼핑":"bag", "생필품":"bottle", "자동차할부":"car", "여행":"plane",
-  "대중교통":"bus", "주유비":"fuel", "전기차충전":"plug", "주차비":"parking",
+  "식비":"restaurant", "외식":"restaurant", "쇼핑":"bag", "생필품":"bottle", "자동차할부":"car", "할부금":"car", "여행":"plane",
+  "대중교통":"bus", "주유비":"fuel", "유류비":"fuel", "전기차충전":"plug", "주차비":"parking",
   "집대출":"home", "관리비":"building", "정수기":"droplet", "TV인터넷":"wifi",
-  "보험":"shield", "실비보험":"shield", "OTT":"film", "AI":"bot",
+  "보험":"shield", "실비보험":"shield", "운전자보험":"shield", "OTT":"film", "AI":"bot",
   "가족":"users", "지인":"chat", "명절":"sparkle", "생일":"cake",
-  "저축":"piggy", "투자":"trending", "핸드폰":"phone", "병원비":"hospital", "운동":"dumbbell",
+  "저축":"piggy", "투자":"trending", "투자소득":"trending", "핸드폰":"phone", "병원비":"hospital", "운동":"dumbbell",
   "월급":"cash", "상여금":"gift", "부업":"briefcase",
-  "생활비":"cart", "교통비":"car", "통신비":"phone", "주거비":"home", "건강":"pulse",
-  "구독":"repeat", "경조사":"gift", "저축·투자":"piggy", "급여":"cash", "기타소득":"cash",
+  "생활비":"cart", "교통비":"car", "자동차":"car", "통신비":"phone", "주거비":"home", "건강":"pulse",
+  "구독":"repeat", "경조사":"gift", "저축·투자":"piggy", "급여":"cash", "기타소득":"cash", "문화":"film",
 };
 const ICON_PATHS = {
   restaurant: '<path d="M6.5 2v6.5M8.5 2v6.5M10.5 2v6.5"/><path d="M8.5 8.5V22"/><path d="M16.5 2c1.9 1 3 3.8 1.1 6.8-.5.8-1.4 1.4-1.4 1.4V22"/>',
@@ -1832,7 +1842,7 @@ function renderSummary(){
       <div class="hint" style="margin:-8px 0 10px;">지출 카테고리 표의 <span class="badge fixed-badge">고정</span> 배지가 자동이체 항목이에요 · 날짜/금액을 바꾸고 싶으면 여기서 관리하세요</div>
       <div id="recurringManagePanel" style="display:${state.recurringPanelOpen ? 'block' : 'none'};">
       <div class="card table-card">
-        <div class="tx-form" style="grid-template-columns:56px 84px 1fr 1fr 1fr 90px 120px 40px;">
+        <div class="tx-form tx-form-recur">
           <input type="number" id="rc_day" placeholder="일" min="1" max="31">
           <select id="rc_scope" onchange="onRcScopeChange()">${SCOPES.map(s=>`<option>${s}</option>`).join('')}</select>
           <select id="rc_main" onchange="onRcMainChange()"></select>
