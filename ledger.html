@@ -1718,7 +1718,7 @@ function renderSummary(){
           <button class="add-btn" onclick="submitRecurring()" title="추가">+</button>
         </div>
         <div style="overflow-x:auto;">
-        <table class="tx-table">
+        <table class="tx-table tx-table-main">
           <thead><tr>
             <th>일</th><th>구분</th><th>중분류</th><th>소분류</th><th>내용</th><th>결제수단</th><th style="text-align:right">금액</th>
           </tr></thead>
@@ -1899,7 +1899,8 @@ function renderRecurringTable(){
 }
 function recurDisplayRowHtml(t){
   const endTag = t.endYm ? `<span class="fixed-tag" title="${t.endYm}부터 자동 생성되지 않음">(${t.endYm}부터 종료)</span>` : '';
-  return `<tr class="tx-row" onclick="startEditRecur('${t.key}')">
+
+  const desktopRow = `<tr class="tx-row tx-row-desktop" onclick="startEditRecur('${t.key}')">
     <td class="mono" data-label="일">${t.day}일</td>
     <td data-label="구분">${t.scope}</td>
     <td data-label="중분류" style="color:var(--muted)">${t.main}</td>
@@ -1908,6 +1909,25 @@ function recurDisplayRowHtml(t){
     <td data-label="결제수단" style="color:var(--muted)">${escapeHtml(t.payment)}</td>
     <td class="amt expense" data-label="금액">${Number(t.amount).toLocaleString('ko-KR')}</td>
   </tr>`;
+
+  // 모바일용: 거래 내역 리스트와 같은 아이콘+두 줄 카드 형태. 매일 반복이 아니라 "매월 며칠"
+  // 이라서 날짜별 묶음 헤더 대신, 아이콘 옆 부제목에 "매월 N일"을 직접 넣음.
+  const scopeDotColor = SCOPE_COLOR[t.scope] || 'var(--muted)';
+  const titleText = escapeHtml(t.note) || escapeHtml(t.category) || '내용 없음';
+  const mobileRow = `<tr class="tx-row tx-row-mobile" onclick="startEditRecur('${t.key}')">
+    <td colspan="7">
+      <div class="tx-card-line1">
+        <span class="tx-card-icon" style="box-shadow:0 0 0 2px ${scopeDotColor} inset;" title="${escapeHtml(t.scope)}">${categoryIcon(t)}</span>
+        <span class="tx-card-body">
+          <span class="tx-card-title">${titleText}${endTag}</span>
+          <span class="tx-card-sub">매월 ${t.day}일 · ${t.scope} · ${t.main} · ${t.category} · ${escapeHtml(t.payment)}</span>
+        </span>
+        <span class="tx-card-amt amt expense">${Number(t.amount).toLocaleString('ko-KR')}원</span>
+      </div>
+    </td>
+  </tr>`;
+
+  return desktopRow + mobileRow;
 }
 function recurEditRowHtml(t){
   return `<tr class="edit-row">
