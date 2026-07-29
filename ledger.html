@@ -285,7 +285,7 @@ table.tx-table td.amt.invest{color:var(--invest);}
 
 /* ---- 거래 내역: 날짜별 묶음 헤더(그 날 지출 합계 표시) ---- */
 table.tx-table-main tr.tx-date-header td{
-  border-bottom:none;padding:14px 4px 6px;background:transparent;
+  border-bottom:none;padding:14px 18px 6px;background:transparent;
   display:flex;justify-content:space-between;align-items:baseline;
   width:100%;box-sizing:border-box;
 }
@@ -608,7 +608,7 @@ tr.edit-row td{padding:12px 10px;}
   table.tx-table.tx-table-main tr.tx-row-desktop{display:none;}
   table.tx-table.tx-table-main tr.tx-row-mobile{
     border-bottom:1px dashed var(--line);
-    padding:12px 2px;
+    padding:12px 18px;
   }
   table.tx-table.tx-table-main tr.tx-row-mobile:last-child{border-bottom:none;}
   table.tx-table.tx-table-main tr.tx-row-mobile td{padding:0;border-bottom:none;}
@@ -1580,12 +1580,12 @@ function render(){
     <div class="topbar">
       <div class="brand">
         <h1>우리집 가계부</h1>
+      </div>
+      <div class="actions">
         <div class="year-select" id="yearSelect">
           <button class="year-btn" onclick="toggleYearMenu()">${state.year}<span class="caret">▾</span></button>
           <div class="year-menu" id="yearMenu">${yearMenuHtml}</div>
         </div>
-      </div>
-      <div class="actions">
         ${isSummary
           ? `<button class="ghost-btn" onclick="goToLastMonth()">‹ 가계부</button>`
           : `<button class="ghost-btn" onclick="location.hash='#/summary'">연간 요약</button>`}
