@@ -2269,7 +2269,7 @@ function renderCalendar(y,m,tx){
     const bg = amt ? `rgba(181,73,91,${0.08 + intensity*0.35})` : 'var(--paper)';
     const isToday = isThisMonth && today.getDate()===d;
     const billBadge = (d===12 && pendingBillTotal>0)
-      ? `<span class="amt card-bill-pending" title="전월 카드 사용 누적 · 결제 예정(지출 집계엔 포함 안 됨)">카드 ${wonShort(pendingBillTotal)}</span>`
+      ? `<span class="amt card-bill-pending" title="눌러서 결제 예정 총액 보기(지출 집계엔 포함 안 됨)" onclick="event.stopPropagation();openCardBillPreviewModal('${ym}')">현대카드</span>`
       : '';
     html += `<div class="cal-cell ${isToday?'today':''}" style="background:${bg}" onclick="openDayModal('${ym}',${d})">
       <span class="d">${d}</span>
@@ -2377,6 +2377,25 @@ function openScopeExpenseModal(ym, scope){
   openModal(`
     <h3 class="display">${mm}월 ${label} 지출</h3>
     <div class="modal-sub">합계 ${won(total)} · 총 ${items.length}건</div>
+    ${listHtml}
+  `);
+}
+
+/* ---- 지출 캘린더 12일 "현대카드" 배지 팝업(전월 사용분 결제 예정 총액) ---- */
+function openCardBillPreviewModal(ym){
+  const [yy,mm] = ym.split('-').map(Number);
+  const prevYm = shiftYm(ym,-1);
+  const [py,pm] = prevYm.split('-').map(Number);
+  const cards = PAYMENT_METHODS.filter(p => PAYMENT_META[p].type==='신용카드');
+  const items = DB.list()
+    .filter(t=>t.type==='지출' && cards.includes(t.payment) && t.date >= prevYm+'-01' && t.date < ym+'-01')
+    .sort((a,b)=> a.date < b.date ? 1 : -1);
+  const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
+  const activated = todayStr() >= `${ym}-12`;
+  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">${pm}월 카드 사용 내역이 없어요.</div>`;
+  openModal(`
+    <h3 class="display">${mm}월 12일 현대카드 결제 ${activated?'':'예정'}</h3>
+    <div class="modal-sub">${pm}월 사용분 합계 ${won(total)} · 총 ${items.length}건${activated?' · 하나은행에서 이미 반영됨':' · 12일에 하나은행 잔고에서 자동으로 빠져요'}</div>
     ${listHtml}
   `);
 }
