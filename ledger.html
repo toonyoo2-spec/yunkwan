@@ -909,7 +909,7 @@ const CATEGORY_KEYWORDS = {
    이모지는 기기·폰트에 따라 다르게(때론 깨져) 보이므로, 직접 그린 라인 아이콘(SVG)을 씀 —
    어느 기기에서나 동일하고 정돈되게 보임. */
 const CATEGORY_ICON = {
-  "식비":"food", "쇼핑":"bag", "생필품":"bottle", "자동차할부":"car", "여행":"plane",
+  "식비":"restaurant", "외식":"restaurant", "쇼핑":"bag", "생필품":"bottle", "자동차할부":"car", "여행":"plane",
   "대중교통":"bus", "주유비":"fuel", "전기차충전":"plug", "주차비":"parking",
   "집대출":"home", "관리비":"building", "정수기":"droplet", "TV인터넷":"wifi",
   "보험":"shield", "실비보험":"shield", "OTT":"film", "AI":"bot",
@@ -920,7 +920,8 @@ const CATEGORY_ICON = {
   "구독":"repeat", "경조사":"gift", "저축·투자":"piggy", "급여":"cash", "기타소득":"cash",
 };
 const ICON_PATHS = {
-  food: '<path d="M4 11a8 8 0 0 0 16 0H4Z"/><path d="M12 3.5v3M9 5l.8 1.6M15 5l-.8 1.6"/>',
+  restaurant: '<path d="M6.5 2v6.5M8.5 2v6.5M10.5 2v6.5"/><path d="M8.5 8.5V22"/><path d="M16.5 2c1.9 1 3 3.8 1.1 6.8-.5.8-1.4 1.4-1.4 1.4V22"/>',
+  cafe: '<path d="M5 9h11v5.5A4.5 4.5 0 0 1 11.5 19H9.5A4.5 4.5 0 0 1 5 14.5V9Z"/><path d="M16 10.2h1.8a2.3 2.3 0 0 1 0 4.6H16"/><path d="M8 5c-.8.7-.8 1.6 0 2.3M12 5c-.8.7-.8 1.6 0 2.3"/>',
   bag: '<path d="M6 8h12l-1.2 11.2a1 1 0 0 1-1 .8H8.2a1 1 0 0 1-1-.8L6 8Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
   bottle: '<path d="M10 2.5h4M10.5 2.5v2.8L8.5 7.5v12a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-12l-2-2.2V2.5"/><line x1="8.5" y1="11" x2="15.5" y2="11"/>',
   car: '<path d="M5 16v-4.5L6.5 7h11L19 11.5V16"/><path d="M4 16h16"/><circle cx="7.5" cy="17.7" r="1.6"/><circle cx="16.5" cy="17.7" r="1.6"/>',
@@ -957,8 +958,18 @@ function iconSvg(name){
   const d = ICON_PATHS[name] || ICON_PATHS.receipt;
   return `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 }
+// 식비/외식은 "카페 아니면 식당"으로 보고, 내용(note)에서 카페 관련 키워드를 찾아
+// 없으면 기본으로 식당 아이콘을 씀(대부분 식당이라서). 카테고리 선택(드롭다운)은 그대로
+// "식비" 하나뿐이라 매번 새로 입력해도 자동으로 적용됨.
+const CAFE_KEYWORDS = ["카페","커피","스타벅스","이디야","투썸","컴포즈","빽다방","커피빈","메가커피","커피숍","카페인","cafe","coffee"];
 function categoryIcon(t){
-  const name = CATEGORY_ICON[t.category] || CATEGORY_ICON[t.main] || (t.type==='수입' ? 'cash' : 'receipt');
+  const category = t.category || '';
+  if(category === '식비' || category === '외식'){
+    const note = (t.note || '').toLowerCase();
+    const isCafe = CAFE_KEYWORDS.some(k => note.includes(k.toLowerCase()));
+    return iconSvg(isCafe ? 'cafe' : 'restaurant');
+  }
+  const name = CATEGORY_ICON[category] || CATEGORY_ICON[t.main] || (t.type==='수입' ? 'cash' : 'receipt');
   return iconSvg(name);
 }
 function guessCategory(t){
