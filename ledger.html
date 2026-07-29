@@ -466,6 +466,15 @@ tr.edit-row td{padding:12px 10px;}
 .fixed-spend-row:last-child{border-bottom:none;}
 .fixed-spend-row .k{color:var(--ink-soft);font-weight:600;}
 .fixed-spend-row .v{font-family:var(--font);font-weight:700;}
+
+/* ---- 지출 속도 차트 하단 요약 ---- */
+.pace-stats{display:flex;flex-direction:column;gap:6px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);}
+.pace-stat-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;}
+.pace-stat-row .k{color:var(--ink-soft);font-weight:600;}
+.pace-stat-row .v{font-family:var(--font);font-weight:700;}
+.pace-pill{margin-top:10px;font-size:12.5px;font-weight:700;padding:9px 12px;border-radius:10px;text-align:center;}
+.pace-pill.less{background:var(--income-soft);color:var(--income);}
+.pace-pill.more{background:var(--expense-soft);color:var(--expense);}
 .compare-select{
   border:1px solid var(--line-strong);border-radius:8px;padding:5px 8px;font-size:12px;
   background:var(--surface);color:var(--ink-soft);font-family:inherit;
@@ -1361,6 +1370,8 @@ const state = {
   currentYm: null,
   compareYm: null,
   compareTarget: null,
+  paceCompareYm: null,
+  paceCompareTarget: null,
 };
 
 function route(){
@@ -1581,6 +1592,8 @@ function renderSummary(){
   const totalUnassigned = DB.list().filter(t => !t.scope).length;
   const totalNoCategory = DB.list().filter(t => t.main && !t.category).length;
 
+  const scopeYearTotals = SCOPES.map(sc => ({ scope: sc, expense: sumBy(list.filter(t=>t.scope===sc), '지출') }));
+
   document.getElementById('view').innerHTML = `
     <div class="section-head">
       <h2 class="display" style="font-size:20px;">${state.year}년 연간 요약</h2>
@@ -1595,14 +1608,17 @@ function renderSummary(){
       ⚠ 전체 기간 소분류 미지정 거래 ${totalNoCategory}건 — 눌러서 일괄 자동 분류 (1차 정리용, 이후 직접 확인 필요)
     </div>` : ''}
 
-    <div class="grid kpis">
-      <div class="card kpi income"><div class="label">연간 총수입</div><div class="value mono">${won(income)}</div></div>
-      <div class="card kpi expense"><div class="label">연간 총지출</div><div class="value mono">${won(expense)}</div></div>
-      <div class="card kpi saving">
-        <div class="label">연간 총저축</div>
-        <div class="value mono" style="color:${net>=0?'var(--income)':'var(--expense)'};">${won(net)}</div>
+    <div class="grid two-col section">
+      <div class="card">
+        <div class="summary-strip">
+          <div class="item expense"><span class="k">연간 총지출</span><span class="v">${won(expense)}</span></div>
+          <div class="item income"><span class="k">연간 총수입</span><span class="v">${won(income)}</span></div>
+        </div>
       </div>
-      <div class="card kpi"><div class="label">연간 순저축률</div><div class="value mono">${pct(rate)}</div></div>
+      <div class="card budget-card" style="cursor:default;">
+        <div class="budget-top"><span>💰 연간 총저축</span><span class="hint">순저축률 ${pct(rate)}</span></div>
+        <div class="budget-value" style="color:${net>=0?'var(--income)':'var(--expense)'};">${won(net)}</div>
+      </div>
     </div>
 
     <div class="section">
@@ -1614,6 +1630,25 @@ function renderSummary(){
           </div>
         </div>
         <canvas id="chartMonthly"></canvas>
+      </div>
+    </div>
+
+    <div class="grid two-col section">
+      <div class="card cat-list-card">
+        <div class="section-head"><h2>카테고리별 지출</h2><span class="hint">${state.summaryScope} · ${state.year}년 전체</span></div>
+        <div class="donut-wrap" id="yearDonutWrap"><canvas id="chartYearDonut"></canvas></div>
+        <div id="yearCatListWrap"></div>
+      </div>
+      <div class="card" style="padding:18px;">
+        <div class="section-head"><h2>구분별 연간 지출</h2></div>
+        <div class="kpi-rows">
+          ${scopeYearTotals.map(s=>`
+            <div class="kpi-row">
+              <span class="k"><i class="dot" style="background:${SCOPE_COLOR[s.scope]};"></i>${s.scope}</span>
+              <span class="v mono">${won(s.expense)}</span>
+            </div>
+          `).join('')}
+        </div>
       </div>
     </div>
 
@@ -1668,14 +1703,57 @@ function renderSummary(){
   `;
 
   renderIncomeExpenseChart();
+  renderCategoryDonutYear();
   onRcScopeChange();
   renderRecurringTable();
+}
+
+let _yearDonutChart = null;
+function renderCategoryDonutYear(){
+  const scope = state.summaryScope;
+  let yearTx = DB.list().filter(t => t.date.startsWith(String(state.year)) && t.type==='지출');
+  if(scope !== '전체') yearTx = yearTx.filter(t=>t.scope===scope);
+  const total = yearTx.reduce((s,t)=>s+Number(t.amount),0);
+  const map = {};
+  yearTx.forEach(t=>{ const key = t.main || '미분류'; map[key] = (map[key]||0) + Number(t.amount); });
+  const rows = Object.entries(map).sort((a,b)=>b[1]-a[1]);
+
+  const donutWrap = document.getElementById('yearDonutWrap');
+  if(donutWrap){
+    donutWrap.style.display = rows.length ? 'flex' : 'none';
+    if(rows.length && typeof Chart !== 'undefined'){
+      const canvas = document.getElementById('chartYearDonut');
+      if(_yearDonutChart) _yearDonutChart.destroy();
+      _yearDonutChart = new Chart(canvas, {
+        type:'doughnut',
+        data:{
+          labels: rows.map(([main])=>main),
+          datasets:[{ data: rows.map(([,amt])=>amt), backgroundColor: rows.map((_,i)=>CATEGORY_PALETTE[i%CATEGORY_PALETTE.length]), borderWidth:0 }],
+        },
+        options:{ cutout:'68%', plugins:{ legend:{ display:false } } },
+      });
+    }
+  }
+
+  const listWrap = document.getElementById('yearCatListWrap');
+  if(listWrap){
+    listWrap.innerHTML = rows.length ? rows.map(([main,amt],i)=>{
+      const pctVal = total ? (amt/total*100) : 0;
+      return `<div class="cat-dot-row">
+        <span class="left"><i class="dot" style="background:${CATEGORY_PALETTE[i%CATEGORY_PALETTE.length]}"></i>${main}<span class="pct">${pctVal.toFixed(0)}%</span></span>
+        <span class="amt">${won(amt)}</span>
+      </div>`;
+    }).join('') : `<div style="color:var(--muted);font-size:13px;padding:20px 0;">${state.year}년 ${scope} 지출 내역이 없습니다.</div>`;
+  }
 }
 
 function setSummaryScope(s){
   state.summaryScope = s;
   document.getElementById('summaryScopeTabs').innerHTML = ['전체',...SCOPES].map(sc=>`<button class="chip ${state.summaryScope===sc?'active':''}" onclick="setSummaryScope('${sc}')">${sc}</button>`).join('');
+  const hint = document.querySelector('.cat-list-card .hint');
+  if(hint) hint.textContent = `${s} · ${state.year}년 전체`;
   renderIncomeExpenseChart();
+  renderCategoryDonutYear();
 }
 
 let _monthlyChart = null;
@@ -1870,6 +1948,7 @@ function deleteRecur(key){
 function renderMonth(ym){
   state.currentYm = ym;
   if(state.compareTarget !== ym){ state.compareYm = shiftYm(ym,-1); state.compareTarget = ym; }
+  if(state.paceCompareTarget !== ym){ state.paceCompareYm = shiftYm(ym,-1); state.paceCompareTarget = ym; }
   ensureRecurringForMonth(ym);
 
   const [y,m] = ym.split('-').map(Number);
@@ -1916,7 +1995,7 @@ function renderMonth(ym){
   document.getElementById('view').innerHTML = `
     <div class="month-nav">
       <button class="move" onclick="location.hash='#/${prevYm(ym)}'">‹ 이전 달</button>
-      <h1 class="display">${y}년 ${m}월</h1>
+      <h1 class="display">${m}월</h1>
       <button class="move" onclick="location.hash='#/${nextYm(ym)}'">다음 달 ›</button>
     </div>
 
@@ -1943,9 +2022,13 @@ function renderMonth(ym){
     </div>
 
     <div class="section">
-      <div class="card">
-        <div class="section-head"><h2>지출 속도</h2><span class="hint">이번 달 vs 지난달</span></div>
+      <div class="card" style="padding:18px;">
+        <div class="section-head">
+          <h2>지출 속도</h2>
+          <select class="compare-select" id="paceCompareSelect" onchange="state.paceCompareYm=this.value; renderSpendingPaceChart('${ym}')"></select>
+        </div>
         <canvas id="chartPace"></canvas>
+        <div id="paceStatsWrap"></div>
       </div>
     </div>
 
@@ -1956,7 +2039,7 @@ function renderMonth(ym){
         <div class="donut-wrap" id="donutWrap"><canvas id="chartCategoryDonut"></canvas></div>
         <div id="catListWrap"></div>
       </div>
-      <div class="card">
+      <div class="card" style="padding:18px;">
         <div class="section-head"><h2>고정 지출</h2><span class="hint">정기 자동이체</span></div>
         <div id="fixedSpendWrap"></div>
         <button class="ghost-btn" style="width:100%;justify-content:center;display:flex;" onclick="location.hash='#/summary'">고정 지출 관리</button>
@@ -1965,8 +2048,8 @@ function renderMonth(ym){
 
     <div class="grid two-col section">
       ${kpiBlocks.map(block => `
-        <div class="card kpi ${block.extraClass||''}">
-          <div class="label">${block.label}</div>
+        <div class="card" style="padding:18px;">
+          <div class="section-head"><h2>${block.label}</h2></div>
           <div class="kpi-rows">
             ${block.lines.map(line => `
               <div class="kpi-row${line.onclick?' kpi-row-clickable':''}" ${line.onclick?`onclick="${line.onclick}"`:''}>
@@ -2120,25 +2203,30 @@ function computeDailyCumulative(ym){
 function renderSpendingPaceChart(ym){
   const canvas = document.getElementById('chartPace');
   if(!canvas) return;
+
+  const sel = document.getElementById('paceCompareSelect');
+  if(sel) sel.innerHTML = compareOptions(ym).map(o=>`<option value="${o.value}" ${o.value===state.paceCompareYm?'selected':''}>${o.label}</option>`).join('');
+
   if(typeof Chart === 'undefined'){ canvas.replaceWith(chartFallbackNode()); return; }
 
   const [y,m] = ym.split('-').map(Number);
   const dim = daysInMonth(y,m);
   const curCum = computeDailyCumulative(ym);
-  const prevYm = shiftYm(ym,-1);
-  const [,pm] = prevYm.split('-').map(Number);
-  const prevDim = daysInMonth(Number(prevYm.split('-')[0]), pm);
-  const prevCumFull = computeDailyCumulative(prevYm);
-  const prevCum = [];
+  const cmpYm = state.paceCompareYm || shiftYm(ym,-1);
+  const [cy,cm] = cmpYm.split('-').map(Number);
+  const cmpDim = daysInMonth(cy,cm);
+  const cmpCumFull = computeDailyCumulative(cmpYm);
+  const cmpCum = [];
   for(let d=1; d<=dim; d++){
-    prevCum.push(d <= prevDim ? prevCumFull[d-1] : prevCumFull[prevDim-1]);
+    cmpCum.push(d <= cmpDim ? cmpCumFull[d-1] : cmpCumFull[cmpDim-1]);
   }
+  const cmpLabel = compareOptions(ym).find(o=>o.value===cmpYm)?.label || cmpYm;
   const budget = getMonthlyBudget(y);
   const labels = Array.from({length:dim}, (_,i)=> String(i+1));
 
   const datasets = [
     { label:'이번 달 지출', data:curCum, borderColor:'#5B4FE8', backgroundColor:'transparent', borderWidth:2.5, pointRadius:0, tension:0.15 },
-    { label:'지난달 지출', data:prevCum, borderColor:'#B7B4C7', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.15 },
+    { label:`${cmpLabel} 지출`, data:cmpCum, borderColor:'#B7B4C7', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.15 },
   ];
   if(budget > 0){
     datasets.push({ label:'예산', data:Array(dim).fill(budget), borderColor:'#C9A227', borderWidth:1.5, borderDash:[5,4], pointRadius:0 });
@@ -2158,6 +2246,29 @@ function renderSpendingPaceChart(ym){
       },
     },
   });
+
+  const statsWrap = document.getElementById('paceStatsWrap');
+  if(statsWrap){
+    const curTotal = curCum[curCum.length-1] || 0;
+    const cmpTotal = cmpCumFull[cmpCumFull.length-1] || 0;
+    let pillHtml = '';
+    if(ym === todayStr().slice(0,7)){
+      const todayD = Number(todayStr().split('-')[2]);
+      const curToday = curCum[todayD-1] || 0;
+      const cmpToday = todayD <= cmpDim ? cmpCumFull[todayD-1] : cmpTotal;
+      const diff = cmpToday - curToday;
+      if(diff !== 0){
+        pillHtml = `<div class="pace-pill ${diff>=0?'less':'more'}">${cmpLabel} 이때보다 ${won(Math.abs(diff))} ${diff>=0?'덜':'더'} 쓰는 중</div>`;
+      }
+    }
+    statsWrap.innerHTML = `
+      <div class="pace-stats">
+        <div class="pace-stat-row"><span class="k">이번 달 지출</span><span class="v" style="color:#5B4FE8;">${won(curTotal)}</span></div>
+        <div class="pace-stat-row"><span class="k">${cmpLabel} 총 지출</span><span class="v">${won(cmpTotal)}</span></div>
+      </div>
+      ${pillHtml}
+    `;
+  }
 }
 function compareOptions(ym){
   const opts = [];
