@@ -90,52 +90,6 @@ button{font-family:inherit;}
 }
 .ghost-btn:hover{border-color:var(--ink);color:var(--ink);}
 
-/* ---- 탭(폴더 인덱스탭) 네비게이션 ----
-   상단 고정을 높이 계산 없이 확실하게 만들려고, JS에서 이 .tabs-wrap 자체를
-   공용 메뉴바(#bkNav, 이미 position:sticky) 안으로 옮겨 붙입니다(render() 참고).
-   그러면 nav와 한 덩어리로 같이 고정되어서, nav 높이가 반응형·접힘으로 바뀌어도
-   틀어질 일이 없어요. */
-.tabs-wrap{
-  flex-basis:100%;
-  width:100%;
-  border-bottom:2px solid var(--ink);
-  margin-bottom:26px;
-}
-.tabs{
-  display:flex;gap:4px;overflow-x:auto;padding-bottom:0;
-  scrollbar-width:thin;
-}
-.tabs::-webkit-scrollbar{height:5px;}
-.tabs::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:10px;}
-.tab{
-  flex:0 0 auto;
-  padding:9px 16px;
-  font-size:13.5px;
-  font-weight:600;
-  color:var(--muted);
-  background:transparent;
-  border:none;
-  border-radius:10px 10px 0 0;
-  cursor:pointer;
-  position:relative;
-  top:2px;
-  white-space:nowrap;
-}
-.tab.summary-tab{font-family:var(--font);font-size:14px;}
-.tab:hover{color:var(--ink-soft);}
-.tab.active{
-  color:var(--ink);
-  background:var(--surface);
-  border:2px solid var(--ink);
-  border-bottom:2px solid var(--surface);
-}
-.tab .dot{
-  display:inline-block;width:5px;height:5px;border-radius:50%;
-  background:var(--expense);margin-right:5px;vertical-align:middle;
-  opacity:0;
-}
-.tab.has-data .dot{opacity:1;}
-
 /* =========================================================
    카드 / 공용 컴포넌트
    ========================================================= */
@@ -415,14 +369,13 @@ footer.foot{
   border-radius:100px;padding:4px 12px;font-size:11.5px;font-weight:700;margin-bottom:14px;
 }
 
-/* ---- 연도 선택 드롭다운 ---- */
-.tabs-row{display:flex;align-items:flex-end;gap:10px;}
-.year-select{position:relative;flex:0 0 auto;top:2px;}
+/* ---- 연도 선택 드롭다운: "우리집 가계부" 제목 옆에 인라인으로 표시 ---- */
+.year-select{position:relative;flex:0 0 auto;}
 .year-btn{
   display:flex;align-items:center;gap:5px;
-  border:2px solid var(--ink);border-bottom:none;background:var(--surface);color:var(--ink);
-  border-radius:10px 10px 0 0;padding:9px 14px;font-family:var(--font);font-weight:700;font-size:14px;
-  cursor:pointer;
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+  border-radius:100px;padding:7px 14px;font-family:var(--font);font-weight:700;font-size:14px;
+  cursor:pointer;box-shadow:var(--shadow-card);
 }
 .year-btn .caret{font-size:10px;color:var(--muted);}
 .year-menu{
@@ -437,16 +390,6 @@ footer.foot{
 }
 .year-item:hover{background:var(--paper);}
 .year-item.active{background:var(--ink);color:var(--paper);}
-
-/* 모바일에서는 연도 선택 버튼을 탭 줄에서 빼서 .tabs-wrap이 속한 #bkNav 기준
-   우측 하단으로 올림(#bkNav는 위치 지정된 요소라 안전한 기준점). #bkNav 우상단은
-   접기 버튼(☰)이 이미 쓰고 있어서 하단(=탭 줄과 같은 높이)에 둠. PC는 그대로
-   tabs-row 안에 둠(요청: "PC 유지 가능하면 제일 베스트"). */
-#app{position:relative;}
-@media (max-width:640px){
-  .year-select{position:absolute;top:auto;bottom:14px;right:0;}
-  .year-btn{border-radius:20px;border-bottom:2px solid var(--ink);padding:7px 12px;font-size:13px;box-shadow:var(--shadow-card);}
-}
 
 /* ---- 거래 내역: 클릭해서 수정 ---- */
 table.tx-table tbody tr.tx-row{cursor:pointer;}
@@ -1561,51 +1504,27 @@ function ensureRecurringForMonth(ym){
    ================================================================================= */
 function render(){
   const app = document.getElementById('app');
-  const list = DB.list();
-  const monthsWithData = new Set(list.map(t=>ymOf(t.date)));
-
-  let tabsHtml = `<button class="tab summary-tab ${state.view==='summary'?'active':''}" onclick="location.hash='#/summary'">SUMMARY</button>`;
-  // 이번 달(오늘 실제 날짜 기준)부터 시작해서 12개월을 순서대로 나열 — 예: 오늘이 7월이면 7,8,...,12,1,...,6월 순.
-  const startMonth = Number(todayStr().split('-')[1]);
-  for(let i=0;i<12;i++){
-    const m = ((startMonth - 1 + i) % 12) + 1;
-    const ym = state.year + '-' + String(m).padStart(2,'0');
-    const active = state.view===ym;
-    const hasData = monthsWithData.has(ym);
-    tabsHtml += `<button class="tab ${active?'active':''} ${hasData?'has-data':''}" onclick="location.hash='#/${ym}'"><span class="dot"></span>${m}월</button>`;
-  }
   const yearMenuHtml = yearRange().map(y=>`<button class="year-item ${y===state.year?'active':''}" onclick="selectYear(${y})">${y}</button>`).join('');
+  const isSummary = state.view === 'summary';
 
   app.innerHTML = `
     <div class="topbar">
       <div class="brand">
-        <div>
-          <h1>우리집 가계부</h1>
-        </div>
-      </div>
-    </div>
-    <div class="tabs-wrap">
-      <div class="tabs-row">
+        <h1>우리집 가계부</h1>
         <div class="year-select" id="yearSelect">
           <button class="year-btn" onclick="toggleYearMenu()">${state.year}<span class="caret">▾</span></button>
           <div class="year-menu" id="yearMenu">${yearMenuHtml}</div>
         </div>
-        <nav class="tabs">${tabsHtml}</nav>
+      </div>
+      <div class="actions">
+        <button class="ghost-btn" onclick="location.hash='#/summary'" style="${isSummary?'border-color:var(--ink);color:var(--ink);font-weight:700;':''}">연간 요약</button>
       </div>
     </div>
     <div id="view"></div>
     <footer class="foot">yunkwan.cloud · ledger.html — 데이터는 Supabase에 저장되며 로그인한 모든 기기에서 동기화됩니다.</footer>
   `;
 
-  // 탭 줄을 공용 메뉴바(#bkNav, 이미 position:sticky) 안으로 옮겨 붙여서 같은
-  // 덩어리로 상단 고정합니다 — 높이를 몰라도 항상 정확히 붙어요. render()가
-  // #app.innerHTML을 다시 그릴 때마다(달 이동 등) .tabs-wrap도 새로 만들어지므로
-  // 매번 옮겨줘야 합니다.
-  const bkNav = document.getElementById('bkNav');
-  const tabsWrapEl = app.querySelector('.tabs-wrap');
-  if(bkNav && tabsWrapEl) bkNav.appendChild(tabsWrapEl);
-
-  if(state.view === 'summary') renderSummary();
+  if(isSummary) renderSummary();
   else renderMonth(state.view);
 }
 
