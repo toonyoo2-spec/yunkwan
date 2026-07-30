@@ -873,12 +873,12 @@ function openDetailModal(id){
         } else if(label === '예약문의'){
           valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
         } else if(label === '주차장' && it.address){
-          // (이전 시도 정정) intent://...scheme=market;package=com.android.vending 링크는
-          // 앱을 열어보지도 않고 무조건 플레이스토어로 직행하는 링크였음 — 잘못 만든 것.
-          // app.modu.kr는 모두의주차장이 실제 쓰는 도메인이라, 안드로이드 앱링크로
-          // 등록돼 있으면 누를 때 설치된 앱이 자동으로 열릴 가능성이 있음(미확인).
-          // 안 열리면 웹페이지로 이동 — 최소한 무조건 플레이스토어로 가는 것보단 나음.
-          valueHtml = `<a href="https://app.modu.kr/map" target="_blank" rel="noopener">${escapeHtml(value)}</a> <button type="button" class="parking-copy-btn" onclick="copyAddressForParking(this)">주소 복사</button>`;
+          // (2차 정정) app.modu.kr는 앱링크로 등록돼 있지 않은지, 눌러도 네이티브 앱이 아니라
+          // 별도 로그인이 필요한 웹 버전으로 열림 — 매번 재로그인해야 해서 더 불편함.
+          // "패키지명 + 기본 실행(MAIN/LAUNCHER) 인텐트"는 안드로이드 표준 방식이라 확실히
+          // 동작함: 설치돼 있으면 그 앱을 그대로(이미 로그인된 상태로) 열고, 없으면 스토어로.
+          // 검색창까지 자동으로 채워주진 못해서, 옆 복사 버튼으로 주소를 붙여넣게 함.
+          valueHtml = `<a href="intent://launch#Intent;package=com.parkingshare.mobile;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.parkingshare.mobile;end" target="_blank" rel="noopener">${escapeHtml(value)}</a> <button type="button" class="parking-copy-btn" onclick="copyAddressForParking(this)">주소 복사</button>`;
         }
         return `
         <div class="detail-row">
