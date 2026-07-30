@@ -873,12 +873,10 @@ function openDetailModal(id){
         } else if(label === '예약문의'){
           valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
         } else if(label === '주차장' && it.address){
-          // (2차 정정) app.modu.kr는 앱링크로 등록돼 있지 않은지, 눌러도 네이티브 앱이 아니라
-          // 별도 로그인이 필요한 웹 버전으로 열림 — 매번 재로그인해야 해서 더 불편함.
-          // "패키지명 + 기본 실행(MAIN/LAUNCHER) 인텐트"는 안드로이드 표준 방식이라 확실히
-          // 동작함: 설치돼 있으면 그 앱을 그대로(이미 로그인된 상태로) 열고, 없으면 스토어로.
-          // 검색창까지 자동으로 채워주진 못해서, 옆 복사 버튼으로 주소를 붙여넣게 함.
-          valueHtml = `<a href="intent://launch#Intent;package=com.parkingshare.mobile;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.parkingshare.mobile;end" target="_blank" rel="noopener">${escapeHtml(value)}</a> <button type="button" class="parking-copy-btn" onclick="copyAddressForParking(this)">주소 복사</button>`;
+          // /map/search?keyword= 형태가 예전에 "auto-search 된다"고 적용됐다가, 이후
+          // 실제로는 존재하지 않는 페이지로 연결된다는 이유로 되돌려진 이력이 있음
+          // (커밋 be31a04 → ed04280). 그래도 확인 차 다시 시도 — 안 되면 복사 버튼으로 대체.
+          valueHtml = `<a href="https://app.modu.kr/map/search?keyword=${encodeURIComponent(it.address)}" target="_blank" rel="noopener">${escapeHtml(value)}</a> <button type="button" class="parking-copy-btn" onclick="copyAddressForParking(this)">주소 복사</button>`;
         }
         return `
         <div class="detail-row">
