@@ -1157,10 +1157,13 @@ function calShowDetail(id, kind){
       } else if(key === 'contact'){
         valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
       } else if(key === 'parking' && it.address){
-        // 모두의 주차장 앱의 정확한 딥링크(URL scheme)를 공식적으로 확인할 수 없어서,
-        // 설치되어 있으면 앱이 열리고 없으면 플레이스토어로 이동하는 안드로이드 표준
-        // intent 링크를 씀. 주소는 앱에 자동으로 넘어가지 않으니 복사 버튼으로 보완.
-        valueHtml = `<a href="intent://details?id=com.parkingshare.mobile#Intent;scheme=market;package=com.android.vending;end" target="_blank" rel="noopener">${escapeHtml(value)}</a>
+        // (이전 시도 정정) intent://...scheme=market;package=com.android.vending 링크는
+        // 앱을 열어보지도 않고 무조건 플레이스토어로 직행하는 링크였음 — 실수로 잘못 만든 것.
+        // 앱의 정확한 커스텀 URL scheme은 공식 문서가 없어 확인 불가하지만, app.modu.kr는
+        // 모두의주차장이 실제로 쓰는 도메인이라 안드로이드 앱링크(Digital Asset Links)로
+        // 등록돼 있다면 이 주소를 누를 때 설치된 앱이 자동으로 열릴 가능성이 있음(미확인).
+        // 안 열리면 그냥 웹페이지로 이동 — 최소한 무조건 플레이스토어로 가는 것보단 나음.
+        valueHtml = `<a href="https://app.modu.kr/map" target="_blank" rel="noopener">${escapeHtml(value)}</a>
           <button type="button" class="cal-copy-addr-btn" data-address="${escapeHtml(it.address)}" onclick="event.stopPropagation();copyParkingAddress(this)">주소 복사</button>`;
       }
       return `

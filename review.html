@@ -873,10 +873,12 @@ function openDetailModal(id){
         } else if(label === '예약문의'){
           valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
         } else if(label === '주차장' && it.address){
-          // 모두의주차장 앱의 정확한 딥링크는 공식적으로 확인이 안 돼서, 설치돼 있으면
-          // 앱이 열리고 없으면 플레이스토어로 이동하는 안드로이드 표준 intent 링크를 씀.
-          // 주소는 앱 안에서 직접 검색해야 해서 옆에 복사 버튼을 따로 둠.
-          valueHtml = `<a href="intent://details?id=com.parkingshare.mobile#Intent;scheme=market;package=com.android.vending;end" target="_blank" rel="noopener">${escapeHtml(value)}</a> <button type="button" class="parking-copy-btn" onclick="copyAddressForParking(this)">주소 복사</button>`;
+          // (이전 시도 정정) intent://...scheme=market;package=com.android.vending 링크는
+          // 앱을 열어보지도 않고 무조건 플레이스토어로 직행하는 링크였음 — 잘못 만든 것.
+          // app.modu.kr는 모두의주차장이 실제 쓰는 도메인이라, 안드로이드 앱링크로
+          // 등록돼 있으면 누를 때 설치된 앱이 자동으로 열릴 가능성이 있음(미확인).
+          // 안 열리면 웹페이지로 이동 — 최소한 무조건 플레이스토어로 가는 것보단 나음.
+          valueHtml = `<a href="https://app.modu.kr/map" target="_blank" rel="noopener">${escapeHtml(value)}</a> <button type="button" class="parking-copy-btn" onclick="copyAddressForParking(this)">주소 복사</button>`;
         }
         return `
         <div class="detail-row">
