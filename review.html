@@ -370,6 +370,18 @@
     font-size:11px;
     color:var(--sub);
   }
+  .parking-copy-btn{
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--sub);
+    border-radius:6px;
+    padding:2px 8px;
+    font-size:11px;
+    cursor:pointer;
+    margin-left:6px;
+    white-space:nowrap;
+  }
+  .parking-copy-btn:hover{ border-color:var(--accent); color:var(--accent); }
   .detail-actions{
     display:flex;
     justify-content:space-between;
@@ -861,10 +873,10 @@ function openDetailModal(id){
         } else if(label === '예약문의'){
           valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
         } else if(label === '주차장' && it.address){
-          // 모두의주차장 앱의 정확한 검색 딥링크를 몰라서(전에 시도한 링크는 존재하지
-          // 않는 페이지로 연결됨) 대신 주소를 클립보드에 복사해주고, 앱에서 직접
-          // 붙여넣기 하도록 안내함 — 확실하게 동작하는 방식.
-          valueHtml = `<a href="#" onclick="event.preventDefault();copyAddressForParking(this)">${escapeHtml(value)}</a> <span class="detail-hint">(눌러서 주소 복사)</span>`;
+          // 모두의주차장 앱의 정확한 딥링크는 공식적으로 확인이 안 돼서, 설치돼 있으면
+          // 앱이 열리고 없으면 플레이스토어로 이동하는 안드로이드 표준 intent 링크를 씀.
+          // 주소는 앱 안에서 직접 검색해야 해서 옆에 복사 버튼을 따로 둠.
+          valueHtml = `<a href="intent://details?id=com.parkingshare.mobile#Intent;scheme=market;package=com.android.vending;end" target="_blank" rel="noopener">${escapeHtml(value)}</a> <button type="button" class="parking-copy-btn" onclick="copyAddressForParking(this)">주소 복사</button>`;
         }
         return `
         <div class="detail-row">
@@ -884,9 +896,8 @@ function closeDetailModal(){
   detailModalId = null;
 }
 
-/* 모두의주차장은 정확한 검색 딥링크를 확인 못 해서(추측한 링크가 존재하지 않는
-   페이지로 연결됨), 대신 주소를 클립보드에 복사해주고 사용자가 앱에서
-   직접 붙여넣기 하도록 안내함. */
+/* 주차장 링크는 앱 실행을 시도하고, 주소는 앱 안에서 직접 검색해야 하니
+   이 버튼으로 클립보드에 복사해줌(붙여넣기 바로 가능하게). */
 async function copyAddressForParking(el){
   if(!detailModalId) return;
   const it = items.find(i => i.id === detailModalId);
@@ -894,8 +905,8 @@ async function copyAddressForParking(el){
   try{
     await navigator.clipboard.writeText(it.address);
     const original = el.textContent;
-    el.textContent = '복사됨! 모두의주차장에서 붙여넣기 하세요';
-    setTimeout(() => { el.textContent = original; }, 2000);
+    el.textContent = '복사됨 ✓';
+    setTimeout(() => { el.textContent = original; }, 1500);
   }catch(err){
     alert('주소 복사에 실패했어요: ' + it.address);
   }
