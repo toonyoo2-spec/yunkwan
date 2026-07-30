@@ -869,7 +869,9 @@ function openDetailModal(id){
       ${rows.map(([label, value]) => {
         let valueHtml = escapeHtml(value);
         if(label === '주소'){
-          valueHtml = `<a href="https://map.naver.com/p/search/${encodeURIComponent(value)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+          // 주소 텍스트 그대로 검색하면 상호명이 없어서 엉뚱한 결과가 나올 때가 있어서,
+          // 체험단 이름(가게 이름)으로 네이버 지도를 검색하도록 함. 표시 텍스트는 주소 그대로.
+          valueHtml = `<a href="https://map.naver.com/p/search/${encodeURIComponent(it.name)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
         } else if(label === '예약문의'){
           valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
         } else if(label === '주차장' && it.address){
