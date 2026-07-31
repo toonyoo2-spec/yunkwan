@@ -724,7 +724,7 @@ try{
     throw new Error('supabase-config.js를 찾을 수 없거나 설정이 비어있어요. index.html과 같은 폴더에 있는지 확인해주세요.');
   }
   sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
-    auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+    auth: { storage: window.localStorage, persistSession: true, autoRefreshToken: true }
   });
 }catch(err){
   document.getElementById('authOverlay').querySelector('.modal-card').innerHTML =
@@ -3292,7 +3292,6 @@ function displayRowHtml(t){
   // 모바일용: 뱅크샐러드 스타일 리스트 행 — 카테고리 아이콘(구분 색 링) + 내용(굵게) +
   // 중분류·소분류·결제수단(작게, 회색) + 우측 금액. 날짜는 renderTxTable의 날짜별
   // 헤더 줄에서 한 번만 보여주므로 행 자체에는 넣지 않음.
-  const scopeDotColor = t.scope ? (SCOPE_COLOR[t.scope] || 'var(--muted)') : 'var(--expense)';
   const titleText = escapeHtml(t.note) || escapeHtml(t.category) || '내용 없음';
   const mobileRow = `<tr class="tx-row tx-row-mobile${isEditingRow?' tx-row-editing':''}" onclick="startEditTx('${t.id}')">
     <td colspan="8">
