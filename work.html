@@ -204,6 +204,10 @@
   .form-grid{
     display:grid;
     grid-template-columns:repeat(4, 1fr);
+    grid-template-areas:
+      "title title manager contact"
+      "startDate endDate payment cost"
+      "settlementType recurring recurring recurring";
     gap:10px;
     align-items:end;
   }
