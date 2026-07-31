@@ -660,6 +660,14 @@ tr.edit-row td{padding:12px 10px;}
 }
 @media (min-width:1081px){
   table.tx-table.tx-table-main tr.tx-row-mobile{display:none;}
+  /* PC 버전 테이블에도 구분 아이콘 추가 */
+  .tx-scope-badge{
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .tx-scope-icon{
+    width:24px;height:24px;border-radius:50%;flex-shrink:0;
+    background:var(--paper);display:inline-flex;align-items:center;justify-content:center;color:var(--ink-soft);
+  }
 }
 </style>
 </head>
@@ -3244,9 +3252,16 @@ function pendingRowHtml(t, ym){
 
 function displayRowHtml(t){
   const fixedTag = t.recurringKey ? `<span class="fixed-tag">(고정)</span>` : '';
+  const scopeDotColor = t.scope ? (SCOPE_COLOR[t.scope] || 'var(--muted)') : 'var(--expense)';
   const scopeBadge = t.scope
-    ? `<span class="filter-link" onclick="event.stopPropagation();setScopeFilter('${escapeJsAttr(t.scope)}')">${escapeHtml(t.scope)}</span>${fixedTag}`
-    : `<span class="filter-link" style="color:var(--expense);" onclick="event.stopPropagation();setScopeFilter('미지정')">미지정</span>${fixedTag}`;
+    ? `<span class="tx-scope-badge">
+         <span class="tx-scope-icon" style="box-shadow:0 0 0 2px ${scopeDotColor} inset;" title="${escapeHtml(t.scope)}">${categoryIcon(t)}</span>
+         <span class="filter-link" onclick="event.stopPropagation();setScopeFilter('${escapeJsAttr(t.scope)}')">${escapeHtml(t.scope)}</span>${fixedTag}
+       </span>`
+    : `<span class="tx-scope-badge">
+         <span class="tx-scope-icon" style="box-shadow:0 0 0 2px var(--expense) inset;">${categoryIcon(t)}</span>
+         <span class="filter-link" style="color:var(--expense);" onclick="event.stopPropagation();setScopeFilter('미지정')">미지정</span>${fixedTag}
+       </span>`;
   const mainLabel = t.main
     ? `<span class="filter-link" onclick="event.stopPropagation();quickFilterMain('${escapeJsAttr(t.type)}','${escapeJsAttr(t.main)}')">${escapeHtml(t.main)}</span>`
     : `<span style="color:var(--expense);">미지정</span>`;
