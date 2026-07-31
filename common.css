@@ -17,9 +17,9 @@
   --end-bg:#e5e5e5;    --end-ink:#6b6a63;
 
   /* 부부 일정 전용 색상 (사람별 구분, index.html에서만 사용) */
-  --owner-gwan-bg:#dbeafe;    --owner-gwan-ink:#1e40af;
-  --owner-bora-bg:#ede9fe;    --owner-bora-ink:#7c3aed;
-  --owner-common-bg:#d4f4dd;  --owner-common-ink:#2d7a3e;
+  --owner-gwan-bg:#fef3c7;    --owner-gwan-ink:#f59e0b;
+  --owner-bora-bg:#ede9fe;    --owner-bora-ink:#8b5cf6;
+  --owner-common-bg:#d1fae5;  --owner-common-ink:#10b981;
 }
 *{box-sizing:border-box;}
 body{
