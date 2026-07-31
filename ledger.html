@@ -2778,6 +2778,59 @@ function txListItemsHtml(items){
   `).join('')}</ul>`;
 }
 
+/* 거래내역을 대분류 → 중분류 → 소분류로 그룹화해서 보여주는 함수 */
+function txGroupedListHtml(items){
+  if(!items.length) return '';
+
+  // 대분류(type) → 중분류(main) → 소분류(category)로 그룹화
+  const grouped = {};
+  items.forEach(t => {
+    const type = t.type || '기타';
+    const main = t.main || '미분류';
+    const category = t.category || '기타';
+
+    if(!grouped[type]) grouped[type] = {};
+    if(!grouped[type][main]) grouped[type][main] = {};
+    if(!grouped[type][main][category]) grouped[type][main][category] = [];
+    grouped[type][main][category].push(t);
+  });
+
+  let html = '';
+  // 수입 먼저, 지출 나중에
+  const typeOrder = ['수입', '지출'];
+  typeOrder.forEach(type => {
+    if(!grouped[type]) return;
+
+    const mains = Object.keys(grouped[type]);
+    mains.forEach(main => {
+      const mainTotal = Object.values(grouped[type][main])
+        .flat()
+        .reduce((s,t)=>s+Number(t.amount||0), 0);
+
+      html += `<div class="modal-section-label">${main} (${won(mainTotal)})</div>`;
+
+      const categories = Object.keys(grouped[type][main]);
+      categories.forEach(category => {
+        const txs = grouped[type][main][category];
+        const catTotal = txs.reduce((s,t)=>s+Number(t.amount||0), 0);
+
+        html += `<div style="font-size:12px;color:var(--ink-soft);font-weight:600;margin:8px 0 4px;padding-left:8px;">
+          ${category} (${won(catTotal)} · ${txs.length}건)
+        </div>`;
+        html += `<ul class="modal-tx-list" style="margin-bottom:10px;">${txs.map(t=>`
+          <li>
+            <span class="badge ${TYPE_KEY[t.type]}">${t.date.slice(5)}</span>
+            <span class="n">${t.note||'-'}</span>
+            <span class="a amt ${TYPE_KEY[t.type]}">${Number(t.amount).toLocaleString('ko-KR')}원</span>
+          </li>
+        `).join('')}</ul>`;
+      });
+    });
+  });
+
+  return html;
+}
+
 /* ---- 상단 "전체" 카드 팝업 ---- */
 function openTotalIncomeModal(ym){
   const [yy,mm] = ym.split('-').map(Number);
@@ -2790,7 +2843,7 @@ function openTotalIncomeModal(ym){
     return b.id - a.id;
   });
   const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
-  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 수입 내역이 없어요.</div>`;
+  const listHtml = txGroupedListHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 수입 내역이 없어요.</div>`;
   openModal(`
     <h3 class="display">${mm}월 수입</h3>
     <div class="modal-sub">합계 ${won(total)} · 총 ${items.length}건</div>
@@ -2809,7 +2862,7 @@ function openTotalExpenseModal(ym){
     return b.id - a.id;
   });
   const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
-  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 지출 내역이 없어요.</div>`;
+  const listHtml = txGroupedListHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 지출 내역이 없어요.</div>`;
   openModal(`
     <h3 class="display">${mm}월 지출</h3>
     <div class="modal-sub">합계 ${won(total)} · 총 ${items.length}건</div>
@@ -2856,7 +2909,7 @@ function openScopeExpenseModal(ym, scope){
       return b.id - a.id;
     });
   const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
-  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 ${label} 지출 내역이 없어요.</div>`;
+  const listHtml = txGroupedListHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 ${label} 지출 내역이 없어요.</div>`;
   openModal(`
     <h3 class="display">${mm}월 ${label} 지출</h3>
     <div class="modal-sub">합계 ${won(total)} · 총 ${items.length}건</div>
@@ -2908,7 +2961,7 @@ function openCardHistoryModal(ym, payment){
     });
   const total = creditCardMonthTotal(DB.list(), payment, ym);
   const overrideNote = override ? `<div style="color:var(--muted);font-size:12px;margin:-4px 0 10px;">* ${override.anchor} 이전 누적 ${won(override.amount)} 포함 (그 이전 개별 내역은 생략, ${override.anchor} 이후 내역만 아래 표시)</div>` : '';
-  const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">${override?'':'이번 달 기록된 지출 내역이 없어요.'}</div>`;
+  const listHtml = txGroupedListHtml(items) || `<div style="color:var(--muted);font-size:13px;">${override?'':'이번 달 기록된 지출 내역이 없어요.'}</div>`;
   openModal(`
     <h3 class="display">${name} 이번 달 사용 내역</h3>
     <div class="modal-sub">${mm}월 사용 ${won(total)} · 총 ${items.length}건${override?' (+ 누적 반영)':''}</div>
