@@ -2143,7 +2143,19 @@ function renderMonth(ym){
 
   const [y,m] = ym.split('-').map(Number);
   const all = DB.list();
-  const tx = monthTx(all, ym).sort((a,b)=> a.date < b.date ? 1 : -1);
+  const tx = monthTx(all, ym).sort((a,b)=> {
+    // 1순위: 구분(공동 > 보라 > 관)
+    const scopeOrder = { "공동": 0, "보라": 1, "관": 2 };
+    const scopeA = scopeOrder[a.scope] ?? 999;
+    const scopeB = scopeOrder[b.scope] ?? 999;
+    if(scopeA !== scopeB) return scopeA - scopeB;
+
+    // 2순위: 날짜(최신순)
+    if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+
+    // 3순위: ID(최신순 - 같은 날짜에 최근 추가가 위로)
+    return b.id - a.id;
+  });
 
   // 공동/보라/관은 결제수단(카드)과 무관하게, 거래 입력할 때 직접 고른 구분(scope)만 기준으로 지출을 누적.
   const scopeSummary = SCOPES.map(sc=>{
@@ -2769,7 +2781,14 @@ function txListItemsHtml(items){
 /* ---- 상단 "전체" 카드 팝업 ---- */
 function openTotalIncomeModal(ym){
   const [yy,mm] = ym.split('-').map(Number);
-  const items = monthTx(DB.list(), ym).filter(t=>t.type==='수입').sort((a,b)=> a.date < b.date ? 1 : -1);
+  const items = monthTx(DB.list(), ym).filter(t=>t.type==='수입').sort((a,b)=> {
+    const scopeOrder = { "공동": 0, "보라": 1, "관": 2 };
+    const scopeA = scopeOrder[a.scope] ?? 999;
+    const scopeB = scopeOrder[b.scope] ?? 999;
+    if(scopeA !== scopeB) return scopeA - scopeB;
+    if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return b.id - a.id;
+  });
   const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
   const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 수입 내역이 없어요.</div>`;
   openModal(`
@@ -2781,7 +2800,14 @@ function openTotalIncomeModal(ym){
 
 function openTotalExpenseModal(ym){
   const [yy,mm] = ym.split('-').map(Number);
-  const items = monthTx(DB.list(), ym).filter(t=>t.type==='지출').sort((a,b)=> a.date < b.date ? 1 : -1);
+  const items = monthTx(DB.list(), ym).filter(t=>t.type==='지출').sort((a,b)=> {
+    const scopeOrder = { "공동": 0, "보라": 1, "관": 2 };
+    const scopeA = scopeOrder[a.scope] ?? 999;
+    const scopeB = scopeOrder[b.scope] ?? 999;
+    if(scopeA !== scopeB) return scopeA - scopeB;
+    if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return b.id - a.id;
+  });
   const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
   const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 지출 내역이 없어요.</div>`;
   openModal(`
@@ -2821,7 +2847,14 @@ function openScopeExpenseModal(ym, scope){
   const label = { "공동":"공동", "보라":"보라", "관":"과니" }[scope] || scope;
   const items = monthTx(DB.list(), ym)
     .filter(t=>t.type==='지출' && t.scope===scope)
-    .sort((a,b)=> a.date < b.date ? 1 : -1);
+    .sort((a,b)=> {
+      const scopeOrder = { "공동": 0, "보라": 1, "관": 2 };
+      const scopeA = scopeOrder[a.scope] ?? 999;
+      const scopeB = scopeOrder[b.scope] ?? 999;
+      if(scopeA !== scopeB) return scopeA - scopeB;
+      if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return b.id - a.id;
+    });
   const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
   const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 ${label} 지출 내역이 없어요.</div>`;
   openModal(`
@@ -2865,7 +2898,14 @@ function openCardHistoryModal(ym, payment){
   const rangeStart = override ? override.anchor : (ym + '-01');
   const items = DB.list()
     .filter(t=>t.payment===payment && t.type==='지출' && t.date >= rangeStart && t.date < cutoffExclusive)
-    .sort((a,b)=> a.date < b.date ? 1 : -1);
+    .sort((a,b)=> {
+      const scopeOrder = { "공동": 0, "보라": 1, "관": 2 };
+      const scopeA = scopeOrder[a.scope] ?? 999;
+      const scopeB = scopeOrder[b.scope] ?? 999;
+      if(scopeA !== scopeB) return scopeA - scopeB;
+      if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return b.id - a.id;
+    });
   const total = creditCardMonthTotal(DB.list(), payment, ym);
   const overrideNote = override ? `<div style="color:var(--muted);font-size:12px;margin:-4px 0 10px;">* ${override.anchor} 이전 누적 ${won(override.amount)} 포함 (그 이전 개별 내역은 생략, ${override.anchor} 이후 내역만 아래 표시)</div>` : '';
   const listHtml = txListItemsHtml(items) || `<div style="color:var(--muted);font-size:13px;">${override?'':'이번 달 기록된 지출 내역이 없어요.'}</div>`;
@@ -2897,7 +2937,14 @@ function openCardBalanceModal(ym, payment){
 
   const monthItems = all
     .filter(t=>t.payment===payment && t.date >= monthLowerBound && t.date < nextMonthStart)
-    .sort((a,b)=> a.date < b.date ? 1 : -1);
+    .sort((a,b)=> {
+      const scopeOrder = { "공동": 0, "보라": 1, "관": 2 };
+      const scopeA = scopeOrder[a.scope] ?? 999;
+      const scopeB = scopeOrder[b.scope] ?? 999;
+      if(scopeA !== scopeB) return scopeA - scopeB;
+      if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return b.id - a.id;
+    });
   const monthBillEvents = creditCardBillEvents(payment, monthLowerBound, nextMonthStart);
   const monthBillTotal = monthBillEvents.reduce((s,e)=>s+e.amount, 0);
   const nowBalance = prevBalance + netChange(monthItems) - monthBillTotal;
