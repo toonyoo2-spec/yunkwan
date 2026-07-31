@@ -3177,7 +3177,19 @@ function renderTxTable(ym){
   // 아직 그 날짜가 지나지 않은 정기 자동이체는 "예정"으로 미리 함께 보여줌(현대카드 결제 예정과 같은 개념) —
   // 지출 집계·거래 개수에는 포함되지 않고, 눌러서 이번 달 예정 금액만 조정할 수 있음.
   let tx = monthTx(DB.list(), ym).concat(computePendingRecurringForMonth(ym));
-  tx.sort((a,b)=> a.date<b.date?1:-1);
+  tx.sort((a,b)=> {
+    // 1순위: 구분(공동 > 보라 > 관)
+    const scopeOrder = { "공동": 0, "보라": 1, "관": 2 };
+    const scopeA = scopeOrder[a.scope] ?? 999;
+    const scopeB = scopeOrder[b.scope] ?? 999;
+    if(scopeA !== scopeB) return scopeA - scopeB;
+
+    // 2순위: 날짜(최신순)
+    if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+
+    // 3순위: ID(최신순 - 같은 날짜에 최근 추가가 위로)
+    return b.id - a.id;
+  });
   if(state.scopeFilter==='미지정') tx = tx.filter(t=>!t.scope);
   else if(state.scopeFilter!=='전체') tx = tx.filter(t=>t.scope===state.scopeFilter);
   if(state.monthTxFilter!=='전체') tx = tx.filter(t=>t.type===state.monthTxFilter);
