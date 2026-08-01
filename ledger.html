@@ -1593,6 +1593,8 @@ function route(){
   if(hash === 'summary'){ state.view = 'summary'; }
   else { state.view = hash; state.year = Number(hash.split('-')[0]); state.scopeFilter='전체'; state.monthTxFilter='전체'; state.mainFilter='전체'; state.catFilter='전체'; state.noteFilter=''; state.catScope='전체'; state.catDrillMain=null; state.editingTxId=null; }
   render();
+  // 화면 렌더링 후 URL 파라미터로 폼 자동 채우기 (MacroDroid 연동)
+  setTimeout(fillFormFromUrlParams, 100);
 }
 window.addEventListener('hashchange', route);
 
@@ -3550,6 +3552,88 @@ function submitTx(ym){
   document.getElementById('f_payment').value='';
   renderMonth(ymOf(date));
   if(ymOf(date) !== ym) location.hash = '#/' + ymOf(date);
+}
+
+/* =================================================================================
+   7-1. MacroDroid URL 파라미터 자동 채우기
+   ---------------------------------------------------------------------------------
+   MacroDroid가 URL 파라미터로 거래 정보를 전달하면 자동으로 폼에 채워줍니다.
+   예: ledger.html?date=2026-07-31&amount=5000&scope=공동&main=생활비&category=식비&note=스타벅스
+   ================================================================================= */
+function fillFormFromUrlParams(){
+  const params = new URLSearchParams(window.location.search);
+
+  // URL 파라미터가 하나도 없으면 아무것도 하지 않음
+  if(!params.toString()) return;
+
+  // 날짜
+  if(params.has('date')){
+    const dateField = document.getElementById('f_date');
+    if(dateField) dateField.value = params.get('date');
+  }
+
+  // 금액
+  if(params.has('amount')){
+    const amountField = document.getElementById('f_amount');
+    if(amountField) amountField.value = params.get('amount');
+  }
+
+  // 구분 (공동/보라/관)
+  if(params.has('scope')){
+    const scopeField = document.getElementById('f_scope');
+    if(scopeField){
+      scopeField.value = params.get('scope');
+      onFormScopeChange(); // 구분이 바뀌면 타입/대분류/소분류도 업데이트
+    }
+  }
+
+  // 대분류 (수입/지출)
+  if(params.has('type')){
+    const typeField = document.getElementById('f_type');
+    if(typeField){
+      typeField.value = params.get('type');
+      onFormTypeChange(); // 타입이 바뀌면 대분류/소분류도 업데이트
+    }
+  }
+
+  // 중분류
+  if(params.has('main')){
+    const mainField = document.getElementById('f_main');
+    if(mainField){
+      mainField.value = params.get('main');
+      onFormMainChange(); // 중분류가 바뀌면 소분류도 업데이트
+    }
+  }
+
+  // 소분류
+  if(params.has('category')){
+    const categoryField = document.getElementById('f_category');
+    if(categoryField) categoryField.value = params.get('category');
+  }
+
+  // 내용 (MacroDroid에서 빈 값으로 보내고 있어서 이 부분이 문제)
+  if(params.has('note')){
+    const noteField = document.getElementById('f_note');
+    if(noteField){
+      const noteValue = params.get('note');
+      // 빈 문자열이 아닐 때만 채움
+      if(noteValue && noteValue.trim()) {
+        noteField.value = noteValue;
+      }
+    }
+  }
+
+  // 결제수단
+  if(params.has('payment')){
+    const paymentField = document.getElementById('f_payment');
+    if(paymentField) paymentField.value = params.get('payment');
+  }
+
+  // URL 파라미터 처리 후 제거 (새로고침해도 같은 값이 다시 채워지지 않도록)
+  if(window.history && window.history.replaceState){
+    const cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
 }
 
 /* =================================================================================
