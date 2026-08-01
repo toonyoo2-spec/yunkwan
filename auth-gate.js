@@ -74,19 +74,22 @@
     gate.innerHTML = `
       <style>
         #authGate{position:fixed;inset:0;background:#f6f5f1;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;}
-        #authGate .box{background:#fff;border:1px solid #e1dfd6;border-radius:14px;padding:36px 32px;width:300px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,0.06);}
-        #authGate h2{font-size:16px;margin:0 0 6px;color:#22221f;}
-        #authGate p{font-size:12.5px;color:#6b6a63;margin:0 0 18px;}
-        #authGate input{width:100%;padding:10px 12px;border:1px solid #e1dfd6;border-radius:8px;font-size:14px;margin-bottom:10px;box-sizing:border-box;text-align:center;font-family:inherit;}
-        #authGate button{width:100%;padding:10px;border:none;border-radius:8px;background:#3a5a52;color:#fff;font-weight:600;font-size:13.5px;cursor:pointer;font-family:inherit;}
+        #authGate .box{background:#fff;border:1px solid #e1dfd6;border-radius:14px;padding:36px 32px;width:300px;box-shadow:0 8px 24px rgba(0,0,0,0.06);}
+        #authGate h2{font-size:19px;margin:0 0 4px;color:#22221f;font-weight:700;}
+        #authGate p{font-size:12.5px;color:#6b6a63;margin:0 0 16px;}
+        #authGate .field-label{display:block;font-size:12px;color:#6b6a63;margin-bottom:5px;text-align:left;}
+        #authGate input{width:100%;padding:9px 10px;border:1px solid #d4d2c7;border-radius:8px;font-size:13.5px;margin-bottom:12px;box-sizing:border-box;font-family:inherit;}
+        #authGate button{width:100%;padding:10px;border:none;border-radius:8px;background:#3a5a52;color:#fff;font-weight:600;font-size:13.5px;cursor:pointer;font-family:inherit;display:flex;justify-content:center;}
         #authGate button:hover{opacity:0.9;}
         #authGate button:disabled{opacity:0.5;cursor:not-allowed;}
-        #authGate .err{color:#b3452f;font-size:12px;margin-top:8px;min-height:16px;}
+        #authGate .err{color:#b3452f;font-size:11.5px;margin-top:10px;text-align:center;min-height:16px;}
       </style>
       <div class="box">
-        <h2>🔒 로그인</h2>
-        <p>등록된 사용자만 접속할 수 있습니다</p>
-        <input type="text" id="authId" placeholder="아이디" autocomplete="username">
+        <h2>로그인</h2>
+        <p>가계부를 보려면 로그인이 필요해요.</p>
+        <label class="field-label">아이디</label>
+        <input type="text" id="authId" placeholder="아이디 입력" autocomplete="username">
+        <label class="field-label">비밀번호</label>
         <input type="password" id="authPw" placeholder="비밀번호" autocomplete="current-password">
         <button id="authBtn">로그인</button>
         <div class="err" id="authErr"></div>
