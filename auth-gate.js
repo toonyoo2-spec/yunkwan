@@ -86,7 +86,7 @@
       </style>
       <div class="box">
         <h2>로그인</h2>
-        <p>가계부를 보려면 로그인이 필요해요.</p>
+        <p>등록된 사용자만 접속할 수 있습니다.</p>
         <label class="field-label">아이디</label>
         <input type="text" id="authId" placeholder="아이디 입력" autocomplete="username">
         <label class="field-label">비밀번호</label>
