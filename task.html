@@ -586,7 +586,10 @@ async function deleteProject(id){
   await loadProjects();
 }
 
-loadProjects();
+// 인증이 완료된 후에만 데이터를 로드하도록 이벤트 리스너 추가
+window.addEventListener('authReady', function() {
+  loadProjects();
+});
 </script>
 <script src="./auth-gate.js?v=2"></script>
 </body>

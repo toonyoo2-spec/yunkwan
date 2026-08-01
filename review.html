@@ -1061,7 +1061,6 @@ async function loadInitialData(){
   }
   render();
 }
-loadInitialData();
 
 // 주차장 필드는 주소와 항상 동일하게 자동 입력(모두의주차장 검색 링크용)
 document.getElementById('in-address').addEventListener('input', function(){
@@ -1071,15 +1070,20 @@ document.getElementById('edit-address').addEventListener('input', function(){
   document.getElementById('edit-parking').value = this.value;
 });
 
-// 다른 사람이 같은 테이블을 수정하면(다른 탭/기기 포함) 실시간으로 반영
-sb.channel('campaigns-changes')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => {
-    loadInitialData();
-  })
-  .subscribe();
+// 인증이 완료된 후에만 데이터를 로드하도록 이벤트 리스너 추가
+window.addEventListener('authReady', function() {
+  loadInitialData();
 
-// 실시간 이벤트를 놓치는 경우를 대비한 보조 폴링(30초)
-setInterval(loadInitialData, 30000);
+  // 다른 사람이 같은 테이블을 수정하면(다른 탭/기기 포함) 실시간으로 반영
+  sb.channel('campaigns-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => {
+      loadInitialData();
+    })
+    .subscribe();
+
+  // 실시간 이벤트를 놓치는 경우를 대비한 보조 폴링(30초)
+  setInterval(loadInitialData, 30000);
+});
 </script>
 <script src="./auth-gate.js?v=2"></script>
 </body>

@@ -34,6 +34,9 @@
     if(el) el.style.display = 'block';
     const gate = document.getElementById('authGate');
     if(gate) gate.remove();
+
+    // 인증 완료 이벤트 발생 (각 페이지에서 데이터 로드를 시작할 수 있도록)
+    window.dispatchEvent(new Event('authReady'));
   }
 
   function lock(){

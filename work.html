@@ -1541,8 +1541,14 @@ document.getElementById('in-startDate').addEventListener('change', function(){
   }
 });
 
-loadProjects();
-loadOrCreateGwakProject();
+// 초기화 시 정산예정일 필드 상태 설정
+toggleSettlementDate();
+
+// 인증이 완료된 후에만 데이터를 로드하도록 이벤트 리스너 추가
+window.addEventListener('authReady', function() {
+  loadProjects();
+  loadOrCreateGwakProject();
+});
 </script>
 <script src="./auth-gate.js?v=2"></script>
 </body>
