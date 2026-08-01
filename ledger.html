@@ -682,38 +682,15 @@ tr.edit-row td{padding:12px 10px;}
   </div>
 </div>
 
-<!-- 로그인 게이트: index.html과 동일한 Supabase Auth 계정을 사용합니다.
-     세션이 없으면 이 화면이 앱을 완전히 가리고, 닫기 버튼도 없습니다. -->
-<div class="modal-overlay open" id="authOverlay">
-  <div class="modal-card" style="max-width:340px;">
-    <div class="display" style="font-size:19px;margin-bottom:4px;">로그인</div>
-    <p style="font-size:12.5px;color:var(--muted);margin:0 0 16px;">가계부를 보려면 로그인이 필요해요.</p>
-    <div style="margin-bottom:12px;">
-      <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px;">아이디</label>
-      <input type="text" id="authId" placeholder="아이디 입력" autocomplete="username"
-             style="width:100%;border:1px solid var(--line-strong);border-radius:8px;padding:9px 10px;font-size:13.5px;font-family:inherit;box-sizing:border-box;">
-    </div>
-    <div style="margin-bottom:16px;">
-      <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px;">비밀번호</label>
-      <input type="password" id="authPw" placeholder="비밀번호" autocomplete="current-password"
-             onkeydown="if(event.key==='Enter') authLogin()"
-             style="width:100%;border:1px solid var(--line-strong);border-radius:8px;padding:9px 10px;font-size:13.5px;font-family:inherit;box-sizing:border-box;">
-    </div>
-    <button class="ghost-btn primary" style="width:100%;justify-content:center;display:flex;" onclick="authLogin()">로그인</button>
-    <div id="authMsg" style="font-size:11.5px;color:var(--muted);margin-top:10px;text-align:center;"></div>
-  </div>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
 <script src="./common.js"></script>
 <script>
 /* =================================================================================
-   -1. 로그인 게이트 (index.html과 동일한 Supabase Auth 계정 사용)
+   -1. Supabase 클라이언트 초기화 (auth-gate.js와 세션 공유)
    ---------------------------------------------------------------------------------
-   실제 가계부 데이터(거래내역, 정기 자동이체, 예산 등)도 Supabase에 저장되어
-   로그인한 모든 기기·계정에서 동일하게 보입니다 (기기별 localStorage가 아닙니다).
-   Supabase 로그인은 index.html과 같은 계정 체계를 그대로 재사용합니다.
+   auth-gate.js가 같은 클라이언트를 재사용하도록 window.sb에 공유합니다.
    ================================================================================= */
 let sb = null;
 try{
@@ -726,28 +703,19 @@ try{
   sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
     auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
   });
+  window.sb = sb; // auth-gate.js가 같은 클라이언트를 재사용하도록 공유
 }catch(err){
-  document.getElementById('authOverlay').querySelector('.modal-card').innerHTML =
-    `<div class="display" style="font-size:17px;color:var(--expense);margin-bottom:8px;">연결에 문제가 생겼어요</div>
-     <div style="font-size:12.5px;color:var(--muted);line-height:1.6;">${err.message}</div>`;
+  alert('Supabase 초기화 실패: ' + err.message);
 }
 
-function authIdToEmail(id){
-  return `${id.trim().toLowerCase()}@${window.COUPLE_EMAIL_DOMAIN}`;
-}
-async function authLogin(){
-  if(!sb) return;
-  const id = document.getElementById('authId').value.trim();
-  const pw = document.getElementById('authPw').value;
-  const msg = document.getElementById('authMsg');
-  if(!id || !pw){ alert('아이디와 비밀번호를 입력해주세요.'); return; }
-  msg.textContent = '로그인 중...';
-  const { error } = await sb.auth.signInWithPassword({ email: authIdToEmail(id), password: pw });
-  if(error){ msg.textContent = '로그인 실패: 아이디 또는 비밀번호를 확인해주세요.'; return; }
-  msg.textContent = '';
-}
-function authShow(){ document.getElementById('authOverlay').classList.add('open'); }
-function authHide(){ document.getElementById('authOverlay').classList.remove('open'); }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    sb.auth.startAutoRefresh();
+  } else {
+    sb.auth.stopAutoRefresh();
+  }
+});
+
 
 let _appBooted = false;
 async function bootApp(){
@@ -772,14 +740,10 @@ async function bootApp(){
   route();
 }
 
-async function initAuth(){
-  if(!sb) return; // 설정 오류 시 로그인 화면에 에러만 보여주고 앱은 절대 열지 않음
-  const { data: { session } } = await sb.auth.getSession();
-  if(session){ authHide(); bootApp(); } else { authShow(); }
-  sb.auth.onAuthStateChange((event, session)=>{
-    if(session){ authHide(); bootApp(); } else { authShow(); }
-  });
-}
+// 인증이 완료된 후에만 앱을 부팅하도록 이벤트 리스너 추가
+window.addEventListener('authReady', function() {
+  bootApp();
+});
 
 /* =================================================================================
    0. 데이터 모델 & 카테고리 체계  (TAXONOMY)
@@ -3647,9 +3611,9 @@ function fillFormFromUrlParams(){
 /* =================================================================================
    8. 부팅
    ---------------------------------------------------------------------------------
-   로그인(Supabase Auth) 세션이 확인된 뒤에만 앱이 열립니다. (bootApp은 initAuth 안에서 호출)
+   auth-gate.js가 인증을 확인하고 authReady 이벤트를 발생시키면 앱이 열립니다.
    ================================================================================= */
-initAuth();
 </script>
+<script src="./auth-gate.js"></script>
 </body>
 </html>
