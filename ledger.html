@@ -3582,8 +3582,15 @@ function fillFormFromUrlParams(){
   if(params.has('scope')){
     const scopeField = document.getElementById('f_scope');
     if(scopeField){
-      scopeField.value = params.get('scope');
+      const scopeValue = params.get('scope');
+      scopeField.value = scopeValue;
       onFormScopeChange(); // 구분이 바뀌면 타입/대분류/소분류도 업데이트
+
+      // 구분이 "관"이고 결제수단이 명시되지 않았으면 "관[농협]"을 기본값으로 설정
+      if(scopeValue === '관' && !params.has('payment') && !params.has('method') && !params.has('pay')){
+        const paymentField = document.getElementById('f_payment');
+        if(paymentField) paymentField.value = '관[농협]';
+      }
     }
   }
 
@@ -3623,10 +3630,11 @@ function fillFormFromUrlParams(){
     }
   }
 
-  // 결제수단
-  if(params.has('payment')){
+  // 결제수단 (payment, method, pay 등 여러 파라미터명 지원)
+  const paymentValue = params.get('payment') || params.get('method') || params.get('pay');
+  if(paymentValue){
     const paymentField = document.getElementById('f_payment');
-    if(paymentField) paymentField.value = params.get('payment');
+    if(paymentField) paymentField.value = paymentValue;
   }
 
   // URL 파라미터 처리 후 제거 (새로고침해도 같은 값이 다시 채워지지 않도록)
