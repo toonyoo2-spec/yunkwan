@@ -76,13 +76,15 @@ button{font-family:inherit;}
 #app.wrap{padding-top:0;}
 
 .topbar{
-  display:flex;align-items:baseline;justify-content:space-between;
-  margin-bottom:22px;flex-wrap:wrap;gap:10px;
+  display:flex;align-items:center;justify-content:flex-end;
+  margin-bottom:16px;flex-wrap:wrap;gap:10px;position:relative;
 }
-.topbar .brand{display:flex;align-items:baseline;gap:10px;}
-.topbar h1{font-size:26px;}
-.topbar .sub{color:var(--muted);font-size:13px;}
+.topbar .nav-center{
+  display:flex;gap:8px;align-items:center;
+  position:absolute;left:50%;transform:translateX(-50%);
+}
 .topbar .actions{display:flex;gap:8px;align-items:center;}
+.topbar .current-month{font-size:20px;font-weight:700;color:var(--ink);padding:0 4px;}
 .ghost-btn{
   border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);
   border-radius:100px;padding:7px 14px;font-size:12.5px;cursor:pointer;
@@ -146,7 +148,7 @@ button{font-family:inherit;}
   .kpi-row-clickable{padding-top:9px;padding-bottom:9px;}
 }
 
-.section{margin-bottom:26px;}
+.section{margin-bottom:18px;}
 .section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
 .section-head h2{font-size:18px;}
 .section-head .hint{font-size:12px;color:var(--muted);}
@@ -374,12 +376,12 @@ tr.scope-divider td{
 }
 .year-switch .y{font-family:var(--font);font-weight:700;font-size:16px;min-width:44px;text-align:center;}
 
-.month-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.month-nav{display:flex;justify-content:center;align-items:center;margin-bottom:16px;gap:12px;}
 .month-nav .move{
   border:1px solid var(--line-strong);background:var(--surface);border-radius:100px;
   padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink-soft);
 }
-.month-nav h1{font-size:24px;}
+.month-nav h1{font-size:24px;margin:0;}
 
 footer.foot{
   margin-top:40px;text-align:center;color:var(--muted);font-size:11.5px;
@@ -571,6 +573,7 @@ tr.edit-row td{padding:12px 10px;}
   #app{padding:20px 14px 60px;}
   .topbar{align-items:flex-start;}
   .kpis{grid-template-columns:repeat(2,1fr);}
+  .month-nav{justify-content:space-between;gap:8px;}
   .month-nav h1{font-size:19px;}
 
   .tx-form{
@@ -1820,9 +1823,13 @@ function render(){
 
   app.innerHTML = `
     <div class="topbar">
-      <div class="brand">
-        <h1>우리집 가계부</h1>
-      </div>
+      ${!isSummary ? `
+        <div class="nav-center">
+          <button class="ghost-btn" onclick="location.hash='#/${prevYm(state.view)}'">‹ 이전 달</button>
+          <span class="current-month">${state.view.split('-')[1]}월</span>
+          <button class="ghost-btn" onclick="location.hash='#/${nextYm(state.view)}'">다음 달 ›</button>
+        </div>
+      ` : '<div class="nav-center"></div>'}
       <div class="actions">
         <div class="year-select" id="yearSelect">
           <button class="year-btn" onclick="toggleYearMenu()">${state.year}<span class="caret">▾</span></button>
@@ -1865,24 +1872,7 @@ function renderSummary(){
   const scopeYearTotals = SCOPES.map(sc => ({ scope: sc, expense: sumBy(list.filter(t=>t.scope===sc), '지출') }));
 
   document.getElementById('view').innerHTML = `
-    <div class="section-head">
-      <h2 class="display" style="font-size:20px;">${state.year}년 연간 요약</h2>
-    </div>
-
-    ${totalUnassigned ? `
-    <div class="pill-note" style="cursor:pointer;background:var(--expense-soft);color:var(--expense);" onclick="bulkAutoAssignScope()">
-      ⚠ 전체 기간 구분 미지정 거래 ${totalUnassigned}건 — 눌러서 일괄 자동 분류 (1차 정리용, 이후 직접 확인 필요)
-    </div>` : ''}
-    ${totalNoCategory ? `
-    <div class="pill-note" style="cursor:pointer;background:var(--invest-soft);color:var(--invest);margin-top:${totalUnassigned?'8px':'0'};" onclick="bulkAutoAssignCategory()">
-      ⚠ 전체 기간 소분류 미지정 거래 ${totalNoCategory}건 — 눌러서 일괄 자동 분류 (1차 정리용, 이후 직접 확인 필요)
-    </div>` : ''}
-    ${(totalUnassigned || totalNoCategory) ? `
-    <div class="pill-note" style="cursor:pointer;background:#d1fae5;color:#059669;margin-top:8px;" onclick="bulkAutoClassifyAll()">
-      🤖 미지정 항목 학습 기반 자동 분류 — 과거 거래 패턴을 학습해서 자동으로 분류해요
-    </div>` : ''}
-
-    <div class="grid two-col section">
+    <div class="grid two-col section" style="margin-bottom:18px;">
       <div class="card">
         <div class="summary-strip">
           <div class="item expense"><span class="k">연간 총지출</span><span class="v">${won(expense)}</span></div>
@@ -1894,6 +1884,21 @@ function renderSummary(){
         <div class="budget-value" style="color:${net>=0?'var(--income)':'var(--expense)'};">${won(net)}</div>
       </div>
     </div>
+
+    ${totalUnassigned || totalNoCategory ? `<div style="margin-bottom:18px;">` : ''}
+    ${totalUnassigned ? `
+    <div class="pill-note" style="cursor:pointer;background:var(--expense-soft);color:var(--expense);margin-bottom:8px;" onclick="bulkAutoAssignScope()">
+      ⚠ 전체 기간 구분 미지정 거래 ${totalUnassigned}건 — 눌러서 일괄 자동 분류
+    </div>` : ''}
+    ${totalNoCategory ? `
+    <div class="pill-note" style="cursor:pointer;background:var(--invest-soft);color:var(--invest);margin-bottom:8px;" onclick="bulkAutoAssignCategory()">
+      ⚠ 전체 기간 소분류 미지정 거래 ${totalNoCategory}건 — 눌러서 일괄 자동 분류
+    </div>` : ''}
+    ${(totalUnassigned || totalNoCategory) ? `
+    <div class="pill-note" style="cursor:pointer;background:#d1fae5;color:#059669;" onclick="bulkAutoClassifyAll()">
+      🤖 미지정 항목 학습 기반 자동 분류
+    </div>
+    </div>` : ''}
 
     <div class="section">
       <div class="card chart-card">
@@ -2299,35 +2304,36 @@ function renderMonth(ym){
   const budgetDiff = monthlyBudget - totalSummary.expense;
 
   document.getElementById('view').innerHTML = `
-    <div class="month-nav">
-      <button class="move" onclick="location.hash='#/${prevYm(ym)}'">‹ 이전 달</button>
-      <h1 class="display">${m}월</h1>
-      <button class="move" onclick="location.hash='#/${nextYm(ym)}'">다음 달 ›</button>
-    </div>
-
-    <div class="grid two-col section">
-      <div class="card">
-        <div class="summary-strip">
-          <div class="item expense" style="cursor:pointer;" onclick="openTotalExpenseModal('${ym}')">
-            <span class="k">지출</span><span class="v">${won(totalSummary.expense)}</span>
-          </div>
-          <div class="item income" style="cursor:pointer;" onclick="openTotalIncomeModal('${ym}')">
-            <span class="k">수입</span><span class="v">${won(totalSummary.income)}</span>
-          </div>
-        </div>
+    <!-- 첫 번째 줄: 지출/수입, 예산, 고정지출 3개 카드 -->
+    <div class="grid kpis">
+      <div class="card kpi expense">
+        <div class="label">지출</div>
+        <div class="value" style="cursor:pointer;" onclick="openTotalExpenseModal('${ym}')">${won(totalSummary.expense)}</div>
       </div>
-      <div class="card budget-card" onclick="setMonthlyBudget('${ym}')">
-        <div class="budget-top">
-          <span>📅 이번 달 예산</span>
-          ${monthlyBudget ? `<span class="hint">눌러서 수정</span>` : `<span class="hint">눌러서 설정</span>`}
-        </div>
+      <div class="card kpi income">
+        <div class="label">수입</div>
+        <div class="value" style="cursor:pointer;" onclick="openTotalIncomeModal('${ym}')">${won(totalSummary.income)}</div>
+      </div>
+      <div class="card kpi" style="cursor:pointer;" onclick="setMonthlyBudget('${ym}')">
+        <div class="label">이번 달 예산</div>
         ${monthlyBudget
-          ? `<div class="budget-value" style="color:${budgetDiff<0?'var(--expense)':'var(--ink)'};">${budgetDiff<0 ? won(Math.abs(budgetDiff))+' 초과' : won(budgetDiff)+' 남음'}</div>`
-          : `<div class="budget-value muted">예산을 설정해보세요</div>`}
+          ? `<div class="value" style="color:${budgetDiff<0?'var(--expense)':'var(--income)'};">${budgetDiff<0 ? won(Math.abs(budgetDiff))+' 초과' : won(budgetDiff)+' 남음'}</div>`
+          : `<div class="value" style="font-size:14px;color:var(--muted);">미설정</div>`}
+      </div>
+      <div class="card kpi" style="cursor:pointer;" onclick="openMonthlyRecurringModal('${ym}')">
+        <div class="label">고정 지출 <span style="font-size:10px;color:var(--muted);font-weight:400;">(정기이체)</span></div>
+        <div id="fixedSpendKpi" class="value">-</div>
       </div>
     </div>
 
-    <div class="section">
+    <!-- 카테고리별 지출 + 지출 속도 -->
+    <div class="grid two-col section">
+      <div class="card cat-list-card">
+        <div class="section-head"><h2>카테고리별 지출</h2></div>
+        <div id="catTabs"></div>
+        <div class="donut-wrap" id="donutWrap"><canvas id="chartCategoryDonut"></canvas></div>
+        <div id="catListWrap"></div>
+      </div>
       <div class="card" style="padding:18px;">
         <div class="section-head">
           <h2>지출 속도</h2>
@@ -2338,20 +2344,7 @@ function renderMonth(ym){
       </div>
     </div>
 
-    <div class="grid two-col section">
-      <div class="card cat-list-card">
-        <div class="section-head"><h2>카테고리별 지출</h2></div>
-        <div id="catTabs"></div>
-        <div class="donut-wrap" id="donutWrap"><canvas id="chartCategoryDonut"></canvas></div>
-        <div id="catListWrap"></div>
-      </div>
-      <div class="card" style="padding:18px;">
-        <div class="section-head"><h2>고정 지출</h2><span class="hint">정기 자동이체</span></div>
-        <div id="fixedSpendWrap"></div>
-        <button class="ghost-btn" style="width:100%;justify-content:center;display:flex;" onclick="location.hash='#/summary'">고정 지출 관리</button>
-      </div>
-    </div>
-
+    <!-- KPI 블록들 (범위별 지출, 결제수단 등) -->
     <div class="grid two-col section">
       ${kpiBlocks.map(block => `
         <div class="card" style="padding:18px;">
@@ -2367,11 +2360,13 @@ function renderMonth(ym){
         </div>
       `).join('')}
     </div>
+
     ${unassignedCount ? `
     <div class="pill-note" style="cursor:pointer;" onclick="quickFilterUnassigned()">
       ⚠ 구분 미지정 거래 ${unassignedCount}건 — 눌러서 재분류하기
     </div>` : ''}
 
+    <!-- 지출 캘린더 + 지출 비교 -->
     <div class="grid two-col section">
       <div class="card cal-card">
         <div class="section-head"><h2>지출 캘린더</h2><span class="hint">일별 지출 합계</span></div>
@@ -2386,6 +2381,7 @@ function renderMonth(ym){
       </div>
     </div>
 
+    <!-- 지출 리뷰 -->
     <div class="section">
       <div class="card review-card">
         <div class="section-head">
@@ -2397,6 +2393,7 @@ function renderMonth(ym){
       </div>
     </div>
 
+    <!-- 거래 내역 -->
     <div class="section">
       <div class="section-head"><h2>거래 내역</h2><span class="hint">총 ${tx.length}건 · 행을 클릭하면 수정할 수 있어요</span></div>
       <div class="card table-card">
@@ -2485,8 +2482,16 @@ function computeFixedSpendingSummary(ym){
 }
 function renderFixedSpendingCard(ym){
   const wrap = document.getElementById('fixedSpendWrap');
-  if(!wrap) return;
+  const kpi = document.getElementById('fixedSpendKpi');
   const s = computeFixedSpendingSummary(ym);
+
+  // KPI 카드 업데이트
+  if(kpi){
+    kpi.innerHTML = s.count ? won(s.total) : `<span style="font-size:14px;color:var(--muted);">없음</span>`;
+  }
+
+  // 기존 상세 카드 업데이트 (있는 경우)
+  if(!wrap) return;
   wrap.innerHTML = s.count ? `
     <div class="fixed-spend-rows">
       <div class="fixed-spend-row"><span class="k">나간 고정 지출</span><span class="v" style="color:var(--expense);">${won(s.happened)}</span></div>
@@ -2996,6 +3001,97 @@ function openTotalBalanceModal(ym){
       <span class="mono" style="font-weight:700;font-size:16px;color:${s.netIncomeExpense>=0?'var(--income)':'var(--expense)'};">${won(s.netIncomeExpense)}</span>
     </div>
   `);
+}
+
+/* ---- 월별 정기 자동이체 편집 모달 ---- */
+function openMonthlyRecurringModal(ym){
+  const [y,m] = ym.split('-').map(Number);
+  const dim = daysInMonth(y,m);
+  const templates = DB.getRecurringTemplates() || [];
+  const skips = new Set(DB.getRecurringSkips());
+  const overrides = DB.getRecurringOverrides();
+
+  // 이번 달에 적용되는 정기 자동이체 항목들
+  const items = templates
+    .filter(tpl => !tpl.endYm || ym < tpl.endYm)
+    .map(tpl => {
+      const token = tpl.key + '|' + ym;
+      const isSkipped = skips.has(token);
+      const overrideAmount = overrides[token];
+      const day = Math.min(tpl.day, dim);
+      const date = ym + '-' + String(day).padStart(2,'0');
+
+      return {
+        ...tpl,
+        token,
+        date,
+        isSkipped,
+        currentAmount: overrideAmount != null ? overrideAmount : tpl.amount
+      };
+    })
+    .sort((a,b) => a.day - b.day);
+
+  const itemsHtml = items.length ? items.map(item => `
+    <div style="padding:12px;border-bottom:1px solid var(--line);${item.isSkipped?'opacity:0.4;text-decoration:line-through;':''}" data-token="${item.token}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-weight:700;font-size:14px;">${item.date.split('-')[2]}일 · ${item.note}</span>
+        <button onclick="toggleRecurringSkip('${item.token}')" class="ghost-btn" style="font-size:11px;padding:4px 10px;">
+          ${item.isSkipped ? '복원' : '이번달 제외'}
+        </button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+        ${item.scope} · ${item.main} · ${item.category || '-'}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="override_${item.token}" value="${item.currentAmount}"
+          style="flex:1;padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:14px;"
+          ${item.isSkipped ? 'disabled' : ''}>
+        <button onclick="updateRecurringOverride('${item.token}', '${ym}')" class="ghost-btn" style="font-size:11px;padding:6px 12px;" ${item.isSkipped ? 'disabled' : ''}>
+          금액 변경
+        </button>
+      </div>
+    </div>
+  `).join('') : '<div style="padding:20px;text-align:center;color:var(--muted);">등록된 정기 자동이체가 없습니다.</div>';
+
+  showModal(`${m}월 정기 자동이체 관리`, `
+    <div style="margin-bottom:12px;padding:12px;background:var(--invest-soft);border-radius:8px;font-size:13px;color:var(--invest);">
+      💡 여기서 수정한 내용은 ${m}월에만 적용됩니다. 기본값을 변경하려면 연간 요약 페이지를 이용하세요.
+    </div>
+    <div id="monthlyRecurringItems" style="max-height:400px;overflow-y:auto;">
+      ${itemsHtml}
+    </div>
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);text-align:center;">
+      <button onclick="location.hash='#/summary'" class="ghost-btn">전체 관리 (연간 요약)</button>
+    </div>
+  `);
+}
+
+function toggleRecurringSkip(token){
+  const skips = new Set(DB.getRecurringSkips());
+  if(skips.has(token)){
+    skips.delete(token);
+  } else {
+    skips.add(token);
+  }
+  DB.setRecurringSkips(Array.from(skips));
+  const ym = token.split('|')[1];
+  rerenderMonth();
+  openMonthlyRecurringModal(ym);
+}
+
+function updateRecurringOverride(token, ym){
+  const input = document.getElementById('override_' + token);
+  if(!input) return;
+  const newAmount = Number(input.value);
+  if(isNaN(newAmount) || newAmount < 0){
+    alert('올바른 금액을 입력하세요.');
+    return;
+  }
+  const overrides = DB.getRecurringOverrides();
+  overrides[token] = newAmount;
+  DB.setRecurringOverrides(overrides);
+  rerenderMonth();
+  openMonthlyRecurringModal(ym);
 }
 
 /* ---- "지출"(공동/보라/과니) 카드 팝업 ---- */

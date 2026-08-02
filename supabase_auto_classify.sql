@@ -5,7 +5,7 @@ CREATE OR REPLACE FUNCTION insert_transaction_from_device(p_line TEXT)
 RETURNS json AS $$
 DECLARE
   v_scope TEXT := '관';
-  v_type TEXT := '지출';
+  v_type TEXT := '지출';  -- 기본값은 지출
   v_main TEXT := '생활비';
   v_category TEXT := '식비';
   v_note TEXT := p_line;
@@ -14,13 +14,20 @@ DECLARE
   v_payment TEXT := '농협[관]';  -- 농협 알림은 무조건 농협[관]
   result_id BIGINT;
 BEGIN
+  -- 입금/출금 구분
+  IF p_line ~* '입금' THEN
+    v_type := '수입';
+    v_main := '급여';  -- 입금이면 main을 급여로
+    v_category := '월급';  -- 입금이면 category를 월급으로
+  END IF;
+
   -- 금액 추출 (숫자만 - 쉼표 제거)
   v_amount := (regexp_match(p_line, '(\d{1,3}(,\d{3})*|\d+)'))[1]::TEXT;
   v_amount := REPLACE(v_amount, ',', '')::NUMERIC;
 
   -- p_line에서 금액/단위 제거하고 상호명만 추출
   v_note := TRIM(regexp_replace(p_line, '\d{1,3}(,\d{3})*|\d+', '', 'g'));
-  v_note := TRIM(regexp_replace(v_note, '원|결제|승인', '', 'gi'));
+  v_note := TRIM(regexp_replace(v_note, '원|결제|승인|입금|출금', '', 'gi'));
 
   -- 거래 삽입 (기본값: 관-지출-생활비-식비, payment: 농협[관])
   INSERT INTO transactions (date, type, scope, main, category, note, amount, payment)
@@ -31,6 +38,7 @@ BEGIN
   RETURN json_build_object(
     'success', true,
     'id', result_id,
+    'type', v_type,
     'note', v_note,
     'amount', v_amount,
     'payment', v_payment
