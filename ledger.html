@@ -571,8 +571,29 @@ tr.edit-row td{padding:12px 10px;}
    ========================================================= */
 @media (max-width:1080px){
   #app{padding:20px 14px 60px;}
-  .topbar{align-items:flex-start;}
+  .topbar{display:flex;align-items:center;position:relative;}
+  .topbar .year-select{order:1;z-index:2;}
+  .topbar .nav-center{position:absolute;left:50%;transform:translateX(-50%);margin-bottom:0;gap:6px;z-index:1;order:2;}
+  .topbar .nav-center .ghost-btn{padding:6px 10px;font-size:0;}
+  .topbar .nav-center .ghost-btn:first-child::after{content:'‹';font-size:18px;}
+  .topbar .nav-center .ghost-btn:last-child::after{content:'›';font-size:18px;}
+  .topbar .current-month{font-size:18px;}
+  .topbar .actions{order:3;margin-left:auto;z-index:2;}
   .kpis{grid-template-columns:repeat(2,1fr);}
+  .kpi-rows{display:flex;flex-wrap:wrap;gap:8px 16px;}
+  .kpi-row{flex:0 0 auto;border:0!important;padding:4px 0!important;flex-direction:row;align-items:center;}
+  .kpi-row .k{margin-right:6px;margin-bottom:0;}
+  .kpi-row .v{margin-top:0;}
+  /* 모바일: 지출/수입 분리 */
+  .income-section-pc{display:none!important;}
+  .income-section-mobile{display:block!important;}
+  .expense-items{margin-bottom:0!important;}
+  /* 카드현황: 세로 배치 + 큰 글씨 + 임팩트 */
+  #cardStatusWrap{flex-direction:column!important;gap:16px!important;}
+  #cardStatusWrap span{display:flex!important;justify-content:flex-start;align-items:center;width:100%;padding:12px 0;border-bottom:1px dashed var(--line);}
+  #cardStatusWrap span:last-child{border-bottom:none;}
+  #cardStatusWrap .dot{display:inline-block!important;margin-right:8px;width:8px!important;height:8px!important;border-radius:50%!important;flex-shrink:0;}
+  #cardStatusWrap b{font-size:20px!important;font-weight:800!important;margin-left:auto;}
   .month-nav{justify-content:space-between;gap:8px;}
   .month-nav h1{font-size:19px;}
 
@@ -676,6 +697,12 @@ tr.edit-row td{padding:12px 10px;}
     background:var(--paper);display:inline-flex;align-items:center;justify-content:center;color:var(--ink-soft);
   }
 }
+
+/* PC: 수입은 지출 카드 안에, 모바일 수입 카드는 숨김 */
+@media (min-width:1081px){
+  .income-section-mobile{display:none;}
+}
+
 </style>
 </head>
 <body>
@@ -1823,6 +1850,10 @@ function render(){
 
   app.innerHTML = `
     <div class="topbar">
+      <div class="year-select" id="yearSelect">
+        <button class="year-btn" onclick="toggleYearMenu()">${state.year}<span class="caret">▾</span></button>
+        <div class="year-menu" id="yearMenu">${yearMenuHtml}</div>
+      </div>
       ${!isSummary ? `
         <div class="nav-center">
           <button class="ghost-btn" onclick="location.hash='#/${prevYm(state.view)}'">‹ 이전 달</button>
@@ -1831,10 +1862,6 @@ function render(){
         </div>
       ` : '<div class="nav-center"></div>'}
       <div class="actions">
-        <div class="year-select" id="yearSelect">
-          <button class="year-btn" onclick="toggleYearMenu()">${state.year}<span class="caret">▾</span></button>
-          <div class="year-menu" id="yearMenu">${yearMenuHtml}</div>
-        </div>
         ${isSummary
           ? `<button class="ghost-btn" onclick="goToLastMonth()">‹ 가계부</button>`
           : `<button class="ghost-btn" onclick="location.hash='#/summary'">연간 요약</button>`}
@@ -2277,16 +2304,32 @@ function renderMonth(ym){
   const totalSummary = computeTotalSummary(ym);
   const unassignedCount = tx.filter(t=>!t.scope).length;
 
-  // 지출/카드현황 카드: 이름은 전부 2글자로("관"->"관이") 맞춰서 나란히 봤을 때 정돈되어 보이게 함.
+  // 지출/수입 항목별
   const SCOPE_LABEL = { "공동":"공동", "보라":"보라", "관":"과니" };
+  const scopeExpenseLines = scopeSummary.map(s => ({
+    name: SCOPE_LABEL[s.scope], value: won(s.expense),
+    dotColor: SCOPE_COLOR[s.scope], valueColor:'var(--ink)',
+    onclick:`openScopeExpenseModal('${ym}','${s.scope}')`,
+  }));
+
+  const scopeIncome = SCOPES.map(sc => {
+    const scTx = tx.filter(t=>t.scope===sc && t.type==='수입');
+    return { scope:sc, income: sumBy(scTx,'수입') };
+  });
+  const scopeIncomeLines = scopeIncome.map(s => ({
+    name: SCOPE_LABEL[s.scope], value: won(s.income),
+    dotColor: SCOPE_COLOR[s.scope], valueColor:'var(--ink)',
+    onclick:`openScopeIncomeModal('${ym}','${s.scope}')`,
+  }));
+
   const kpiBlocks = [
     {
       label: '지출',
-      lines: scopeSummary.map(s => ({
-        name: SCOPE_LABEL[s.scope], value: won(s.expense),
-        dotColor: SCOPE_COLOR[s.scope], valueColor:'var(--ink)',
-        onclick:`openScopeExpenseModal('${ym}','${s.scope}')`,
-      })),
+      lines: scopeExpenseLines,
+    },
+    {
+      label: '수입',
+      lines: scopeIncomeLines,
     },
     {
       label: '카드 현황',
@@ -2304,25 +2347,71 @@ function renderMonth(ym){
   const budgetDiff = monthlyBudget - totalSummary.expense;
 
   document.getElementById('view').innerHTML = `
-    <!-- 첫 번째 줄: 지출/수입, 예산, 고정지출 3개 카드 -->
-    <div class="grid kpis">
-      <div class="card kpi expense">
-        <div class="label">지출</div>
-        <div class="value" style="cursor:pointer;" onclick="openTotalExpenseModal('${ym}')">${won(totalSummary.expense)}</div>
+    <!-- 히어로: 지출 + 수입 (PC: 한 카드, 모바일: 두 카드) -->
+    <div class="section expense-income-section">
+      <div class="card" style="padding:24px;background:linear-gradient(135deg, #fff 0%, #fef5f5 100%);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <span style="font-size:16px;font-weight:600;color:var(--expense);">💰 이번 달 지출</span>
+          ${monthlyBudget
+            ? `<span style="font-size:13px;font-weight:600;color:${budgetDiff<0?'var(--expense)':'var(--income)'};">
+                예산 ${budgetDiff<0 ? won(Math.abs(budgetDiff))+' 초과' : won(budgetDiff)+' 남음'}
+              </span>`
+            : `<span style="font-size:12px;color:var(--muted);cursor:pointer;" onclick="setMonthlyBudget('${ym}')">예산 설정하기</span>`}
+        </div>
+        <div style="font-size:36px;font-weight:800;color:var(--expense);margin-bottom:16px;cursor:pointer;" onclick="openTotalExpenseModal('${ym}')">
+          ${won(totalSummary.expense)}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:24px;" class="expense-items">
+          ${kpiBlocks[0].lines.map(line => `
+            <span style="font-size:14px;cursor:pointer;" onclick="${line.onclick}">
+              <i class="dot" style="background:${line.dotColor};"></i>${line.name} <b style="font-weight:700;color:${line.valueColor};">${line.value}</b>
+            </span>
+          `).join('')}
+        </div>
+        <div class="income-section-pc" style="padding-top:24px;border-top:1px solid var(--line);">
+          <div style="font-size:16px;font-weight:600;color:var(--income);margin-bottom:12px;">💵 이번 달 수입</div>
+          <div style="font-size:36px;font-weight:800;color:var(--income);margin-bottom:16px;cursor:pointer;" onclick="openTotalIncomeModal('${ym}')">
+            ${won(totalSummary.income)}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;">
+            ${kpiBlocks[1].lines.map(line => `
+              <span style="font-size:14px;cursor:pointer;" onclick="${line.onclick}">
+                <i class="dot" style="background:${line.dotColor};"></i>${line.name} <b style="font-weight:700;color:${line.valueColor};">${line.value}</b>
+              </span>
+            `).join('')}
+          </div>
+        </div>
       </div>
-      <div class="card kpi income">
-        <div class="label">수입</div>
-        <div class="value" style="cursor:pointer;" onclick="openTotalIncomeModal('${ym}')">${won(totalSummary.income)}</div>
+    </div>
+
+    <!-- 모바일 전용: 수입 카드 -->
+    <div class="section income-section-mobile">
+      <div class="card" style="padding:24px;background:linear-gradient(135deg, #fff 0%, #f0fff5 100%);">
+        <div style="font-size:16px;font-weight:600;color:var(--income);margin-bottom:12px;">💵 이번 달 수입</div>
+        <div style="font-size:36px;font-weight:800;color:var(--income);margin-bottom:16px;cursor:pointer;" onclick="openTotalIncomeModal('${ym}')">
+          ${won(totalSummary.income)}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;">
+          ${kpiBlocks[1].lines.map(line => `
+            <span style="font-size:14px;cursor:pointer;" onclick="${line.onclick}">
+              <i class="dot" style="background:${line.dotColor};"></i>${line.name} <b style="font-weight:700;color:${line.valueColor};">${line.value}</b>
+            </span>
+          `).join('')}
+        </div>
       </div>
-      <div class="card kpi" style="cursor:pointer;" onclick="setMonthlyBudget('${ym}')">
-        <div class="label">이번 달 예산</div>
-        ${monthlyBudget
-          ? `<div class="value" style="color:${budgetDiff<0?'var(--expense)':'var(--income)'};">${budgetDiff<0 ? won(Math.abs(budgetDiff))+' 초과' : won(budgetDiff)+' 남음'}</div>`
-          : `<div class="value" style="font-size:14px;color:var(--muted);">미설정</div>`}
-      </div>
-      <div class="card kpi" style="cursor:pointer;" onclick="openMonthlyRecurringModal('${ym}')">
-        <div class="label">고정 지출 <span style="font-size:10px;color:var(--muted);font-weight:400;">(정기이체)</span></div>
-        <div id="fixedSpendKpi" class="value">-</div>
+    </div>
+
+    <!-- 히어로 2: 카드 현황 (크게 강조) -->
+    <div class="section">
+      <div class="card" style="padding:24px;background:linear-gradient(135deg, #fff 0%, #f0f9ff 100%);">
+        <div style="font-size:16px;font-weight:600;color:var(--ink);margin-bottom:12px;">💳 카드 현황</div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;" id="cardStatusWrap">
+          ${kpiBlocks[2].lines.map(line => `
+            <span style="font-size:14px;cursor:pointer;" onclick="${line.onclick}">
+              <i class="dot" style="background:${line.dotColor};display:inline-block;"></i>${line.name} <b style="font-weight:700;color:${line.valueColor};">${line.value}</b>
+            </span>
+          `).join('')}
+        </div>
       </div>
     </div>
 
@@ -2342,23 +2431,6 @@ function renderMonth(ym){
         <canvas id="chartPace"></canvas>
         <div id="paceStatsWrap"></div>
       </div>
-    </div>
-
-    <!-- KPI 블록들 (범위별 지출, 결제수단 등) -->
-    <div class="grid two-col section">
-      ${kpiBlocks.map(block => `
-        <div class="card" style="padding:18px;">
-          <div class="section-head"><h2>${block.label}</h2></div>
-          <div class="kpi-rows">
-            ${block.lines.map(line => `
-              <div class="kpi-row${line.onclick?' kpi-row-clickable':''}" ${line.onclick?`onclick="${line.onclick}"`:''}>
-                <span class="k"><i class="dot" style="background:${line.dotColor};"></i>${line.name}</span>
-                <span class="v mono" style="color:${line.valueColor};">${line.value}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `).join('')}
     </div>
 
     ${unassignedCount ? `
@@ -3112,6 +3184,28 @@ function openScopeExpenseModal(ym, scope){
   const listHtml = txGroupedListHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 ${label} 지출 내역이 없어요.</div>`;
   openModal(`
     <h3 class="display">${mm}월 ${label} 지출</h3>
+    <div class="modal-sub">합계 ${won(total)} · 총 ${items.length}건</div>
+    ${listHtml}
+  `);
+}
+
+function openScopeIncomeModal(ym, scope){
+  const [yy,mm] = ym.split('-').map(Number);
+  const label = { "공동":"공동", "보라":"보라", "관":"과니" }[scope] || scope;
+  const items = monthTx(DB.list(), ym)
+    .filter(t=>t.type==='수입' && t.scope===scope)
+    .sort((a,b)=> {
+      const scopeOrder = { "공동": 0, "보라": 1, "관": 2 };
+      const scopeA = scopeOrder[a.scope] ?? 999;
+      const scopeB = scopeOrder[b.scope] ?? 999;
+      if(scopeA !== scopeB) return scopeA - scopeB;
+      if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return b.id - a.id;
+    });
+  const total = items.reduce((s,t)=>s+Number(t.amount||0), 0);
+  const listHtml = txGroupedListHtml(items) || `<div style="color:var(--muted);font-size:13px;">이번 달 ${label} 수입 내역이 없어요.</div>`;
+  openModal(`
+    <h3 class="display">${mm}월 ${label} 수입</h3>
     <div class="modal-sub">합계 ${won(total)} · 총 ${items.length}건</div>
     ${listHtml}
   `);
