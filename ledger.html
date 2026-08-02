@@ -1652,6 +1652,41 @@ function selectYear(y){
   if(state.view === 'summary'){ render(); }
   else { location.hash = '#/' + y + '-' + state.view.split('-')[1]; }
 }
+
+/* 상세 분석 섹션 토글 */
+function toggleDetailSection(){
+  const section = document.getElementById('detailSection');
+  const text = document.getElementById('detailToggleText');
+  const icon = document.getElementById('detailToggleIcon');
+
+  if(section.style.display === 'none'){
+    section.style.display = 'block';
+    text.textContent = '📊 상세 분석 닫기';
+    icon.textContent = '▲';
+  } else {
+    section.style.display = 'none';
+    text.textContent = '📊 상세 분석 보기';
+    icon.textContent = '▼';
+  }
+}
+
+/* 비활성화 거래 내역 토글 */
+function togglePendingTransactions(){
+  state.showPendingTx = !state.showPendingTx;
+  const text = document.getElementById('pendingToggleText');
+  const icon = document.getElementById('pendingToggleIcon');
+
+  if(state.showPendingTx){
+    text.textContent = '비활성화 항목 숨기기';
+    icon.textContent = '▲';
+  } else {
+    text.textContent = '비활성화 항목 보기';
+    icon.textContent = '▼';
+  }
+
+  renderTxTable(state.currentYm);
+}
+
 document.addEventListener('click', (e)=>{
   const wrap = document.getElementById('yearSelect');
   const menu = document.getElementById('yearMenu');
@@ -2401,6 +2436,17 @@ function renderMonth(ym){
       </div>
     </div>
 
+    <!-- 토글 버튼 -->
+    <div class="section" style="margin-bottom:12px;">
+      <button class="card" id="detailToggleBtn" onclick="toggleDetailSection()" style="width:100%;padding:16px;cursor:pointer;border:none;background:linear-gradient(135deg, #fff 0%, #fafafa 100%);display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:600;color:var(--ink);">
+        <span id="detailToggleText">📊 상세 분석 보기</span>
+        <span id="detailToggleIcon">▼</span>
+      </button>
+    </div>
+
+    <!-- 상세 분석 섹션 (접혀있음) -->
+    <div id="detailSection" style="display:none;">
+
     <!-- 히어로 2: 카드 현황 (크게 강조) -->
     <div class="section">
       <div class="card" style="padding:24px;background:linear-gradient(135deg, #fff 0%, #f0f9ff 100%);">
@@ -2465,6 +2511,8 @@ function renderMonth(ym){
       </div>
     </div>
 
+    </div><!-- End of detailSection -->
+
     <!-- 거래 내역 -->
     <div class="section">
       <div class="section-head"><h2>거래 내역</h2><span class="hint">총 ${tx.length}건 · 행을 클릭하면 수정할 수 있어요</span></div>
@@ -2491,6 +2539,12 @@ function renderMonth(ym){
           </tr></thead>
           <tbody id="txBody"></tbody>
         </table>
+        </div>
+        <div id="pendingToggleWrap" style="padding:12px;text-align:center;border-top:1px solid var(--line);display:none;">
+          <button class="ghost-btn" onclick="togglePendingTransactions()" style="font-size:13px;">
+            <span id="pendingToggleText">비활성화 항목 보기</span>
+            <span id="pendingToggleIcon">▼</span>
+          </button>
         </div>
       </div>
     </div>
@@ -3481,6 +3535,12 @@ function renderTxTable(ym){
     return;
   }
 
+  const hasPending = tx.some(t => t.pending);
+  const pendingToggleWrap = document.getElementById('pendingToggleWrap');
+  if(pendingToggleWrap){
+    pendingToggleWrap.style.display = hasPending ? 'block' : 'none';
+  }
+
   // 날짜별로 묶어서 그 날 지출 합계를 헤더 줄에 보여줌(하루 단위로 한눈에 훑어볼 수 있게).
   const groups = [];
   let cur = null;
@@ -3501,6 +3561,7 @@ function renderTxTable(ym){
     });
   });
   const todayD = todayStr();
+  const showPending = state.showPendingTx === true;
   body.innerHTML = groups.map(g=>{
     const dayExpense = g.items.filter(t=>t.type==='지출' && !t.pending).reduce((s,t)=>s+Number(t.amount),0);
     const [, mmStr, ddStr] = g.date.split('-');
@@ -3509,9 +3570,18 @@ function renderTxTable(ym){
     const dateLabel = g.date===todayD ? `${dd}일 오늘` : `${mm}/${dd} ${dow}요일`;
     const headerRow = `<tr class="tx-date-header"><td colspan="8"><span>${dateLabel}</span><span class="tx-date-total">${dayExpense ? '-'+won(dayExpense) : ''}</span></td></tr>`;
     const rowsHtml = g.items.map(t => {
-      if(t.pending) return pendingRowHtml(t, ym);
+      if(t.pending){
+        if(!showPending) return '';
+        return pendingRowHtml(t, ym);
+      }
       return t.id===state.editingTxId ? (displayRowHtml(t) + editRowHtml(t)) : displayRowHtml(t);
     }).join('');
+
+    // 비활성화 항목을 숨길 때, 모든 항목이 pending이면 날짜 헤더도 숨김
+    if(!showPending && g.items.every(t => t.pending)){
+      return '';
+    }
+
     return headerRow + rowsHtml;
   }).join('');
 }
