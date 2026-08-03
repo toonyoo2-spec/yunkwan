@@ -998,7 +998,7 @@ function render(){
       <tr>
         <td data-label="체험단 이름" class="name-cell" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기">${escapeHtml(it.name)}</td>
         <td data-label="제공내역" class="ellipsis-cell" title="${escapeHtml(it.provide)}">${escapeHtml(it.provide) || '-'}</td>
-        <td data-label="상태/예약">
+        <td data-label="상태/예약" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기" style="cursor:pointer;">
           <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
           ${resvText ? `<div class="resv-text">${resvText}</div>` : ''}
         </td>
@@ -1043,11 +1043,13 @@ function render(){
 function hourOptions(selected){
   let opts = "";
   for(let h = 0; h < 24; h++){
-    const value = String(h).padStart(2,'0') + ":00";
-    const period = h < 12 ? "오전" : "오후";
-    const displayHour = h % 12 === 0 ? 12 : h % 12;
-    const label = `${period} ${displayHour}시`;
-    opts += `<option value="${value}" ${value===selected?'selected':''}>${label}</option>`;
+    for(const m of [0, 30]){
+      const value = String(h).padStart(2,'0') + ":" + String(m).padStart(2,'0');
+      const period = h < 12 ? "오전" : "오후";
+      const displayHour = h % 12 === 0 ? 12 : h % 12;
+      const label = m===0 ? `${period} ${displayHour}시` : `${period} ${displayHour}시 30분`;
+      opts += `<option value="${value}" ${value===selected?'selected':''}>${label}</option>`;
+    }
   }
   return opts;
 }
