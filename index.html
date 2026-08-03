@@ -147,6 +147,14 @@
   .cal-daynum{font-size:11.5px;color:var(--sub);}
   .cal-daynum.weekend{color:#b3452f;}
   .cal-cell.today .cal-daynum{color:var(--accent);font-weight:700;}
+  .cal-holiday-name{
+    font-size:9.5px;
+    color:#b3452f;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    line-height:1.3;
+  }
   .cal-daynum-row{
     display:flex;
     align-items:center;
@@ -450,6 +458,7 @@
     .cal-panel{padding:12px 8px;}
     .cal-cell{min-height:54px;padding:3px 2px;}
     .cal-daynum{font-size:10px;}
+    .cal-holiday-name{font-size:8px;}
     .cal-event{font-size:9px;padding:2px 3px;border-radius:3px;}
     .cal-bar-slot{height:13px;}
     .cal-bar{font-size:9px;padding:1px 4px;}
@@ -604,6 +613,50 @@ let calCursor = new Date();
 calCursor.setDate(1);
 
 const calStatusLabel = { wait:"예약대기", confirm:"예약완료", done:"체험완료", end:"체험완료" };
+
+/* 대한민국 법정공휴일 + 대체공휴일 (관공서의 공휴일에 관한 규정 기준).
+   설날/추석처럼 음력 기반 날짜는 미리 계산할 수 없어 연도별로 직접 채워둠 —
+   2027년 이후는 아직 정부 발표 전이라 가까워지면 추가해야 함. */
+const KR_HOLIDAYS = {
+  "2025-01-01": "신정",
+  "2025-01-28": "설날 연휴",
+  "2025-01-29": "설날",
+  "2025-01-30": "설날 연휴",
+  "2025-03-01": "삼일절",
+  "2025-03-03": "삼일절 대체공휴일",
+  "2025-05-05": "어린이날·부처님오신날",
+  "2025-05-06": "대체공휴일",
+  "2025-06-06": "현충일",
+  "2025-08-15": "광복절",
+  "2025-10-03": "개천절",
+  "2025-10-05": "추석 연휴",
+  "2025-10-06": "추석",
+  "2025-10-07": "추석 연휴",
+  "2025-10-08": "추석 대체공휴일",
+  "2025-10-09": "한글날",
+  "2025-12-25": "성탄절",
+
+  "2026-01-01": "신정",
+  "2026-02-16": "설날 연휴",
+  "2026-02-17": "설날",
+  "2026-02-18": "설날 연휴",
+  "2026-03-01": "삼일절",
+  "2026-03-02": "삼일절 대체공휴일",
+  "2026-05-05": "어린이날",
+  "2026-05-24": "부처님오신날",
+  "2026-05-25": "대체공휴일",
+  "2026-06-06": "현충일",
+  "2026-07-17": "제헌절",
+  "2026-08-15": "광복절",
+  "2026-08-17": "광복절 대체공휴일",
+  "2026-09-24": "추석 연휴",
+  "2026-09-25": "추석",
+  "2026-09-26": "추석 연휴",
+  "2026-10-03": "개천절",
+  "2026-10-05": "개천절 대체공휴일",
+  "2026-10-09": "한글날",
+  "2026-12-25": "성탄절",
+};
 
 function calNormalizeDate(v){
   if(!v) return "";
@@ -798,6 +851,7 @@ function calRender(){
     const isToday = dateStr === todayStr;
     const dow = (startOffset + d - 1) % 7;
     const isWeekend = dow === 0 || dow === 6;
+    const holidayName = KR_HOLIDAYS[dateStr] || '';
     const rc = calDateRowCol(dateStr, y, m);
     const dayEntries = (byDate[dateStr] || []).slice().sort((a,b) => {
       const ta = a.kind === 'campaign' ? (a.data.resvTime||"") : (a.data.time||"");
@@ -837,7 +891,9 @@ function calRender(){
       <span class="wo-dot bora ${boraPlanned?'done':''}" title="보라 운동${isFuture?' 예정':(boraPlanned?' 완료':' 안함')}"></span>
     </div>`;
 
-    cells.push(`<div class="cal-cell ${isToday?'today':''}"><div class="cal-daynum-row"><div class="cal-daynum ${isWeekend?'weekend':''}">${d}</div>${workoutDotsHtml}</div>${slotsHtml}${eventsHtml}</div>`);
+    const holidayHtml = holidayName ? `<div class="cal-holiday-name" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName)}</div>` : '';
+
+    cells.push(`<div class="cal-cell ${isToday?'today':''}"><div class="cal-daynum-row"><div class="cal-daynum ${(isWeekend||holidayName)?'weekend':''}" title="${escapeHtml(holidayName)}">${d}</div>${workoutDotsHtml}</div>${holidayHtml}${slotsHtml}${eventsHtml}</div>`);
   }
 
   const totalSoFar = startOffset + daysInMonth;
