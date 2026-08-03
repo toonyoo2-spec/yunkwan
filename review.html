@@ -520,7 +520,7 @@
         </div>
         <div class="field">
           <label>마감일자</label>
-          <input id="in-deadline" type="date">
+          <input id="in-deadline" type="date" onclick="this.showPicker && this.showPicker()">
         </div>
         <div class="field">
           <label>키워드</label>
@@ -619,7 +619,7 @@
       </div>
       <div class="field" style="grid-area:deadline;">
         <label>마감일자</label>
-        <input type="date" id="edit-deadline">
+        <input type="date" id="edit-deadline" onclick="this.showPicker && this.showPicker()">
       </div>
       <div class="field" style="grid-area:status;">
         <label>상태</label>
@@ -647,7 +647,7 @@
       <div class="field" id="edit-resv-wrap" style="grid-area:resv;display:none;">
         <label>예약일시</label>
         <div class="edit-resv-row">
-          <input type="date" id="edit-resvDate">
+          <input type="date" id="edit-resvDate" onclick="this.showPicker && this.showPicker()">
           <select id="edit-resvTime"></select>
         </div>
       </div>
