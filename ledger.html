@@ -1351,6 +1351,7 @@ const DB = {
     const optimisticId = 'temp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
     const localTx = { ...tx, id: optimisticId };
     this._cache.push(localTx);
+    if(typeof liveModalRefresh === 'function' && liveModalRefresh) liveModalRefresh();
     sb.from('transactions').insert({
       date: tx.date, type: tx.type, scope: tx.scope || null, main: tx.main || null,
       category: tx.category || null, note: tx.note || null, amount: tx.amount,
@@ -1367,6 +1368,8 @@ const DB = {
   update(id, patch){
     const row = this._cache.find(t => t.id === id);
     if(row) Object.assign(row, patch);
+    // 카드현황 등 데이터 의존 모달이 열려있으면 닫았다 열지 않아도 바로 최신값으로 갱신
+    if(typeof liveModalRefresh === 'function' && liveModalRefresh) liveModalRefresh();
     const dbPatch = {};
     if('date' in patch) dbPatch.date = patch.date;
     if('type' in patch) dbPatch.type = patch.type;
@@ -1384,6 +1387,7 @@ const DB = {
 
   remove(id){
     this._cache = this._cache.filter(t => t.id !== id);
+    if(typeof liveModalRefresh === 'function' && liveModalRefresh) liveModalRefresh();
     sb.from('transactions').delete().eq('id', id).then(({error})=>{
       if(error) console.error('거래 삭제 실패:', error);
     });
@@ -1559,12 +1563,17 @@ function chartFallbackNode(){
   d.textContent = '차트 라이브러리(Chart.js)를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해보세요.';
   return d;
 }
+// 모달이 열려있는 동안 거래가 추가/수정/삭제되면(DB.add/update/remove), 모달을 닫았다
+// 다시 열지 않아도 최신 값으로 바로 다시 그려주기 위한 훅. 데이터에 의존하는 모달을
+// 열 때 이 변수에 "그 모달을 다시 여는 함수"를 저장해두고, closeModal에서 비웁니다.
+let liveModalRefresh = null;
 function openModal(html){
   document.getElementById('modalBody').innerHTML = html;
   document.getElementById('modalOverlay').classList.add('open');
 }
 function closeModal(){
   document.getElementById('modalOverlay').classList.remove('open');
+  liveModalRefresh = null;
 }
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 
@@ -3385,6 +3394,7 @@ function openCardBalanceModal(ym, payment){
       <span class="mono" style="font-weight:700;font-size:16px;color:${nowBalance>=0?'var(--income)':'var(--expense)'};">${won(nowBalance)}</span>
     </div>
   `);
+  liveModalRefresh = () => openCardBalanceModal(ym, payment);
 }
 
 /* ---- 카테고리 리스트업 ---- */
