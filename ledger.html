@@ -3769,6 +3769,17 @@ function saveEditTx(id){
   const amount = parseAmountInput(document.getElementById('e_amount_'+id).value);
   if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
   const payment = document.getElementById('e_pay_'+id)?.value || '';
+
+  // 자동이체 거래라면 override 설정도 함께 업데이트
+  const tx = DB.list().find(t => t.id === id);
+  if(tx && tx.recurringKey){
+    const ym = ymOf(date);
+    const token = tx.recurringKey + '|' + ym;
+    const overrides = DB.getRecurringOverrides();
+    overrides[token] = amount;
+    DB.setRecurringOverrides(overrides);
+  }
+
   DB.update(id, {
     date, scope: document.getElementById('e_scope_'+id).value || '',
     type: document.getElementById('e_type_'+id).value,
