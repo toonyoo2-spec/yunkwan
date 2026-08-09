@@ -3221,25 +3221,38 @@ function toggleRecurringSkip(token){
 function updateRecurringOverride(token, ym){
   const input = document.getElementById('override_' + token);
   if(!input) return;
+
   const newAmount = Number(input.value);
+
   if(isNaN(newAmount) || newAmount < 0){
     alert('올바른 금액을 입력하세요.');
     return;
   }
-  const overrides = DB.getRecurringOverrides();
-  overrides[token] = newAmount;
-  DB.setRecurringOverrides(overrides);
 
-  // 이미 생성된 거래가 있으면 해당 거래의 금액도 업데이트
-  const recurringKey = token.split('|')[0];
-  const existingTx = DB.list().find(t => t.recurringKey === recurringKey && t.date.startsWith(ym));
-  console.log('updateRecurringOverride:', { token, ym, recurringKey, existingTx, newAmount });
+  const [recurringKey, tokenYm] = token.split('|');
+  const targetYm = tokenYm || ym;
+
+  // 이번 달 자동이체 금액 저장
+  DB.setRecurringOverride(recurringKey, targetYm, newAmount);
+
+  // 이미 생성된 거래가 있으면 실제 거래 금액도 변경
+  const existingTx = DB.list().find(t =>
+    t.recurringKey === recurringKey &&
+    t.date.startsWith(targetYm)
+  );
+
   if(existingTx){
-    console.log('Updating transaction:', existingTx.id, 'from', existingTx.amount, 'to', newAmount);
-    DB.update(existingTx.id, { amount: newAmount });
-  } else {
-    console.log('No existing transaction found for recurring key:', recurringKey, 'in month:', ym);
+    DB.update(existingTx.id, {
+      amount: newAmount
+    });
   }
+
+  // 통장잔고 / 카드현황 / 거래내역 다시 계산
+  renderMonth(targetYm);
+
+  // 자동이체 모달도 최신 금액으로 갱신
+  openMonthlyRecurringModal(targetYm);
+}
 
   renderMonth(ym);
   openMonthlyRecurringModal(ym);
