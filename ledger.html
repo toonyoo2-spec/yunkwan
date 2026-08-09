@@ -3247,17 +3247,13 @@ function updateRecurringOverride(token, ym){
     });
   }
 
-  // 통장잔고 / 카드현황 / 거래내역 다시 계산
+  // 카드현황 / 통장잔고 / 거래내역 다시 계산
   renderMonth(targetYm);
 
-  // 자동이체 모달도 최신 금액으로 갱신
+  // 자동이체 모달 갱신
   openMonthlyRecurringModal(targetYm);
 }
-
-  renderMonth(ym);
-  openMonthlyRecurringModal(ym);
-}
-
+   
 /* ---- "지출"(공동/보라/과니) 카드 팝업 ---- */
 function openScopeExpenseModal(ym, scope){
   const [yy,mm] = ym.split('-').map(Number);
