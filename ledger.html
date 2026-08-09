@@ -3774,10 +3774,7 @@ function saveEditTx(id){
   const tx = DB.list().find(t => t.id === id);
   if(tx && tx.recurringKey){
     const ym = ymOf(date);
-    const token = tx.recurringKey + '|' + ym;
-    const overrides = DB.getRecurringOverrides();
-    overrides[token] = amount;
-    DB.setRecurringOverrides(overrides);
+    DB.setRecurringOverride(tx.recurringKey, ym, amount);
   }
 
   DB.update(id, {
