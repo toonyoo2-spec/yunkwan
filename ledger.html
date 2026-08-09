@@ -3229,6 +3229,14 @@ function updateRecurringOverride(token, ym){
   const overrides = DB.getRecurringOverrides();
   overrides[token] = newAmount;
   DB.setRecurringOverrides(overrides);
+
+  // 이미 생성된 거래가 있으면 해당 거래의 금액도 업데이트
+  const recurringKey = token.split('|')[0];
+  const existingTx = DB.list().find(t => t.recurringKey === recurringKey && t.date.startsWith(ym));
+  if(existingTx){
+    DB.update(existingTx.id, { amount: newAmount });
+  }
+
   renderMonth(ym);
   openMonthlyRecurringModal(ym);
 }
