@@ -6,7 +6,7 @@
     배포 직후에도 새로고침 한 번으로 바로 최신 내용이 보이게 합니다.
   - CSS/JS/아이콘 등 정적 파일만 stale-while-revalidate(캐시 먼저 보여주고 백그라운드 갱신)로 처리합니다.
 */
-const CACHE_NAME = "borakwan-shell-v12";
+const CACHE_NAME = "borakwan-shell-v13";
 
 const SHELL_FILES = [
   "./index.html",
