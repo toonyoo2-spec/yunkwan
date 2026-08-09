@@ -857,7 +857,7 @@ const TAXONOMY = {
   "공동": {
     "지출": {
       "생활비": ["식비", "쇼핑", "생필품", "자동차할부", "여행", "기타"],
-      "교통비": ["대중교통", "주유비", "전기차충전", "주차비", "기타"],
+      "교통비": ["전기차충전", "대중교통", "주유비", "주차비", "기타"],
       "주거비": ["집대출", "관리비", "정수기", "TV인터넷", "기타"],
       "건강": ["보험", "기타"],
       "구독": ["OTT", "AI", "쇼핑", "기타"],
@@ -3214,7 +3214,7 @@ function toggleRecurringSkip(token){
   }
   DB.setRecurringSkips(Array.from(skips));
   const ym = token.split('|')[1];
-  rerenderMonth();
+  renderMonth(ym);
   openMonthlyRecurringModal(ym);
 }
 
@@ -3229,7 +3229,7 @@ function updateRecurringOverride(token, ym){
   const overrides = DB.getRecurringOverrides();
   overrides[token] = newAmount;
   DB.setRecurringOverrides(overrides);
-  rerenderMonth();
+  renderMonth(ym);
   openMonthlyRecurringModal(ym);
 }
 
