@@ -3233,8 +3233,12 @@ function updateRecurringOverride(token, ym){
   // 이미 생성된 거래가 있으면 해당 거래의 금액도 업데이트
   const recurringKey = token.split('|')[0];
   const existingTx = DB.list().find(t => t.recurringKey === recurringKey && t.date.startsWith(ym));
+  console.log('updateRecurringOverride:', { token, ym, recurringKey, existingTx, newAmount });
   if(existingTx){
+    console.log('Updating transaction:', existingTx.id, 'from', existingTx.amount, 'to', newAmount);
     DB.update(existingTx.id, { amount: newAmount });
+  } else {
+    console.log('No existing transaction found for recurring key:', recurringKey, 'in month:', ym);
   }
 
   renderMonth(ym);
