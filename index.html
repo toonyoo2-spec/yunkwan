@@ -1212,9 +1212,9 @@ function calShowDetail(id, kind){
         // 상호명만으로 검색하면(예: "루루"처럼 흔한 이름) 전혀 다른 지역의 동명
         // 업체가 잡힐 수 있어서 지역을 붙이되, 전체 주소까지 다 붙이면 네이버 지도가
         // 검색어를 못 알아들어 결과가 아예 안 나오는 문제가 있어 주소는 뺀다.
-        // 표시 텍스트는 주소 그대로.
-        const mapQuery = [it.region, it.name].filter(Boolean).join(' ');
-        valueHtml = `<a href="https://map.naver.com/p/search/${encodeURIComponent(mapQuery)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+        // 표시 텍스트는 주소 그대로. 클릭 시 네이버지도 앱(nmap://)을 먼저 시도하고,
+        // 앱이 없으면 자동으로 웹(map.naver.com)으로 대체된다.
+        valueHtml = `<a href="#" onclick="event.preventDefault();event.stopPropagation();openNaverMapAppCal('${it.id}');">${escapeHtml(value)}</a>`;
       } else if(key === 'contact'){
         valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
       } else if(key === 'parking' && it.address){
@@ -1240,6 +1240,25 @@ function calShowDetail(id, kind){
     ${rows}
   `;
   document.getElementById('calModalOverlay').classList.add('open');
+}
+
+/* 네이버지도 앱(nmap://) 실행을 먼저 시도하고, 앱이 설치되어 있지 않아 화면 전환이
+   일어나지 않으면 일정 시간 뒤 자동으로 웹(map.naver.com)으로 대체 이동한다. */
+function openNaverMapAppCal(id){
+  const it = calItems.find(i => i.id === id);
+  if(!it) return;
+  const mapQuery = [it.region, it.name].filter(Boolean).join(' ');
+  const encoded = encodeURIComponent(mapQuery);
+  const appUrl = `nmap://search?query=${encoded}&appname=com.borakwan.web`;
+  const webUrl = `https://map.naver.com/p/search/${encoded}`;
+  let appOpened = false;
+  const onVisibilityChange = () => { if(document.hidden) appOpened = true; };
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  window.location.href = appUrl;
+  setTimeout(() => {
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    if(!appOpened) window.location.href = webUrl;
+  }, 1000);
 }
 
 function copyParkingAddress(btn){
