@@ -1209,9 +1209,11 @@ function calShowDetail(id, kind){
       const value = it[key];
       let valueHtml = escapeHtml(value);
       if(key === 'address'){
-        // 주소 텍스트 그대로 검색하면 상호명이 없어서 엉뚱한 결과가 나올 때가 있어서,
-        // 체험단 이름(가게 이름)으로 네이버 지도를 검색하도록 함. 표시 텍스트는 주소 그대로.
-        valueHtml = `<a href="https://map.naver.com/p/search/${encodeURIComponent(it.name)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
+        // 상호명만으로 검색하면(예: "루루"처럼 흔한 이름) 전혀 다른 지역의 동명
+        // 업체가 잡힐 수 있어서, 지역·주소까지 같이 붙여 검색어를 더 구체적으로 만듦.
+        // 표시 텍스트는 주소 그대로.
+        const mapQuery = [it.region, it.name, value].filter(Boolean).join(' ');
+        valueHtml = `<a href="https://map.naver.com/p/search/${encodeURIComponent(mapQuery)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
       } else if(key === 'contact'){
         valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
       } else if(key === 'parking' && it.address){
