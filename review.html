@@ -870,9 +870,10 @@ function openDetailModal(id){
         let valueHtml = escapeHtml(value);
         if(label === '주소'){
           // 상호명만으로 검색하면(예: "루루"처럼 흔한 이름) 전혀 다른 지역의 동명
-          // 업체가 잡힐 수 있어서, 지역·주소까지 같이 붙여 검색어를 더 구체적으로 만듦.
+          // 업체가 잡힐 수 있어서 지역을 붙이되, 전체 주소까지 다 붙이면 네이버 지도가
+          // 검색어를 못 알아들어 결과가 아예 안 나오는 문제가 있어 주소는 뺀다.
           // 표시 텍스트는 주소 그대로.
-          const mapQuery = [it.region, it.name, value].filter(Boolean).join(' ');
+          const mapQuery = [it.region, it.name].filter(Boolean).join(' ');
           valueHtml = `<a href="https://map.naver.com/p/search/${encodeURIComponent(mapQuery)}" target="_blank" rel="noopener">${escapeHtml(value)}</a>`;
         } else if(label === '예약문의'){
           valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
