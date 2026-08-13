@@ -877,7 +877,7 @@ const SCOPE_COLOR = {
 };
 const SCOPE_LABEL = { "공동":"공동", "보라":"보라", "관":"관" };
 const TYPES = ["수입", "지출"];
-const TYPE_KEY = { "수입":"income", "지출":"expense" };
+const TYPE_KEY = { "수입":"income", "지출":"expense", "카드대금":"expense" };
 const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
 const DOW = ["일","월","화","수","목","금","토"];
 
@@ -1179,6 +1179,8 @@ function creditCardExpenseByScope(list, ym){
    1~말일 사용분은 쓴 그 달에 이미 지출로 잡혀 있으므로, 결제되는(다음 달) 달에는
    잔고에서만 빠지고 지출로는 잡히지 않아요. 결제일(12일)이 아직 안 지났으면(오늘
    날짜 기준) 활성화되지 않아 반영되지 않습니다. */
+function cardBillRecurringKey(payment){ return 'cardbill:' + payment; }
+
 function creditCardBillEvents(payment, rangeStart, rangeEndExclusive){
   const meta = PAYMENT_META[payment];
   if(!meta || meta.type === '신용카드') return [];
@@ -1195,12 +1197,18 @@ function creditCardBillEvents(payment, rangeStart, rangeEndExclusive){
     if(billDate >= rangeEndExclusive) break;
     if(billDate >= rangeStart && billDate <= today){
       const spendYm = shiftYm(billYm, -1);
-      const spendByPerson = creditCardExpenseByScope(all, spendYm);
-      const amount = spendByPerson[meta.person] || 0;
-      if(amount > 0){
-        const cardNames = cards.map(c => c.replace(/\[.*?\]/, '')).join('/');
-        events.push({ date: billDate, amount, label: `${cardNames} 대금 (${spendYm.slice(5)}월 사용분)` });
-      }
+      cards.forEach(cardPayment=>{
+        // 이 결제일이 실제 거래로 이미 생성됐으면(ensureCardBillForMonth) 여기서
+        // 또 가상 이벤트로 중복 계산하지 않음 — 그 실제 거래가 이미 카드 현황
+        // 목록/잔고 계산에 반영되고 있음.
+        const hasReal = all.some(t => t.recurringKey === cardBillRecurringKey(cardPayment) && t.date === billDate);
+        if(hasReal) return;
+        const amount = creditCardMonthTotal(all, cardPayment, spendYm);
+        if(amount > 0){
+          const cardName = cardPayment.replace(/\[.*?\]/, '');
+          events.push({ date: billDate, amount, label: `${cardName} 대금 (${spendYm.slice(5)}월 사용분)` });
+        }
+      });
     }
     bm += 1; if(bm > 12){ bm = 1; by += 1; }
   }
@@ -1250,7 +1258,7 @@ function buildCardStatusLines(ym){
     const netChange = all
       .filter(t=>t.payment===p && t.date >= CARD_BALANCE_ANCHOR && t.date < cutoffExclusive)
       .reduce((s,t)=>{
-        if(t.type==='지출') return s - Number(t.amount||0);
+        if(t.type==='지출' || t.type==='카드대금') return s - Number(t.amount||0);
         if(t.type==='수입') return s + Number(t.amount||0);
         return s;
       }, 0);
@@ -1865,6 +1873,46 @@ function ensureRecurringForMonth(ym){
   });
 }
 
+/* 신용카드 결제일(12일)이 지나면, 그 카드의 전월 사용분을 다른 정기 자동이체와
+   똑같이 실제 거래로 한 번만 만들어서 거래내역에 보이게 합니다(더는 "카드 현황"
+   팝업에서만 보이는 가상 항목이 아님). 다만 이 금액은 이미 지난달에 "지출"로
+   잡혀 있던 걸 이번 달에 계좌에서 빼가는 것뿐이라 새로운 지출이 아니므로,
+   type을 '지출'이 아니라 '카드대금'으로 저장합니다 — sumBy(...,'지출')이나
+   type==='지출' 필터를 쓰는 월별/카테고리/예산 통계에는 전혀 잡히지 않아서
+   지출이 이중집계되지 않고, 거래내역 목록과 계좌 잔고 계산(netChange)에는
+   정상적으로 반영됩니다(두 곳 모두 '카드대금'을 '지출'과 동일하게 취급하도록
+   따로 처리해뒀습니다). 금액은 creditCardMonthTotal을 그대로 재사용하므로
+   card_bill_overrides로 고친 값이 있으면 그 값 그대로 생성됩니다. */
+function ensureCardBillForMonth(ym){
+  if(ym < '2026-08') return;
+  const billDate = ym + '-12';
+  const today = todayStr();
+  if(billDate > today) return; // 아직 결제일이 안 지났으면 만들지 않음(카드 현황 팝업에 "예정"으로만 미리 보임)
+
+  const all = DB.list();
+  PAYMENT_METHODS.filter(p => PAYMENT_META[p].type === '신용카드').forEach(cardPayment=>{
+    const key = cardBillRecurringKey(cardPayment);
+    const already = all.some(t => t.recurringKey === key && t.date === billDate);
+    if(already) return;
+
+    const spendYm = shiftYm(ym, -1);
+    const amount = creditCardMonthTotal(all, cardPayment, spendYm);
+    if(amount <= 0) return;
+
+    const cardMeta = PAYMENT_META[cardPayment];
+    const checkingPayment = PAYMENT_METHODS.find(p => PAYMENT_META[p].type==='체크카드' && PAYMENT_META[p].person===cardMeta.person);
+    if(!checkingPayment) return; // 대응하는 체크카드 계좌가 없으면(설계상 항상 있어야 함) 자동 생성하지 않음
+
+    const cardName = cardPayment.replace(/\[.*?\]/, '');
+    DB.add({
+      date: billDate, type: '카드대금', scope: cardMeta.person, main: '카드대금', category: cardName,
+      note: `${cardName} 대금 (${spendYm.slice(5)}월 사용분)`, amount,
+      user: checkingPayment, payment: checkingPayment,
+      recurringKey: key
+    });
+  });
+}
+
 /* 아직 활성화되지 않은(오늘이 지나지 않은) ym월의 정기 자동이체를 "예정" 항목으로
    미리 보여줄 때 씀 — 현대카드 결제 예정 배지와 같은 개념. 실제 거래로는 아직
    생성하지 않고(ensureRecurringForMonth가 그 날짜가 되면 처리), 화면에만 미리 표시. */
@@ -2348,6 +2396,7 @@ function renderMonth(ym){
   if(state.compareTarget !== ym){ state.compareYm = shiftYm(ym,-1); state.compareTarget = ym; }
   if(state.paceCompareTarget !== ym){ state.paceCompareYm = shiftYm(ym,-1); state.paceCompareTarget = ym; }
   ensureRecurringForMonth(ym);
+  ensureCardBillForMonth(ym);
 
   const [y,m] = ym.split('-').map(Number);
   const all = DB.list();
@@ -3385,7 +3434,7 @@ function openCardBalanceModal(ym, payment){
   const monthLowerBound = CARD_BALANCE_ANCHOR > thisMonthStart ? CARD_BALANCE_ANCHOR : thisMonthStart;
 
   const netChange = txs => txs.reduce((s,t)=>{
-    if(t.type==='지출') return s - Number(t.amount||0);
+    if(t.type==='지출' || t.type==='카드대금') return s - Number(t.amount||0);
     if(t.type==='수입') return s + Number(t.amount||0);
     return s;
   }, 0);
@@ -3639,7 +3688,7 @@ function renderTxTable(ym){
   const todayD = todayStr();
   const showPending = state.showPendingTx === true;
   body.innerHTML = groups.map(g=>{
-    const dayExpense = g.items.filter(t=>t.type==='지출' && !t.pending).reduce((s,t)=>s+Number(t.amount),0);
+    const dayExpense = g.items.filter(t=>(t.type==='지출'||t.type==='카드대금') && !t.pending).reduce((s,t)=>s+Number(t.amount),0);
     const [, mmStr, ddStr] = g.date.split('-');
     const mm = Number(mmStr), dd = Number(ddStr);
     const dow = DOW[new Date(g.date+'T00:00:00').getDay()];
@@ -3697,6 +3746,11 @@ function pendingRowHtml(t, ym){
 
 function displayRowHtml(t){
   const fixedTag = t.recurringKey ? `<span class="fixed-tag">(고정)</span>` : '';
+  // 현대카드 대금(카드대금) 행은 대분류/중분류/소분류가 일반 지출 카테고리 체계에
+  // 없어서 일반 수정 폼(구분/대분류 선택창)을 열면 값이 깨질 수 있음 — 대신 정기
+  // 자동이체 "예정" 항목처럼 금액만 바로 고칠 수 있는 전용 팝업을 씀.
+  const isCardBillRow = !!(t.recurringKey && t.recurringKey.startsWith('cardbill:'));
+  const rowClickAttr = isCardBillRow ? `onclick="openCardBillRowAmountEdit('${t.id}')"` : `onclick="startEditTx('${t.id}')"`;
   const scopeDotColor = t.scope ? (SCOPE_COLOR[t.scope] || 'var(--muted)') : 'var(--expense)';
   const scopeBadge = t.scope
     ? `<span class="tx-scope-badge">
@@ -3723,7 +3777,7 @@ function displayRowHtml(t){
   const isEditingRow = t.id === state.editingTxId;
 
   // PC 화면용: 열이 넉넉해서 구분/날짜/대분류/중분류/소분류/내용/금액/결제수단을 각 칸에 그대로 보여줌.
-  const desktopRow = `<tr class="tx-row tx-row-desktop${isEditingRow?' tx-row-editing':''}" onclick="startEditTx('${t.id}')">
+  const desktopRow = `<tr class="tx-row tx-row-desktop${isEditingRow?' tx-row-editing':''}" ${rowClickAttr}>
     <td data-label="구분">${scopeBadge}</td>
     <td class="mono" data-label="날짜" style="color:var(--muted)" title="${t.date}">${t.date.slice(5)}</td>
     <td data-label="대분류"><span class="badge ${TYPE_KEY[t.type]}">${t.type}</span></td>
@@ -3738,7 +3792,7 @@ function displayRowHtml(t){
   // 중분류·소분류·결제수단(작게, 회색) + 우측 금액. 날짜는 renderTxTable의 날짜별
   // 헤더 줄에서 한 번만 보여주므로 행 자체에는 넣지 않음.
   const titleText = escapeHtml(t.note) || escapeHtml(t.category) || '내용 없음';
-  const mobileRow = `<tr class="tx-row tx-row-mobile${isEditingRow?' tx-row-editing':''}" onclick="startEditTx('${t.id}')">
+  const mobileRow = `<tr class="tx-row tx-row-mobile${isEditingRow?' tx-row-editing':''}" ${rowClickAttr}>
     <td colspan="8">
       <div class="tx-card-line1">
         <span class="tx-card-icon" style="box-shadow:0 0 0 2px ${scopeDotColor} inset;" title="${escapeHtml(t.scope||'미지정')}">${categoryIcon(t)}</span>
@@ -3746,7 +3800,7 @@ function displayRowHtml(t){
           <span class="tx-card-title" title="${escapeHtml(t.note)}">${titleText}${fixedTag}</span>
           <span class="tx-card-sub">${mainLabel} · ${catLabel} · <span onclick="event.stopPropagation()">${paySelect}</span></span>
         </span>
-        <span class="tx-card-amt amt ${TYPE_KEY[t.type]}">${t.type==='지출'?'-':'+'}${Number(t.amount).toLocaleString('ko-KR')}원</span>
+        <span class="tx-card-amt amt ${TYPE_KEY[t.type]}">${(t.type==='지출'||t.type==='카드대금')?'-':'+'}${Number(t.amount).toLocaleString('ko-KR')}원</span>
       </div>
     </td>
   </tr>`;
@@ -3756,6 +3810,23 @@ function displayRowHtml(t){
 
 function quickSetPayment(id, value){
   DB.update(id, { user: value, payment: value });
+  renderTxTable(state.currentYm);
+}
+
+/* 거래내역에 자동 생성된 "카드대금" 행을 눌렀을 때 씁니다. 실제 카드 명세서 금액과
+   다르면 여기서 바로 고칠 수 있고, card_bill_overrides에도 같이 저장해서 이후
+   같은 사용월을 참조하는 다른 화면(카드 현황 등)과도 값이 어긋나지 않게 합니다. */
+function openCardBillRowAmountEdit(id){
+  const t = DB.list().find(x=>x.id===id);
+  if(!t || !t.recurringKey || !t.recurringKey.startsWith('cardbill:')) return;
+  const cardPayment = t.recurringKey.slice('cardbill:'.length);
+  const spendYm = shiftYm(ymOf(t.date), -1);
+  const input = prompt(`${spendYm.slice(5)}월 사용분 청구 금액을 입력하세요 (실제 카드 명세서 금액과 다르면 여기서 고쳐주세요)`, t.amount);
+  if(input === null) return;
+  const amount = Number(String(input).replace(/[^0-9]/g,''));
+  if(!amount || amount <= 0){ alert('올바른 금액을 입력해주세요.'); return; }
+  DB.setCardBillOverride(cardPayment, spendYm, amount);
+  DB.update(id, { amount });
   renderTxTable(state.currentYm);
 }
 
