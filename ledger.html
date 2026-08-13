@@ -1142,6 +1142,12 @@ function bulkAutoClassifyAll(){
    anchor 날짜 이전 개별 거래는 무시하고 base 금액으로 갈음한 뒤, anchor 이후
    거래만 그 위에 더합니다(없으면 평소처럼 그 달 전체를 그대로 합산). */
 function creditCardMonthTotal(list, payment, ym){
+  // 실제 카드 명세서 금액과 계산값이 다를 때 사용자가 직접 고친 값이 있으면
+  // 아래 거래 합산 로직을 전부 건너뛰고 그 값을 그대로 씀(청구 전 화면이든 청구 후
+  // 화면이든, 이 결제수단×이 사용월을 참조하는 모든 곳에 일관되게 반영됨).
+  const billOverride = DB.getCardBillOverrides()[`${payment}|${ym}`];
+  if(billOverride != null) return billOverride;
+
   const cutoffExclusive = shiftYm(ym,1) + '-01';
   const override = CREDIT_CARD_BASE_OVERRIDES[`${payment}|${ym}`];
   const rangeStart = override ? override.anchor : (ym + '-01');
@@ -1296,15 +1302,17 @@ const DB = {
   _recurringCache: null, // [{key,day,scope,main,category,note,amount,payment,endYm}] | null(미초기화)
   _skipCache: [],        // ['key|ym', ...]
   _overrideCache: {},    // { 'key|ym': amount } — 정기 자동이체 예정 금액을 그 달만 다르게 조정했을 때
+  _cardBillOverrideCache: {}, // { '결제수단|스펜딩YYYY-MM': amount } — 신용카드 청구액이 계산값과 실제 명세서가 다를 때 그 달만 고쳐씀
 
   async init(){
-    const [txRes, reviewRes, budgetRes, recurRes, skipRes, overrideRes] = await Promise.all([
+    const [txRes, reviewRes, budgetRes, recurRes, skipRes, overrideRes, cardBillOverrideRes] = await Promise.all([
       sb.from('transactions').select('*').order('date'),
       sb.from('monthly_reviews').select('*'),
       sb.from('budgets').select('*'),
       sb.from('recurring_templates').select('*'),
       sb.from('recurring_skips').select('*'),
       sb.from('recurring_overrides').select('*'),
+      sb.from('card_bill_overrides').select('*'),
     ]);
 
     if(!txRes.error && txRes.data){
@@ -1342,6 +1350,10 @@ const DB = {
     if(!overrideRes.error && overrideRes.data){
       overrideRes.data.forEach(r => { this._overrideCache[r.token] = r.amount; });
     } else if(overrideRes.error){ console.error('정기 자동이체 예정 금액 로드 실패:', overrideRes.error); }
+
+    if(!cardBillOverrideRes.error && cardBillOverrideRes.data){
+      cardBillOverrideRes.data.forEach(r => { this._cardBillOverrideCache[r.token] = r.amount; });
+    } else if(cardBillOverrideRes.error){ console.error('신용카드 청구액 보정값 로드 실패:', cardBillOverrideRes.error); }
   },
 
   list(){ return this._cache; },
@@ -1451,6 +1463,18 @@ const DB = {
     this._overrideCache[token] = amount;
     sb.from('recurring_overrides').upsert({ token, amount }).then(({error})=>{
       if(error) console.error('정기 자동이체 예정 금액 저장 실패:', error);
+    });
+  },
+
+  getCardBillOverrides(){
+    return this._cardBillOverrideCache;
+  },
+  setCardBillOverride(payment, spendYm, amount){
+    const token = payment + '|' + spendYm;
+    this._cardBillOverrideCache[token] = amount;
+    if(typeof liveModalRefresh === 'function' && liveModalRefresh) liveModalRefresh();
+    sb.from('card_bill_overrides').upsert({ token, amount }).then(({error})=>{
+      if(error) console.error('신용카드 청구액 보정값 저장 실패:', error);
     });
   },
 
@@ -3396,7 +3420,7 @@ function openCardBalanceModal(ym, payment){
       `};
     }),
     ...monthBillEvents.map(e => ({ date:e.date, node: `
-      <li>
+      <li class="editable-bill-row" style="cursor:pointer;" title="눌러서 청구 금액을 실제 명세서 기준으로 고칠 수 있어요" onclick="openCardBillAmountEdit('${payment}','${e.date.slice(0,7)}',${e.amount})">
         <span class="badge fixed-badge">${e.date.slice(5)}</span>
         <span class="n">${e.label}</span>
         <span class="a amt expense">-${e.amount.toLocaleString('ko-KR')}원</span>
@@ -3416,6 +3440,23 @@ function openCardBalanceModal(ym, payment){
     </div>
   `);
   liveModalRefresh = () => openCardBalanceModal(ym, payment);
+}
+
+/* 청구된(활성화된) 신용카드 대금 한 줄을 눌렀을 때, 계산된 금액이 실제 카드 명세서와
+   다르면 직접 고칠 수 있게 해줍니다. billYm은 청구일(12일)이 속한 달(예: 2026-08),
+   실제 값은 그 전달 사용분(spendYm, 예: 2026-07) 기준으로 저장해서 CREDIT_CARD_BASE_OVERRIDES와
+   같은 방식으로 참조되고, creditCardMonthTotal을 거치는 모든 화면(카드 현황/캘린더/전체 잔액
+   포함)에 한 번에 반영됩니다. */
+function openCardBillAmountEdit(payment, billYm, defaultAmount){
+  const spendYm = shiftYm(billYm, -1);
+  const overrides = DB.getCardBillOverrides();
+  const token = payment + '|' + spendYm;
+  const current = overrides[token] != null ? overrides[token] : defaultAmount;
+  const input = prompt(`${spendYm.slice(5)}월 사용분 청구 금액을 입력하세요 (실제 카드 명세서 금액과 다르면 여기서 고쳐주세요)`, current);
+  if(input === null) return;
+  const amount = Number(String(input).replace(/[^0-9]/g,''));
+  if(!amount || amount <= 0){ alert('올바른 금액을 입력해주세요.'); return; }
+  DB.setCardBillOverride(payment, spendYm, amount);
 }
 
 /* ---- 카테고리 리스트업 ---- */
