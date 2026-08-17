@@ -2867,6 +2867,21 @@ function computeScopeReviewData(ym){
   const all = DB.list();
   const sumByMain = txs => txs.reduce((m,t)=>{ m[t.main] = (m[t.main]||0) + Number(t.amount); return m; }, {});
 
+  // 지금 보고 있는 달이 아직 진행 중인(이번) 달이면, 비교 대상(전월/연평균)도 오늘과
+  // 같은 날짜까지만 잘라서 비교한다 — 안 그러면 전월은 꽉 찬 한 달인데 이번 달은
+  // 1일~오늘까지뿐이라 고정비가 그대로여도 무조건 "감소"로 보이는 불공평한 비교가 된다.
+  const today = todayStr();
+  const isCurrentMonth = (ym === today.slice(0,7));
+  const todayDay = Number(today.slice(8,10));
+  function monthTxCapped(m){
+    const tx = monthTx(all, m);
+    if(!isCurrentMonth) return tx;
+    const [yy2, mm2] = m.split('-').map(Number);
+    const day = Math.min(todayDay, daysInMonth(yy2, mm2));
+    const cutoffDate = m + '-' + String(day).padStart(2,'0');
+    return tx.filter(t => t.date <= cutoffDate);
+  }
+
   // "같은 년도 평균" = ym과 같은 해의, ym 이전(1월~직전월)까지 지난 달들의 월평균.
   // 연초(1월)라 지난 달이 없으면 카테고리 비교는 생략한다.
   const [yy, mm] = ym.split('-').map(Number);
@@ -2877,8 +2892,8 @@ function computeScopeReviewData(ym){
   function buildOne(filterFn){
     const cur = filterFn(monthTx(all, ym));
     const total = cur.reduce((s,t)=>s+Number(t.amount),0);
-    const pTotal = filterFn(monthTx(all, shiftYm(ym,-1))).reduce((s,t)=>s+Number(t.amount),0);
-    const yearTx = yearMonths.reduce((acc,m)=> acc.concat(filterFn(monthTx(all, m))), []);
+    const pTotal = filterFn(monthTxCapped(shiftYm(ym,-1))).reduce((s,t)=>s+Number(t.amount),0);
+    const yearTx = yearMonths.reduce((acc,m)=> acc.concat(filterFn(monthTxCapped(m))), []);
     const yearMainTotals = sumByMain(yearTx);
     const yearTotalSum = yearTx.reduce((s,t)=>s+Number(t.amount),0);
     const yearAvgTotal = elapsedCount ? yearTotalSum/elapsedCount : 0;
@@ -2890,11 +2905,13 @@ function computeScopeReviewData(ym){
       const parts = [];
       if(pTotal){
         const d = (total-pTotal)/pTotal*100;
-        parts.push(`전월 대비 ${Math.abs(d).toFixed(0)}% ${d>=0?'증가':'감소'}`);
+        const label = isCurrentMonth ? `전월 동기간(1~${todayDay}일) 대비` : '전월 대비';
+        parts.push(`${label} ${Math.abs(d).toFixed(0)}% ${d>=0?'증가':'감소'}`);
       }
       if(yearAvgTotal){
         const d2 = (total-yearAvgTotal)/yearAvgTotal*100;
-        parts.push(`${yy}년 평균 대비 ${Math.abs(d2).toFixed(0)}% ${d2>=0?'높음':'낮음'}`);
+        const label2 = isCurrentMonth ? `${yy}년 동기간 평균 대비` : `${yy}년 평균 대비`;
+        parts.push(`${label2} ${Math.abs(d2).toFixed(0)}% ${d2>=0?'높음':'낮음'}`);
       }
       headline = parts.length ? parts.join(' · ') : '아직 비교할 데이터가 없어요.';
     }
@@ -2950,7 +2967,7 @@ async function aiReanalyzeScopeReview(ym){
   if(btn){ btn.disabled = true; btn.textContent = '분석 중...'; }
   if(wrap){ wrap.style.transition = 'opacity .12s ease'; wrap.style.opacity = '0.4'; }
   try{
-    const { data, error } = await sb.functions.invoke('analyze-spending', { body: { ym } });
+    const { data, error } = await sb.functions.invoke('analyze-spending', { body: { ym, today: todayStr() } });
     if(error){
       // supabase-js는 Edge Function이 non-2xx를 반환하면 진짜 에러 메시지 대신
       // "non-2xx status code"라는 뭉뚱그린 문구만 줘서, 응답 본문(context)을 직접 읽어옴
