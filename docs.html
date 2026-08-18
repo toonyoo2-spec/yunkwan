@@ -369,8 +369,8 @@
         <input type="text" id="in-memo" placeholder="갱신일, 관련 연락처 등">
       </div>
       <div class="file-drop" id="dropZone">
-        <span id="dropLabel">클릭해서 파일 선택 (이미지, PDF 등)</span>
-        <input type="file" id="in-file" accept="image/*,application/pdf">
+        <span id="dropLabel">클릭해서 파일 선택 (이미지, PDF, zip 등)</span>
+        <input type="file" id="in-file" accept="image/*,application/pdf,.zip,application/zip,application/x-zip-compressed">
       </div>
       <button class="save-btn" id="saveBtn" onclick="uploadDoc()">+ 등록하기</button>
       <div class="status-msg" id="uploadStatus"></div>
@@ -440,7 +440,7 @@ document.getElementById('in-file').addEventListener('change', function(e){
   pickedFile = e.target.files[0] || null;
   document.getElementById('dropLabel').innerHTML = pickedFile
     ? `<span class="picked">${escapeHtml(pickedFile.name)}</span>`
-    : '클릭해서 파일 선택 (이미지, PDF 등)';
+    : '클릭해서 파일 선택 (이미지, PDF, zip 등)';
 });
 
 function setEntryType(type){
@@ -686,7 +686,7 @@ async function uploadDoc(){
   document.getElementById('in-owner').value = "공동";
   document.getElementById('in-category').value = "보험";
   document.getElementById('in-file').value = "";
-  document.getElementById('dropLabel').textContent = "클릭해서 파일 선택 (이미지, PDF 등)";
+  document.getElementById('dropLabel').textContent = "클릭해서 파일 선택 (이미지, PDF, zip 등)";
   pickedFile = null;
 
   await loadDocs();
