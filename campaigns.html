@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>체험단 확인</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#3a5a52">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BORAKWAN">
+<link rel="stylesheet" href="./common.css">
+<link rel="stylesheet" href="./panel-common.css">
+<style>
+  .subnav{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .subnav a{
+    text-decoration:none;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--sub);
+    padding:8px 16px;
+    border-radius:20px;
+    font-size:13.5px;
+    font-weight:600;
+  }
+  .subnav a.active{
+    background:var(--accent);
+    color:#fff;
+    border-color:var(--accent);
+  }
+
+  header{
+    margin-bottom:20px;
+  }
+
+  .summary{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin-bottom:20px;
+  }
+  .sum-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+  }
+  .sum-card .num{font-size:22px;font-weight:700;}
+  .sum-card .lbl{font-size:12.5px;color:var(--sub);margin-top:2px;}
+  .sum-card.soon .num{color:#b3452f;}
+  .sum-card.unsure .num{color:var(--wait-ink);}
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:20px;
+  }
+
+  .filter-row{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .filter-row .lbl{
+    font-size:12px;
+    color:var(--sub);
+    font-weight:600;
+  }
+  .chip-group{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .chip{
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--sub);
+    padding:6px 14px;
+    border-radius:20px;
+    font-size:13px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .chip.on{
+    background:var(--accent);
+    color:#fff;
+    border-color:var(--accent);
+  }
+
+  .card-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:14px;
+  }
+  .camp-card{
+    display:block;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px;
+    text-decoration:none;
+    color:var(--ink);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .camp-card:hover{
+    transform:translateY(-1px);
+    box-shadow:0 4px 12px rgba(34,34,31,0.08);
+    border-color:var(--accent);
+  }
+  .camp-badges{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .badge{
+    font-size:11px;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:6px;
+    white-space:nowrap;
+  }
+  .badge.source{background:#eef0ec;color:var(--sub);}
+  .badge.region{background:#e6efe9;color:var(--accent);}
+  .badge.deadline{background:var(--done-bg);color:var(--done-ink);}
+  .badge.deadline.soon{background:#fbe3db;color:#b3452f;}
+  .badge.deadline.near{background:var(--wait-bg);color:var(--wait-ink);}
+  .badge.deadline.rolling{background:var(--conf-bg);color:var(--conf-ink);}
+  .camp-title{
+    font-size:14.5px;
+    font-weight:700;
+    line-height:1.4;
+    margin-bottom:8px;
+  }
+  .camp-reward{
+    font-size:12.5px;
+    color:var(--sub);
+    line-height:1.5;
+  }
+
+  .empty{
+    text-align:center;
+    padding:60px 0;
+    color:var(--sub);
+    font-size:13.5px;
+    line-height:1.7;
+  }
+
+  #appContent{display:none;}
+</style>
+</head>
+<body>
+<script src="./nav.js?v=6"></script>
+<div class="wrap" id="appContent">
+
+  <div class="subnav">
+    <a href="./review.html">체험단예정</a>
+    <a href="./campaigns.html" class="active">체험단확인</a>
+  </div>
+
+  <header>
+    <div>
+      <h1>체험단 확인</h1>
+      <p>디너의여왕 · 강남맛집 · 놀러와체험단 · 리뷰노트 · 레뷰 모집중 캠페인을 관심 지역만 모아서 봅니다.</p>
+    </div>
+  </header>
+
+  <div class="summary" id="summary">
+    <div class="sum-card">
+      <div class="num" id="sumTotal">0</div>
+      <div class="lbl">전체</div>
+    </div>
+    <div class="sum-card soon">
+      <div class="num" id="sumSoon">0</div>
+      <div class="lbl">마감임박 (D-3 이내)</div>
+    </div>
+    <div class="sum-card unsure">
+      <div class="num" id="sumUnsure">0</div>
+      <div class="lbl">지역 미확정</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="filter-row">
+      <div>
+        <div class="lbl">지역</div>
+        <div class="chip-group" id="regionChips"></div>
+      </div>
+      <div>
+        <div class="lbl">사이트</div>
+        <div class="chip-group" id="sourceChips"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="card-grid" id="cardGrid"></div>
+    <div class="empty" id="emptyMsg" style="display:none;"></div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script>
+/* ===========================================================
+   지역/사이트 캐노니컬 정의 + Supabase 연동 (campaign_listings 테이블)
+   =========================================================== */
+const REGION_AREAS = ['용산구','마포구','영등포구','서대문구','강서구','고양시','파주시','미확정'];
+const SOURCES = ['디너의여왕','강남맛집','놀러와체험단','리뷰노트','레뷰'];
+
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+window.sb = sb; // auth-gate.js가 같은 클라이언트를 재사용하도록 공유
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    sb.auth.startAutoRefresh();
+  } else {
+    sb.auth.stopAutoRefresh();
+  }
+});
+
+const state = {
+  regions: new Set(REGION_AREAS),
+  sources: new Set(SOURCES),
+  items: []
+};
+
+function renderChips(){
+  const regionEl = document.getElementById('regionChips');
+  regionEl.innerHTML = REGION_AREAS.map(r =>
+    `<button type="button" class="chip ${state.regions.has(r) ? 'on' : ''}" data-region="${r}">${r}</button>`
+  ).join('');
+  regionEl.querySelectorAll('.chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const r = btn.dataset.region;
+      if(state.regions.has(r)) state.regions.delete(r); else state.regions.add(r);
+      renderChips();
+      renderList();
+    });
+  });
+
+  const sourceEl = document.getElementById('sourceChips');
+  sourceEl.innerHTML = SOURCES.map(s =>
+    `<button type="button" class="chip ${state.sources.has(s) ? 'on' : ''}" data-source="${s}">${s}</button>`
+  ).join('');
+  sourceEl.querySelectorAll('.chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = btn.dataset.source;
+      if(state.sources.has(s)) state.sources.delete(s); else state.sources.add(s);
+      renderChips();
+      renderList();
+    });
+  });
+}
+
+function daysLeft(dateStr){
+  if(!dateStr) return null;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const d = new Date(dateStr);
+  d.setHours(0,0,0,0);
+  return Math.round((d - today) / 86400000);
+}
+
+function deadlineBadge(item){
+  if(item.deadline_type === 'dated' && item.deadline_date){
+    const dleft = daysLeft(item.deadline_date);
+    let cls = '';
+    let label = `D-${dleft}`;
+    if(dleft < 0) label = '마감';
+    else if(dleft === 0) label = '오늘마감';
+    if(dleft <= 3) cls = 'soon';
+    else if(dleft <= 7) cls = 'near';
+    return `<span class="badge deadline ${cls}">${label}</span>`;
+  }
+  if(item.deadline_type === 'rolling'){
+    return `<span class="badge deadline rolling">선착순</span>`;
+  }
+  return `<span class="badge deadline">${item.raw_deadline_text || '상시'}</span>`;
+}
+
+function renderList(){
+  const filtered = state.items.filter(it =>
+    state.regions.has(it.region_area || '미확정') && state.sources.has(it.source)
+  );
+
+  // 정렬: 마감일 확정 건 → 임박순, 그 다음 선착순/상시
+  filtered.sort((a, b) => {
+    const da = a.deadline_type === 'dated' && a.deadline_date ? new Date(a.deadline_date) : null;
+    const db = b.deadline_type === 'dated' && b.deadline_date ? new Date(b.deadline_date) : null;
+    if(da && db) return da - db;
+    if(da) return -1;
+    if(db) return 1;
+    return 0;
+  });
+
+  const grid = document.getElementById('cardGrid');
+  const emptyMsg = document.getElementById('emptyMsg');
+
+  if(filtered.length === 0){
+    grid.innerHTML = '';
+    emptyMsg.style.display = 'block';
+    emptyMsg.textContent = state.items.length === 0
+      ? '아직 수집된 캠페인이 없습니다. (사이트별 자동 수집 연동 전 단계)'
+      : '선택한 지역/사이트에 해당하는 캠페인이 없습니다.';
+  } else {
+    emptyMsg.style.display = 'none';
+    grid.innerHTML = filtered.map(it => `
+      <a class="camp-card" href="${it.url || '#'}" target="_blank" rel="noopener">
+        <div class="camp-badges">
+          <span class="badge source">${it.source}</span>
+          <span class="badge region">${it.region_area || '미확정'}</span>
+          ${deadlineBadge(it)}
+        </div>
+        <div class="camp-title">${it.title}</div>
+        ${it.reward_text ? `<div class="camp-reward">${it.reward_text}</div>` : ''}
+      </a>
+    `).join('');
+  }
+
+  document.getElementById('sumTotal').textContent = filtered.length;
+  document.getElementById('sumSoon').textContent = filtered.filter(it =>
+    it.deadline_type === 'dated' && it.deadline_date && daysLeft(it.deadline_date) <= 3 && daysLeft(it.deadline_date) >= 0
+  ).length;
+  document.getElementById('sumUnsure').textContent = filtered.filter(it => !it.region_area || it.region_area === '미확정').length;
+}
+
+async function loadListings(){
+  const { data, error } = await sb
+    .from('campaign_listings')
+    .select('*')
+    .order('deadline_date', { ascending: true, nullsFirst: false });
+  if(error){
+    console.error(error);
+    return;
+  }
+  state.items = data || [];
+  renderList();
+}
+
+window.addEventListener('authReady', () => {
+  renderChips();
+  loadListings();
+
+  sb.channel('campaign-listings-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_listings' }, () => {
+      loadListings();
+    })
+    .subscribe();
+
+  setInterval(loadListings, 30000);
+});
+</script>
+<script src="./auth-gate.js?v=2"></script>
+</body>
+</html>
