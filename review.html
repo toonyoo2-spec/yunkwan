@@ -213,7 +213,7 @@
 
   table{
     width:100%;
-    min-width:1180px;
+    min-width:1050px;
     table-layout:fixed;
     border-collapse:collapse;
     font-size:13.5px;
@@ -610,16 +610,16 @@
       <div class="table-wrap">
         <table>
           <colgroup>
-            <col style="width:170px;">
-            <col style="width:190px;">
-            <col style="width:110px;">
-            <col style="width:90px;">
-            <col style="width:100px;">
-            <col style="width:170px;">
             <col style="width:150px;">
-            <col style="width:90px;">
-            <col style="width:100px;">
-            <col style="width:200px;">
+            <col style="width:140px;">
+            <col style="width:95px;">
+            <col style="width:72px;">
+            <col style="width:80px;">
+            <col style="width:190px;">
+            <col style="width:115px;">
+            <col style="width:85px;">
+            <col style="width:84px;">
+            <col style="width:190px;">
           </colgroup>
           <thead>
             <tr>
@@ -1072,22 +1072,18 @@ function render(){
   ).join('');
 
   let list = filter === "all" ? items.slice() : items.filter(it => it.status === filter);
-  const statusOrder = { confirm:0, wait:1, done:2, end:3 };
-  const deadlineKey = (it) => normalizeDate(it.deadline) || "9999-99-99";
-  list.sort((a,b) => {
-    const orderDiff = statusOrder[a.status] - statusOrder[b.status];
-    if(orderDiff !== 0) return orderDiff;
-
-    if(a.status === "confirm"){
-      const aKey = (normalizeDate(a.resvDate) || "9999-99-99") + " " + (a.resvTime || "99:99");
-      const bKey = (normalizeDate(b.resvDate) || "9999-99-99") + " " + (b.resvTime || "99:99");
-      return aKey.localeCompare(bKey);
+  // "다음에 뭘 해야 하는지"가 가장 급한 순서로 하나의 흐름으로 정렬한다 — 상태별로
+  // 먼저 묶은 뒤 그 안에서만 따로 정렬하면(예약완료는 예약일, 예약대기/체험완료는
+  // 마감일) 전체 탭에서 급한 일이 여기저기 흩어져 보이는 문제가 있었음. 종료는
+  // 더 이상 할 일이 없으니 항상 맨 아래로 보낸다.
+  const actByKey = (it) => {
+    if(it.status === "end") return "9999-99-99 99:99";
+    if(it.status === "confirm"){
+      return (normalizeDate(it.resvDate) || "9999-99-99") + " " + (it.resvTime || "99:99");
     }
-    if(a.status === "wait" || a.status === "done"){
-      return deadlineKey(a).localeCompare(deadlineKey(b));
-    }
-    return 0;
-  });
+    return (normalizeDate(it.deadline) || "9999-99-99") + " 99:99";
+  };
+  list.sort((a,b) => actByKey(a).localeCompare(actByKey(b)));
 
   const tbody = document.getElementById('tbody');
   const emptyMsg = document.getElementById('emptyMsg');
@@ -1109,7 +1105,7 @@ function render(){
     return `
       <tr>
         <td data-label="체험단 이름" class="name-cell" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기">${escapeHtml(it.name)}</td>
-        <td data-label="제공내역" class="ellipsis-cell" title="${escapeHtml(it.provide)}">${escapeHtml(it.provide) || '-'}</td>
+        <td data-label="제공내역" class="ellipsis-cell" title="${escapeHtml(it.provide)}" onclick="openDetailModal('${it.id}')" style="cursor:pointer;">${escapeHtml(it.provide) || '-'}</td>
         <td data-label="상태/예약" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기" style="cursor:pointer;">
           <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
           ${resvText ? `<div class="resv-text">${resvText}</div>` : ''}
