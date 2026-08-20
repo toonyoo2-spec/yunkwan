@@ -169,6 +169,16 @@
     border-color:var(--accent);
   }
 
+  /* 체험완료된 항목의 플랫폼명 링크 — 기본 파란 밑줄 링크 대신 굵은 글씨로만 클릭 가능함을 표시 */
+  .platform-link{
+    color:inherit;
+    text-decoration:none;
+    font-weight:700;
+  }
+  .platform-link:hover{
+    text-decoration:underline;
+  }
+
   .table-scroll{
     position: relative;
   }
@@ -752,7 +762,7 @@ const PLATFORM_HOME_URLS = {
 function platformValueHtml(it, extraAttrs){
   const url = it.status === 'done' ? PLATFORM_HOME_URLS[it.platform] : null;
   if(!url) return escapeHtml(it.platform);
-  return `<a href="${url}" target="_blank" rel="noopener"${extraAttrs ? ' ' + extraAttrs : ''}>${escapeHtml(it.platform)}</a>`;
+  return `<a href="${url}" target="_blank" rel="noopener" class="platform-link"${extraAttrs ? ' ' + extraAttrs : ''}>${escapeHtml(it.platform)}</a>`;
 }
 
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
