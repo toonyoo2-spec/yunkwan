@@ -185,8 +185,53 @@
     line-height:1.7;
   }
 
-  @media (max-width:640px){
+  /* ---- 모바일 카드 (테이블 대신) ---- */
+  .mobile-cards{ display:none; }
+  .camp-card{
+    display:block;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px;
+    text-decoration:none;
+    color:var(--ink);
+  }
+  .camp-card.picked{ background:var(--conf-bg); border-color:var(--conf-ink); }
+  .camp-card .card-top{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+  }
+  .camp-card .card-top .pick-box{ width:22px; height:22px; flex-shrink:0; }
+  .camp-card .card-title{
+    display:block;
+    font-size:15px;
+    font-weight:700;
+    color:var(--ink);
+    text-decoration:none;
+    margin-bottom:6px;
+  }
+  .camp-card .card-content{
+    font-size:13px;
+    color:var(--sub);
+    margin-bottom:8px;
+    line-height:1.5;
+  }
+  .camp-card .card-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  @media (max-width:820px){
+    body{ padding:16px 10px 40px; }
     .panel{ padding:14px; }
+    .table-wrap{ display:none; }
+    .mobile-cards{ display:flex; flex-direction:column; gap:10px; }
+    .chip{ padding:8px 14px; font-size:13.5px; }
+    h1{ font-size:21px; }
   }
 
   #appContent{display:none;}
@@ -243,6 +288,7 @@
         <tbody id="tbody"></tbody>
       </table>
     </div>
+    <div class="mobile-cards" id="cardList"></div>
     <div class="empty" id="emptyMsg" style="display:none;"></div>
   </div>
 
@@ -364,10 +410,12 @@ function renderList(){
   });
 
   const tbody = document.getElementById('tbody');
+  const cardList = document.getElementById('cardList');
   const emptyMsg = document.getElementById('emptyMsg');
 
   if(filtered.length === 0){
     tbody.innerHTML = '';
+    cardList.innerHTML = '';
     emptyMsg.style.display = 'block';
     emptyMsg.textContent = state.items.length === 0
       ? '아직 수집된 캠페인이 없습니다.'
@@ -392,7 +440,23 @@ function renderList(){
       </tr>
     `).join('');
 
-    tbody.querySelectorAll('.pick-box').forEach(box => {
+    cardList.innerHTML = filtered.map(it => `
+      <div class="camp-card ${it.picked ? 'picked' : ''}" data-id="${it.id}">
+        <div class="card-top">
+          <input type="checkbox" class="pick-box" ${it.picked ? 'checked' : ''} data-id="${it.id}" data-picked="${it.picked}">
+          <span class="badge region">${it.region_area}</span>
+          <span class="badge source" style="margin-top:0;">${it.source}</span>
+        </div>
+        <a class="card-title" href="${it.url || '#'}" target="_blank" rel="noopener">${placeName(it)}</a>
+        <div class="card-content">${it.reward_text || '-'}</div>
+        <div class="card-status">
+          ${deadlineBadge(it)}
+          <span class="weekend-tag ${it.weekend_ok}">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>
+        </div>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('.pick-box').forEach(box => {
       box.addEventListener('click', (e) => {
         e.stopPropagation();
         togglePicked(box.dataset.id, box.dataset.picked === 'true');

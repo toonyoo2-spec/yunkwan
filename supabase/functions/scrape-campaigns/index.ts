@@ -486,8 +486,10 @@ Deno.serve(async (_req) => {
     }
   }
 
-  // 관심 지역(미확정 제외)만 저장 — 나머지는 애초에 우리 관심사가 아님
-  const interesting = all.filter((it) => it.region_area !== "미확정");
+  // 관심 지역(미확정 제외)만 저장 — 나머지는 애초에 우리 관심사가 아님. 릴스형은 제외.
+  const interesting = all.filter(
+    (it) => it.region_area !== "미확정" && !/릴스/.test(it.title) && !/릴스/.test(it.raw_category),
+  );
 
   if (interesting.length > 0) {
     const { error } = await sb.from("campaign_listings").upsert(interesting, { onConflict: "id" });
