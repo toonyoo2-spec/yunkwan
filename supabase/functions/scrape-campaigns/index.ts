@@ -75,7 +75,37 @@ type Listing = {
   deadline_type: string;
   raw_deadline_text: string;
   reward_text: string;
+  notice_text: string;
+  weekend_ok: string; // "possible" | "impossible" | "unknown"
 };
+
+// 예약/휴무 안내 문구에서 주말 방문 가능 여부를 추정 (문구가 사이트/업체마다 달라서 완벽하진 않음)
+function classifyWeekend(text: string): string {
+  if (!text) return "unknown";
+  if (/평일만|평일에만|평일\s*예약만/.test(text)) return "impossible";
+  if (/주말.{0,4}(불가|휴무|안\s*됨|제외|어려움)/.test(text)) return "impossible";
+  if (/주말.{0,4}(가능|예약\s*가능)/.test(text)) return "possible";
+  if (/연중무휴/.test(text)) return "possible";
+  const closedMatch = text.match(/휴무일\s*:?\s*([^/]+)/);
+  if (closedMatch) {
+    const closed = closedMatch[1];
+    if (/토요일|일요일|토,\s*일|주말/.test(closed)) return "impossible";
+    if (/요일/.test(closed)) return "possible";
+  }
+  return "unknown";
+}
+
+// 여러 개를 동시에 최대 concurrency개씩만 돌리는 헬퍼 (상세페이지 대량 fetch용)
+async function runWithConcurrency<T>(items: T[], concurrency: number, fn: (item: T) => Promise<void>) {
+  let idx = 0;
+  async function worker() {
+    while (idx < items.length) {
+      const i = idx++;
+      await fn(items[i]).catch((e) => console.error("detail fetch error", e));
+    }
+  }
+  await Promise.all(Array.from({ length: concurrency }, worker));
+}
 
 function categorize(text: string): string {
   if (/맛집|레스토랑|식당|브런치|디저트|베이커리/.test(text)) return "맛집";
@@ -157,10 +187,38 @@ async function scrapeDinnerQueen(): Promise<Listing[]> {
         deadline_type: type,
         raw_deadline_text: rawDeadline,
         reward_text: "",
+        notice_text: "",
+        weekend_ok: "unknown",
       };
       seen.set(listing.id, listing);
     });
   }
+
+  // 관심 지역만 상세페이지까지 들어가서 "제공 내역"/"휴무일"을 더 채워온다
+  // (전체 300건을 다 들어가면 느리니, 이미 region_area가 확정된 것만)
+  const targets = [...seen.values()].filter((it) => it.region_area !== "미확정");
+  await runWithConcurrency(targets, 5, async (it) => {
+    let detailHtml: string;
+    try {
+      detailHtml = await fetchHtml(it.url, 10000);
+    } catch {
+      return;
+    }
+    const provideIdx = detailHtml.indexOf("제공 내역");
+    if (provideIdx !== -1) {
+      const seg = detailHtml.slice(provideIdx, provideIdx + 2500);
+      const m = seg.match(/class="w-600">([^<]+)</);
+      if (m) it.reward_text = m[1].trim();
+    }
+    const visitIdx = detailHtml.indexOf("방문 및 예약");
+    if (visitIdx !== -1) {
+      const seg = detailHtml.slice(visitIdx, visitIdx + 2500);
+      const lines = [...seg.matchAll(/white-pre-l">([^<]*)</g)].map((mm) => mm[1].trim()).filter(Boolean);
+      if (lines.length) it.notice_text = lines.join(" / ");
+    }
+    it.weekend_ok = classifyWeekend(it.notice_text);
+  });
+
   return [...seen.values()];
 }
 
@@ -182,6 +240,7 @@ async function scrapeCometoplay(): Promise<Listing[]> {
     const title = $el.find(".it_name").first().text().trim();
     if (!title) return;
     const rawDeadline = $el.find("span.txt_num").first().text().trim();
+    const description = $el.find(".it_description").first().text().trim();
     const regionRaw = extractBracketRegion(title);
     const { type, date } = parseDeadline(rawDeadline);
 
@@ -198,7 +257,9 @@ async function scrapeCometoplay(): Promise<Listing[]> {
       deadline_date: date,
       deadline_type: type,
       raw_deadline_text: rawDeadline,
-      reward_text: "",
+      reward_text: description,
+      notice_text: "",
+      weekend_ok: "unknown",
     };
     seen.set(listing.id, listing);
   });
@@ -227,6 +288,7 @@ async function scrapeGangnamMatzip(): Promise<Listing[]> {
     const title = (container.find(".it_name").first().text() || "").trim();
     if (!title || seen.has(`강남맛집_${sourceId}`)) return;
     const rawDeadline = container.find("span.txt_num").first().text().trim();
+    const description = container.find(".it_description").first().text().trim();
     const regionRaw = extractBracketRegion(title);
     const { type, date } = parseDeadline(rawDeadline);
 
@@ -243,7 +305,9 @@ async function scrapeGangnamMatzip(): Promise<Listing[]> {
       deadline_date: date,
       deadline_type: type,
       raw_deadline_text: rawDeadline,
-      reward_text: "",
+      reward_text: description,
+      notice_text: "",
+      weekend_ok: "unknown",
     });
   });
 
@@ -272,6 +336,8 @@ async function scrapeGangnamMatzip(): Promise<Listing[]> {
         deadline_type: "unknown",
         raw_deadline_text: "",
         reward_text: "",
+        notice_text: "",
+        weekend_ok: "unknown",
       });
     }
   }
@@ -317,6 +383,8 @@ async function scrapeReviewnote(): Promise<Listing[]> {
       deadline_type: type,
       raw_deadline_text: rawDeadline,
       reward_text: reward,
+      notice_text: "",
+      weekend_ok: "unknown",
     });
   }
   return [...seen.values()];
@@ -388,6 +456,8 @@ async function scrapeRevu(sb: ReturnType<typeof createClient>): Promise<Listing[
         deadline_type: it.requestEndedOn ? "dated" : "unknown",
         raw_deadline_text: it.requestEndedOn || "",
         reward_text: it.campaignData?.reward || "",
+        notice_text: "",
+        weekend_ok: "unknown",
       });
     }
 

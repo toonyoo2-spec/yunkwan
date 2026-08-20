@@ -36,32 +36,15 @@
   }
 
   header{
-    margin-bottom:20px;
+    margin-bottom:16px;
   }
-
-  .summary{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:12px;
-    margin-bottom:20px;
-  }
-  .sum-card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:14px 16px;
-  }
-  .sum-card .num{font-size:22px;font-weight:700;}
-  .sum-card .lbl{font-size:12.5px;color:var(--sub);margin-top:2px;}
-  .sum-card.soon .num{color:#b3452f;}
-  .sum-card.unsure .num{color:var(--wait-ink);}
 
   .panel{
     background:var(--card);
     border:1px solid var(--line);
     border-radius:12px;
-    padding:20px;
-    margin-bottom:20px;
+    padding:16px 20px;
+    margin-bottom:16px;
   }
 
   .filter-row{
@@ -78,6 +61,7 @@
     display:flex;
     flex-wrap:wrap;
     gap:8px;
+    align-items:center;
   }
   .chip{
     border:1px solid var(--line);
@@ -94,57 +78,104 @@
     color:#fff;
     border-color:var(--accent);
   }
-
-  .card-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
-    gap:14px;
-  }
-  .camp-card{
-    display:block;
-    background:#fff;
-    border:1px solid var(--line);
-    border-radius:12px;
-    padding:16px;
-    text-decoration:none;
-    color:var(--ink);
-    transition:transform .12s ease, box-shadow .12s ease;
-  }
-  .camp-card:hover{
-    transform:translateY(-1px);
-    box-shadow:0 4px 12px rgba(34,34,31,0.08);
-    border-color:var(--accent);
-  }
-  .camp-badges{
+  .weekend-toggle{
     display:flex;
+    align-items:center;
     gap:6px;
-    flex-wrap:wrap;
+    font-size:13px;
+    color:var(--ink);
+    cursor:pointer;
+    user-select:none;
+  }
+  .weekend-toggle input{ width:16px; height:16px; cursor:pointer; }
+
+  .count-line{
+    font-size:12.5px;
+    color:var(--sub);
     margin-bottom:10px;
   }
-  .badge{
+
+  .table-wrap{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  table{
+    width:100%;
+    min-width:640px;
+    border-collapse:collapse;
+    font-size:13.5px;
+  }
+  thead th{
+    text-align:left;
+    font-size:12px;
+    color:var(--sub);
+    font-weight:600;
+    padding:0 10px 10px;
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:11px 10px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  tbody tr{ cursor:pointer; }
+  tbody tr:hover{ background:#fafaf7; }
+  tbody tr.picked{ background:var(--conf-bg); }
+  tbody tr.picked:hover{ background:var(--conf-bg); }
+
+  .pick-cell{ width:34px; text-align:center; }
+  .pick-box{
+    width:20px; height:20px;
+    cursor:pointer;
+  }
+
+  .region-cell{ white-space:nowrap; }
+  .badge.region{
+    display:inline-block;
     font-size:11px;
     font-weight:700;
     padding:3px 8px;
     border-radius:6px;
+    background:#e6efe9;
+    color:var(--accent);
     white-space:nowrap;
   }
-  .badge.source{background:#eef0ec;color:var(--sub);}
-  .badge.region{background:#e6efe9;color:var(--accent);}
-  .badge.deadline{background:var(--done-bg);color:var(--done-ink);}
+  .badge.source{
+    display:block;
+    font-size:10.5px;
+    color:var(--sub);
+    margin-top:4px;
+  }
+
+  .place-cell{ font-weight:700; min-width:120px; }
+  .place-cell a{ color:var(--ink); text-decoration:none; }
+  .place-cell a:hover{ text-decoration:underline; }
+
+  .content-cell{ color:var(--sub); min-width:160px; }
+
+  .status-cell{ white-space:nowrap; }
+  .badge.deadline{
+    display:inline-block;
+    font-size:11px;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:6px;
+    background:var(--done-bg);
+    color:var(--done-ink);
+    margin-bottom:4px;
+  }
   .badge.deadline.soon{background:#fbe3db;color:#b3452f;}
   .badge.deadline.near{background:var(--wait-bg);color:var(--wait-ink);}
   .badge.deadline.rolling{background:var(--conf-bg);color:var(--conf-ink);}
-  .camp-title{
-    font-size:14.5px;
-    font-weight:700;
-    line-height:1.4;
-    margin-bottom:8px;
+  .weekend-tag{
+    display:block;
+    font-size:11.5px;
   }
-  .camp-reward{
-    font-size:12.5px;
-    color:var(--sub);
-    line-height:1.5;
-  }
+  .weekend-tag.possible{ color:var(--conf-ink); }
+  .weekend-tag.impossible{ color:#b3452f; }
+  .weekend-tag.unknown{ color:var(--sub); }
 
   .empty{
     text-align:center;
@@ -152,6 +183,10 @@
     color:var(--sub);
     font-size:13.5px;
     line-height:1.7;
+  }
+
+  @media (max-width:640px){
+    .panel{ padding:14px; }
   }
 
   #appContent{display:none;}
@@ -169,24 +204,9 @@
   <header>
     <div>
       <h1>체험단 확인</h1>
-      <p>디너의여왕 · 강남맛집 · 놀러와체험단 · 리뷰노트 · 레뷰 모집중 캠페인을 관심 지역만 모아서 봅니다.</p>
+      <p>지역 · 장소명 · 체험내용 · 주말가능여부만 간단히 봅니다. 체크하면 배우자에게도 바로 보여요.</p>
     </div>
   </header>
-
-  <div class="summary" id="summary">
-    <div class="sum-card">
-      <div class="num" id="sumTotal">0</div>
-      <div class="lbl">전체</div>
-    </div>
-    <div class="sum-card soon">
-      <div class="num" id="sumSoon">0</div>
-      <div class="lbl">마감임박 (D-3 이내)</div>
-    </div>
-    <div class="sum-card unsure">
-      <div class="num" id="sumUnsure">0</div>
-      <div class="lbl">지역 미확정</div>
-    </div>
-  </div>
 
   <div class="panel">
     <div class="filter-row">
@@ -198,11 +218,31 @@
         <div class="lbl">사이트</div>
         <div class="chip-group" id="sourceChips"></div>
       </div>
+      <div>
+        <label class="weekend-toggle">
+          <input type="checkbox" id="weekendOnly">
+          주말 가능 확인된 것만 보기
+        </label>
+      </div>
     </div>
   </div>
 
   <div class="panel">
-    <div class="card-grid" id="cardGrid"></div>
+    <div class="count-line" id="countLine"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>지역</th>
+            <th>장소명</th>
+            <th>체험내용</th>
+            <th>마감 · 주말</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
     <div class="empty" id="emptyMsg" style="display:none;"></div>
   </div>
 
@@ -214,8 +254,9 @@
 /* ===========================================================
    지역/사이트 캐노니컬 정의 + Supabase 연동 (campaign_listings 테이블)
    =========================================================== */
-const REGION_AREAS = ['용산구','마포구','영등포구','서대문구','강서구','고양시','파주시','미확정'];
+const REGION_AREAS = ['용산구','마포구','영등포구','서대문구','강서구','고양시','파주시'];
 const SOURCES = ['디너의여왕','강남맛집','놀러와체험단','리뷰노트','레뷰'];
+const WEEKEND_LABEL = { possible: '🟢 주말가능', impossible: '🔴 주말불가', unknown: '⚪ 확인필요' };
 
 const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
   auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
@@ -233,6 +274,7 @@ document.addEventListener('visibilitychange', () => {
 const state = {
   regions: new Set(REGION_AREAS),
   sources: new Set(SOURCES),
+  weekendOnly: false,
   items: []
 };
 
@@ -290,13 +332,29 @@ function deadlineBadge(item){
   return `<span class="badge deadline">${item.raw_deadline_text || '상시'}</span>`;
 }
 
+function placeName(it){
+  return (it.title || '').replace(/^\[[^\]]+\]\s*/, '') || it.title || '(제목 없음)';
+}
+
+async function togglePicked(id, current){
+  const { error } = await sb
+    .from('campaign_listings')
+    .update({ picked: !current, picked_at: !current ? new Date().toISOString() : null })
+    .eq('id', id);
+  if(error) console.error(error);
+  // realtime 구독이 다시 불러오므로 여기선 별도 갱신 안 해도 됨
+}
+
 function renderList(){
   const filtered = state.items.filter(it =>
-    state.regions.has(it.region_area || '미확정') && state.sources.has(it.source)
+    state.regions.has(it.region_area) &&
+    state.sources.has(it.source) &&
+    (!state.weekendOnly || it.weekend_ok === 'possible')
   );
 
-  // 정렬: 마감일 확정 건 → 임박순, 그 다음 선착순/상시
+  // 정렬: 픽된 것 먼저, 그 다음 마감일 확정 건 → 임박순, 그 다음 선착순/상시
   filtered.sort((a, b) => {
+    if(a.picked !== b.picked) return a.picked ? -1 : 1;
     const da = a.deadline_type === 'dated' && a.deadline_date ? new Date(a.deadline_date) : null;
     const db = b.deadline_type === 'dated' && b.deadline_date ? new Date(b.deadline_date) : null;
     if(da && db) return da - db;
@@ -305,35 +363,44 @@ function renderList(){
     return 0;
   });
 
-  const grid = document.getElementById('cardGrid');
+  const tbody = document.getElementById('tbody');
   const emptyMsg = document.getElementById('emptyMsg');
 
   if(filtered.length === 0){
-    grid.innerHTML = '';
+    tbody.innerHTML = '';
     emptyMsg.style.display = 'block';
     emptyMsg.textContent = state.items.length === 0
-      ? '아직 수집된 캠페인이 없습니다. (사이트별 자동 수집 연동 전 단계)'
-      : '선택한 지역/사이트에 해당하는 캠페인이 없습니다.';
+      ? '아직 수집된 캠페인이 없습니다.'
+      : '선택한 조건에 해당하는 캠페인이 없습니다.';
   } else {
     emptyMsg.style.display = 'none';
-    grid.innerHTML = filtered.map(it => `
-      <a class="camp-card" href="${it.url || '#'}" target="_blank" rel="noopener">
-        <div class="camp-badges">
+    tbody.innerHTML = filtered.map(it => `
+      <tr class="${it.picked ? 'picked' : ''}" data-id="${it.id}">
+        <td class="pick-cell">
+          <input type="checkbox" class="pick-box" ${it.picked ? 'checked' : ''} data-id="${it.id}" data-picked="${it.picked}">
+        </td>
+        <td class="region-cell">
+          <span class="badge region">${it.region_area}</span>
           <span class="badge source">${it.source}</span>
-          <span class="badge region">${it.region_area || '미확정'}</span>
+        </td>
+        <td class="place-cell"><a href="${it.url || '#'}" target="_blank" rel="noopener">${placeName(it)}</a></td>
+        <td class="content-cell">${it.reward_text || '-'}</td>
+        <td class="status-cell">
           ${deadlineBadge(it)}
-        </div>
-        <div class="camp-title">${it.title}</div>
-        ${it.reward_text ? `<div class="camp-reward">${it.reward_text}</div>` : ''}
-      </a>
+          <span class="weekend-tag ${it.weekend_ok}">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>
+        </td>
+      </tr>
     `).join('');
+
+    tbody.querySelectorAll('.pick-box').forEach(box => {
+      box.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePicked(box.dataset.id, box.dataset.picked === 'true');
+      });
+    });
   }
 
-  document.getElementById('sumTotal').textContent = filtered.length;
-  document.getElementById('sumSoon').textContent = filtered.filter(it =>
-    it.deadline_type === 'dated' && it.deadline_date && daysLeft(it.deadline_date) <= 3 && daysLeft(it.deadline_date) >= 0
-  ).length;
-  document.getElementById('sumUnsure').textContent = filtered.filter(it => !it.region_area || it.region_area === '미확정').length;
+  document.getElementById('countLine').textContent = `${filtered.length}건`;
 }
 
 async function loadListings(){
@@ -352,6 +419,11 @@ async function loadListings(){
 window.addEventListener('authReady', () => {
   renderChips();
   loadListings();
+
+  document.getElementById('weekendOnly').addEventListener('change', (e) => {
+    state.weekendOnly = e.target.checked;
+    renderList();
+  });
 
   sb.channel('campaign-listings-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_listings' }, () => {
