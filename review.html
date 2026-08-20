@@ -737,6 +737,24 @@ const statusMeta = {
 
 const platformList = ["디너의여왕","리뷰노트","놀러와체험단","레뷰","데일리뷰","파블로체험단","서울오빠","강남맛집","기타"];
 
+// 실제 데이터에 쓰이고 있는 플랫폼만 홈페이지 주소를 등록해둠(URL 없는 플랫폼은 그냥 텍스트로 표시).
+const PLATFORM_HOME_URLS = {
+  "디너의여왕": "https://dinnerqueen.net/",
+  "놀러와체험단": "https://www.cometoplay.kr/",
+  "강남맛집": "https://xn--939au0g4vj8sq.net/",
+  "리뷰노트": "https://www.reviewnote.co.kr/",
+  "레뷰": "https://www.revu.net/",
+};
+
+/* 플랫폼명을 표시할 때 쓰는 공통 헬퍼. "체험완료" 상태일 때만(리뷰 URL을 다시 등록하러
+   그 플랫폼에 들어가야 하는 시점) 홈페이지 링크로 활성화하고, 그 외 상태거나 등록된
+   URL이 없는 플랫폼(기타 등)이면 그냥 텍스트로 보여준다. */
+function platformValueHtml(it, extraAttrs){
+  const url = it.status === 'done' ? PLATFORM_HOME_URLS[it.platform] : null;
+  if(!url) return escapeHtml(it.platform);
+  return `<a href="${url}" target="_blank" rel="noopener"${extraAttrs ? ' ' + extraAttrs : ''}>${escapeHtml(it.platform)}</a>`;
+}
+
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
 function normalizeDate(v){
@@ -904,6 +922,8 @@ function openDetailModal(id){
           valueHtml = `<a href="#" onclick="event.preventDefault();openNaverMapApp();">${escapeHtml(value)}</a>`;
         } else if(label === '예약문의'){
           valueHtml = `<a href="tel:${value.replace(/[^0-9+]/g,'')}">${escapeHtml(value)}</a>`;
+        } else if(label === '플랫폼'){
+          valueHtml = platformValueHtml(it);
         } else if(label === '주차장' && it.address){
           // 모두의주차장은 공개 딥링크를 지원하지 않아(여러 형태로 실제 확인함 — keyword,
           // search 파라미터 모두 존재하지 않는 페이지로 연결됨) 자동 검색/앱 실행은 포기하고,
@@ -1052,7 +1072,7 @@ function render(){
           <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
           ${resvText ? `<div class="resv-text">${resvText}</div>` : ''}
         </td>
-        <td data-label="플랫폼">${escapeHtml(it.platform)}</td>
+        <td data-label="플랫폼">${platformValueHtml(it)}</td>
         <td data-label="주소" class="ellipsis-cell" title="${escapeHtml(it.address)}">${escapeHtml(it.address) || '-'}</td>
         <td data-label="예약문의">${escapeHtml(it.contact) || '-'}</td>
         <td data-label="주차장">${escapeHtml(it.parking) || '-'}</td>
@@ -1080,7 +1100,7 @@ function render(){
             <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
           </div>
           <div class="rv-row2">
-            <span class="rv-platform">${escapeHtml(it.platform)}</span>
+            <span class="rv-platform">${platformValueHtml(it, 'onclick="event.stopPropagation()"')}</span>
             ${dateLabel ? `<span class="rv-dot">·</span><span class="rv-date">${dateLabel}</span>` : ''}
             ${it.provide ? `<span class="rv-dot">·</span><span class="rv-provide">${escapeHtml(it.provide)}</span>` : ''}
           </div>
