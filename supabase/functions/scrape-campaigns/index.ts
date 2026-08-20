@@ -204,18 +204,14 @@ async function scrapeDinnerQueen(): Promise<Listing[]> {
     } catch {
       return;
     }
-    const provideIdx = detailHtml.indexOf("제공 내역");
-    if (provideIdx !== -1) {
-      const seg = detailHtml.slice(provideIdx, provideIdx + 2500);
-      const m = seg.match(/class="w-600">([^<]+)</);
-      if (m) it.reward_text = m[1].trim();
-    }
-    const visitIdx = detailHtml.indexOf("방문 및 예약");
-    if (visitIdx !== -1) {
-      const seg = detailHtml.slice(visitIdx, visitIdx + 2500);
-      const lines = [...seg.matchAll(/white-pre-l">([^<]*)</g)].map((mm) => mm[1].trim()).filter(Boolean);
-      if (lines.length) it.notice_text = lines.join(" / ");
-    }
+    // "제공 내역"/"방문 및 예약" 둘 다 실제 콘텐츠 앞에 <!-- 코멘트 -->가 먼저 나와서
+    // indexOf로 코멘트를 찾아버리면 실제 내용까지 거리가 멀어(최대 4700자+) 놓칠 수 있음.
+    // 대신 콘텐츠를 직접 식별하는 고유 클래스(w-600 / white-pre-l)로 문서 전체를 훑는다.
+    const provideMatch = detailHtml.match(/class="w-600">([^<]+)</);
+    if (provideMatch) it.reward_text = provideMatch[1].trim();
+
+    const lines = [...detailHtml.matchAll(/white-pre-l">([^<]*)</g)].map((mm) => mm[1].trim()).filter(Boolean);
+    if (lines.length) it.notice_text = lines.slice(0, 2).join(" / ");
     it.weekend_ok = classifyWeekend(it.notice_text);
   });
 
