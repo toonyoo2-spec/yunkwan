@@ -169,7 +169,7 @@
   <header>
     <div>
       <h1>체험단 확인</h1>
-      <p>디너의여왕 · 강남맛집 · 놀러와체험단 · 리뷰노트 모집중 캠페인을 관심 지역만 모아서 봅니다.</p>
+      <p>디너의여왕 · 강남맛집 · 놀러와체험단 · 리뷰노트 · 레뷰 모집중 캠페인을 관심 지역만 모아서 봅니다.</p>
     </div>
   </header>
 
@@ -215,7 +215,7 @@
    지역/사이트 캐노니컬 정의 + Supabase 연동 (campaign_listings 테이블)
    =========================================================== */
 const REGION_AREAS = ['용산구','마포구','영등포구','서대문구','강서구','고양시','파주시','미확정'];
-const SOURCES = ['디너의여왕','강남맛집','놀러와체험단','리뷰노트'];
+const SOURCES = ['디너의여왕','강남맛집','놀러와체험단','리뷰노트','레뷰'];
 
 const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
   auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }

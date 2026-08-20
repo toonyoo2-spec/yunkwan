@@ -322,6 +322,80 @@ async function scrapeReviewnote(): Promise<Listing[]> {
   return [...seen.values()];
 }
 
+// ---------------------------------------------------------------
+// 레뷰 (revu.net). www.revu.net 자체는 SPA라 목록이 없고, 실제 데이터는
+// 로그인 후 api.weble.net에서 JWT로 받아온다.
+// - 로그인: POST https://api.weble.net/tokens {username,password,remember}
+// - 목록: GET https://api.weble.net/v1/campaigns?cat=지역&... (Bearer 필요)
+// 로그인 정보는 vault에 저장해두고 get_revu_credentials() RPC로만 꺼낸다.
+// ---------------------------------------------------------------
+async function loginRevu(sb: ReturnType<typeof createClient>): Promise<string> {
+  const { data, error } = await sb.rpc("get_revu_credentials");
+  if (error) throw new Error(`레뷰 로그인 정보 조회 실패: ${error.message}`);
+  const cred = Array.isArray(data) ? data[0] : data;
+  if (!cred?.username || !cred?.password) throw new Error("레뷰 로그인 정보 없음 (vault 확인 필요)");
+
+  const res = await fetch("https://api.weble.net/tokens", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Accept": "application/json" },
+    body: JSON.stringify({ username: cred.username, password: cred.password, remember: true }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`레뷰 로그인 실패: HTTP ${res.status}`);
+  const body = await res.json();
+  if (!body.token) throw new Error("레뷰 로그인 응답에 token 없음");
+  return body.token as string;
+}
+
+async function scrapeRevu(sb: ReturnType<typeof createClient>): Promise<Listing[]> {
+  const token = await loginRevu(sb);
+  const seen = new Map<string, Listing>();
+  const maxPages = 20; // 최신순 정렬, 페이지당 30건 = 최신 600건까지 확인
+
+  for (let page = 1; page <= maxPages; page++) {
+    const url =
+      `https://api.weble.net/v1/campaigns?cat=%EC%A7%80%EC%97%AD&limit=30` +
+      `&media[]=blog&media[]=instagram&media[]=youtube&media[]=clip&media[]=etc` +
+      `&page=${page}&sort=latest&type=play`;
+    const res = await fetch(url, {
+      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) break;
+    const data = await res.json();
+    const items = data.items || [];
+    if (items.length === 0) break;
+
+    for (const it of items) {
+      const addr = it.venue?.addressFirst || "";
+      const localTag = (it.localTag || [])[0] || "";
+      const title = it.item || it.venue?.name || "";
+      if (!title) continue;
+      const sourceId = String(it.id);
+      const categoryList: string[] = it.category || [];
+
+      seen.set(`레뷰_${sourceId}`, {
+        id: `레뷰_${sourceId}`,
+        source: "레뷰",
+        source_id: sourceId,
+        title,
+        url: `https://www.revu.net/campaign/${sourceId}`,
+        category: categorize(categoryList.join(" ") + " " + title),
+        raw_category: categoryList.join("/"),
+        region_area: matchRegion(addr || localTag),
+        region_raw: addr || localTag,
+        deadline_date: it.requestEndedOn || null,
+        deadline_type: it.requestEndedOn ? "dated" : "unknown",
+        raw_deadline_text: it.requestEndedOn || "",
+        reward_text: it.campaignData?.reward || "",
+      });
+    }
+
+    if (data.total && page * data.limit >= data.total) break;
+  }
+  return [...seen.values()];
+}
+
 Deno.serve(async (_req) => {
   const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
   const results: Record<string, number | string> = {};
@@ -332,6 +406,7 @@ Deno.serve(async (_req) => {
     ["놀러와체험단", scrapeCometoplay],
     ["강남맛집", scrapeGangnamMatzip],
     ["리뷰노트", scrapeReviewnote],
+    ["레뷰", () => scrapeRevu(sb)],
   ];
 
   for (const [name, fn] of scrapers) {
