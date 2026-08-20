@@ -301,6 +301,7 @@
       "name name"
       "provide provide"
       "status platform"
+      "weekend weekend"
       "resv resv"
       "address contact"
       "deadline parking"
@@ -583,7 +584,16 @@
             <option value="파블로체험단">파블로체험단</option>
             <option value="서울오빠">서울오빠</option>
             <option value="강남맛집">강남맛집</option>
+            <option value="리뷰플레이스">리뷰플레이스</option>
             <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>주말 가능여부</label>
+          <select id="in-weekend">
+            <option value="unknown">확인필요</option>
+            <option value="possible">주말가능</option>
+            <option value="impossible">주말불가</option>
           </select>
         </div>
       </div>
@@ -603,6 +613,7 @@
             <col style="width:170px;">
             <col style="width:190px;">
             <col style="width:110px;">
+            <col style="width:90px;">
             <col style="width:100px;">
             <col style="width:170px;">
             <col style="width:150px;">
@@ -615,6 +626,7 @@
               <th>체험단 이름</th>
               <th>제공내역</th>
               <th>상태/예약</th>
+              <th>주말</th>
               <th>플랫폼</th>
               <th>주소</th>
               <th>예약문의</th>
@@ -678,7 +690,16 @@
           <option value="파블로체험단">파블로체험단</option>
           <option value="서울오빠">서울오빠</option>
           <option value="강남맛집">강남맛집</option>
+          <option value="리뷰플레이스">리뷰플레이스</option>
           <option value="기타">기타</option>
+        </select>
+      </div>
+      <div class="field" style="grid-area:weekend;">
+        <label>주말 가능여부</label>
+        <select id="edit-weekend">
+          <option value="unknown">확인필요</option>
+          <option value="possible">주말가능</option>
+          <option value="impossible">주말불가</option>
         </select>
       </div>
       <div class="field" id="edit-resv-wrap" style="grid-area:resv;display:none;">
@@ -745,7 +766,7 @@ const statusMeta = {
   end:     { label:"종료",       cls:"status-end" }
 };
 
-const platformList = ["디너의여왕","리뷰노트","놀러와체험단","레뷰","데일리뷰","파블로체험단","서울오빠","강남맛집","기타"];
+const platformList = ["디너의여왕","리뷰노트","놀러와체험단","레뷰","데일리뷰","파블로체험단","서울오빠","강남맛집","리뷰플레이스","기타"];
 
 // 실제 데이터에 쓰이고 있는 플랫폼만 홈페이지 주소를 등록해둠(URL 없는 플랫폼은 그냥 텍스트로 표시).
 const PLATFORM_HOME_URLS = {
@@ -754,7 +775,13 @@ const PLATFORM_HOME_URLS = {
   "강남맛집": "https://xn--939au0g4vj8sq.net/",
   "리뷰노트": "https://www.reviewnote.co.kr/",
   "레뷰": "https://www.revu.net/",
+  "리뷰플레이스": "https://www.reviewplace.co.kr/",
 };
+
+// 캠페인 상세 안내문에 적힌 "휴무일/체험 가능 요일" 문구를 보고 주말(토·일) 방문이
+// 가능한지 표시. campaigns.html(자동 수집 페이지)의 classifyWeekend와 같은 기준—
+// 토요일·일요일 중 하나라도 명시적으로 막혀 있으면 "불가"로 본다(둘 다 열려있어야 "가능").
+const WEEKEND_LABEL = { possible: '🟢 주말가능', impossible: '🔴 주말불가', unknown: '⚪ 확인필요' };
 
 /* 플랫폼명을 표시할 때 쓰는 공통 헬퍼. "체험완료" 상태일 때만(리뷰 URL을 다시 등록하러
    그 플랫폼에 들어가야 하는 시점) 홈페이지 링크로 활성화하고, 그 외 상태거나 등록된
@@ -787,12 +814,13 @@ async function addItem(){
   const keyword = document.getElementById('in-keyword').value.trim();
   const status = document.getElementById('in-status').value;
   const platform = document.getElementById('in-platform').value;
+  const weekend_ok = document.getElementById('in-weekend').value;
 
   if(!name){ alert('체험단 이름을 입력해주세요.'); return; }
 
   const newItem = {
     id: uid(),
-    name, provide, address, contact, parking, deadline, keyword, status, platform,
+    name, provide, address, contact, parking, deadline, keyword, status, platform, weekend_ok,
     resvDate: "", resvTime: ""
   };
 
@@ -812,6 +840,7 @@ async function addItem(){
   document.getElementById('in-keyword').value = "";
   document.getElementById('in-status').value = "wait";
   document.getElementById('in-platform').value = "디너의여왕";
+  document.getElementById('in-weekend').value = "unknown";
 
   render();
 }
@@ -829,6 +858,7 @@ function openEditModal(id){
   document.getElementById('edit-provide').value = it.provide || '';
   document.getElementById('edit-status').value = it.status || 'wait';
   document.getElementById('edit-platform').value = it.platform || platformList[0];
+  document.getElementById('edit-weekend').value = it.weekend_ok || 'unknown';
   document.getElementById('edit-address').value = it.address || '';
   document.getElementById('edit-contact').value = it.contact || '';
   document.getElementById('edit-parking').value = it.address || '';
@@ -863,6 +893,7 @@ async function saveEditModal(){
     provide: document.getElementById('edit-provide').value.trim(),
     status,
     platform: document.getElementById('edit-platform').value,
+    weekend_ok: document.getElementById('edit-weekend').value,
     address: document.getElementById('edit-address').value.trim(),
     contact: document.getElementById('edit-contact').value.trim(),
     parking: document.getElementById('edit-address').value.trim(),
@@ -906,6 +937,7 @@ function openDetailModal(id){
 
   const rows = [
     ['제공내역', it.provide],
+    ['주말', WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown],
     ['주소', it.address],
     ['예약문의', it.contact],
     ['주차장', it.parking],
@@ -1082,6 +1114,7 @@ function render(){
           <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
           ${resvText ? `<div class="resv-text">${resvText}</div>` : ''}
         </td>
+        <td data-label="주말" style="white-space:nowrap;font-size:12px;">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</td>
         <td data-label="플랫폼">${platformValueHtml(it)}</td>
         <td data-label="주소" class="ellipsis-cell" title="${escapeHtml(it.address)}">${escapeHtml(it.address) || '-'}</td>
         <td data-label="예약문의">${escapeHtml(it.contact) || '-'}</td>
@@ -1108,6 +1141,7 @@ function render(){
           <div class="rv-row1">
             <span class="rv-name">${escapeHtml(it.name)}</span>
             <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
+            <span style="font-size:11.5px;white-space:nowrap;flex-shrink:0;">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>
           </div>
           <div class="rv-row2">
             <span class="rv-platform">${platformValueHtml(it, 'onclick="event.stopPropagation()"')}</span>
