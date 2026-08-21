@@ -1076,12 +1076,23 @@ function render(){
   // 1차: 상태 순서(예약완료 → 예약대기 → 체험완료 → 종료)로 먼저 묶고,
   // 2차: 그 안에서 마감일자 오름차순으로 정렬한다. 화면에 보이는 "마감일자" 칼럼과
   // 정렬 기준이 일치해야 각 상태 구간 안에서 정렬이 맞아 보인다.
-  const statusOrder = { confirm:0, wait:1, done:2, end:3 };
-  const deadlineKey = (it) => normalizeDate(it.status === "confirm" ? (it.reservedAt || it.reservedDate || it.deadline) : it.deadline) || "9999-99-99";
-  list.sort((a,b) => {
-    const orderDiff = statusOrder[a.status] - statusOrder[b.status];
-    if(orderDiff !== 0) return orderDiff;
-    return deadlineKey(a).localeCompare(deadlineKey(b));
+const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
+
+  const getSortKey = (it) => {
+    if (it.status === "confirm") {
+      // 1) 예약완료: 예약날짜 + 예약시간 기준 정렬 (없을 경우 마감일자 대체)
+      const d = normalizeDate(it.resvDate) || normalizeDate(it.deadline) || "9999-99-99";
+      const t = it.resvTime || "00:00";
+      return `${d} ${t}`;
+    }
+    // 2) 예약대기 / 체험완료 / 종료: 마감일자 기준 정렬
+    return normalizeDate(it.deadline) || "9999-99-99";
+  };
+
+  list.sort((a, b) => {
+    const orderDiff = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+    if (orderDiff !== 0) return orderDiff;
+    return getSortKey(a).localeCompare(getSortKey(b));
   });
 
   const tbody = document.getElementById('tbody');
