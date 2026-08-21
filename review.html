@@ -1072,11 +1072,16 @@ function render(){
   ).join('');
 
   let list = filter === "all" ? items.slice() : items.filter(it => it.status === filter);
-  // 마감일자 하나로만 정렬한다(종료는 항상 맨 아래). 전에는 예약완료만 예약일시로
-  // 따로 정렬했는데, 화면에 보이는 "마감일자" 칼럼과 실제 정렬 기준이 달라져서
-  // 눈으로 보기엔 뒤죽박죽 섞인 것처럼(정렬이 깨진 것처럼) 보이는 문제가 있었음.
-  const actByKey = (it) => it.status === "end" ? "9999-99-99" : (normalizeDate(it.deadline) || "9999-99-99");
-  list.sort((a,b) => actByKey(a).localeCompare(actByKey(b)));
+  // 1차: 상태 순서(예약완료 → 예약대기 → 체험완료 → 종료)로 먼저 묶고,
+  // 2차: 그 안에서 마감일자 오름차순으로 정렬한다. 화면에 보이는 "마감일자" 칼럼과
+  // 정렬 기준이 일치해야 각 상태 구간 안에서 정렬이 맞아 보인다.
+  const statusOrder = { confirm:0, wait:1, done:2, end:3 };
+  const deadlineKey = (it) => normalizeDate(it.deadline) || "9999-99-99";
+  list.sort((a,b) => {
+    const orderDiff = statusOrder[a.status] - statusOrder[b.status];
+    if(orderDiff !== 0) return orderDiff;
+    return deadlineKey(a).localeCompare(deadlineKey(b));
+  });
 
   const tbody = document.getElementById('tbody');
   const emptyMsg = document.getElementById('emptyMsg');
