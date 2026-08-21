@@ -1077,7 +1077,7 @@ function render(){
   // 2차: 그 안에서 마감일자 오름차순으로 정렬한다. 화면에 보이는 "마감일자" 칼럼과
   // 정렬 기준이 일치해야 각 상태 구간 안에서 정렬이 맞아 보인다.
   const statusOrder = { confirm:0, wait:1, done:2, end:3 };
-  const deadlineKey = (it) => normalizeDate(it.deadline) || "9999-99-99";
+  const deadlineKey = (it) => normalizeDate(it.status === "confirm" ? (it.reservedAt || it.reservedDate || it.deadline) : it.deadline) || "9999-99-99";
   list.sort((a,b) => {
     const orderDiff = statusOrder[a.status] - statusOrder[b.status];
     if(orderDiff !== 0) return orderDiff;
