@@ -1072,17 +1072,10 @@ function render(){
   ).join('');
 
   let list = filter === "all" ? items.slice() : items.filter(it => it.status === filter);
-  // "다음에 뭘 해야 하는지"가 가장 급한 순서로 하나의 흐름으로 정렬한다 — 상태별로
-  // 먼저 묶은 뒤 그 안에서만 따로 정렬하면(예약완료는 예약일, 예약대기/체험완료는
-  // 마감일) 전체 탭에서 급한 일이 여기저기 흩어져 보이는 문제가 있었음. 종료는
-  // 더 이상 할 일이 없으니 항상 맨 아래로 보낸다.
-  const actByKey = (it) => {
-    if(it.status === "end") return "9999-99-99 99:99";
-    if(it.status === "confirm"){
-      return (normalizeDate(it.resvDate) || "9999-99-99") + " " + (it.resvTime || "99:99");
-    }
-    return (normalizeDate(it.deadline) || "9999-99-99") + " 99:99";
-  };
+  // 마감일자 하나로만 정렬한다(종료는 항상 맨 아래). 전에는 예약완료만 예약일시로
+  // 따로 정렬했는데, 화면에 보이는 "마감일자" 칼럼과 실제 정렬 기준이 달라져서
+  // 눈으로 보기엔 뒤죽박죽 섞인 것처럼(정렬이 깨진 것처럼) 보이는 문제가 있었음.
+  const actByKey = (it) => it.status === "end" ? "9999-99-99" : (normalizeDate(it.deadline) || "9999-99-99");
   list.sort((a,b) => actByKey(a).localeCompare(actByKey(b)));
 
   const tbody = document.getElementById('tbody');
