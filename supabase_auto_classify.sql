@@ -10,7 +10,7 @@ DECLARE
   v_category TEXT := '식비';
   v_note TEXT := p_line;
   v_amount NUMERIC;
-  v_date DATE := CURRENT_DATE;
+  v_date DATE := (now() AT TIME ZONE 'Asia/Seoul')::date;  -- DB 서버는 UTC라 CURRENT_DATE를 쓰면 한국시간 00~09시엔 하루 전 날짜가 저장됨
   v_payment TEXT := '농협[관]';  -- 농협 알림은 무조건 농협[관]
   result_id BIGINT;
 BEGIN
