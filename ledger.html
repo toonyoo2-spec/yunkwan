@@ -3991,9 +3991,10 @@ function submitTx(ym){
 }
 
 /* =================================================================================
-   7-1. MacroDroid URL 파라미터 자동 채우기
+   7-1. MacroDroid URL 파라미터 자동 채우기 + 자동저장
    ---------------------------------------------------------------------------------
-   MacroDroid가 URL 파라미터로 거래 정보를 전달하면 자동으로 폼에 채워줍니다.
+   MacroDroid가 URL 파라미터로 거래 정보를 전달하면 폼에 채운 뒤, date/amount가
+   파라미터로 왔으면 사람 확인 없이 바로 저장까지 처리합니다(수정은 거래 내역에서).
    예: ledger.html?date=2026-07-31&amount=5000&scope=공동&main=생활비&category=식비&note=스타벅스
    ================================================================================= */
 function fillFormFromUrlParams(){
@@ -4071,6 +4072,17 @@ function fillFormFromUrlParams(){
   if(paymentValue){
     const paymentField = document.getElementById('f_payment');
     if(paymentField) paymentField.value = paymentValue;
+  }
+
+  // 자동저장: date/amount가 URL 파라미터로 실제로 넘어온 경우에만(=MacroDroid가
+  // 호출한 경우에만) 사람 확인 없이 바로 저장. 폼에 남아있던 값이 아니라
+  // "파라미터가 있었는지"로 판단해야 실수로 다른 값이 딸려가지 않음.
+  if(params.has('date') && params.has('amount')){
+    const date = document.getElementById('f_date').value;
+    const amount = parseAmountInput(document.getElementById('f_amount').value);
+    if(date && amount > 0){
+      submitTx(ymOf(date));
+    }
   }
 
   // URL 파라미터 처리 후 제거 (새로고침해도 같은 값이 다시 채워지지 않도록)
