@@ -498,15 +498,19 @@
     white-space:nowrap;
   }
 
-  /* 수정 모달: 체험단 이름(단독) → 제공내역 → 주소/예약문의 → 마감일자/상태/플랫폼 →
-     주차장/키워드 (예약일시는 상태=예약완료일 때만 그 아래에 표시) */
+  /* 수정 모달: 체험단 이름(단독) → 제공내역 → 주소/예약문의 → 마감일자 → 상태 →
+     플랫폼 → 주말가능여부 → 예약일시 → 주차장/키워드. 마감일자/상태/플랫폼을
+     한 줄에 3칸으로 욱여넣으면 셀렉트 글자가 잘려서("예약완료"→"예약완" 등)
+     각각 한 줄씩 전체 너비로 펼침. */
   .edit-form-grid{
     grid-template-columns:1fr 1fr 1fr;
     grid-template-areas:
       "name name name"
       "provide provide provide"
       "address address contact"
-      "deadline status platform"
+      "deadline deadline deadline"
+      "status status status"
+      "platform platform platform"
       "weekend weekend weekend"
       "resv resv resv"
       "parking keyword keyword";
