@@ -213,7 +213,7 @@
 
   table{
     width:100%;
-    min-width:1050px;
+    min-width:1177px;
     table-layout:fixed;
     border-collapse:collapse;
     font-size:13.5px;
@@ -298,7 +298,7 @@
     display:grid;
     grid-template-columns:1fr 1fr;
     grid-template-areas:
-      "name name"
+      "region name"
       "provide provide"
       "status platform"
       "weekend weekend"
@@ -498,12 +498,13 @@
     white-space:nowrap;
   }
 
-  /* 수정 모달: 체험단 이름(단독) → 제공내역 → 주소/예약문의 → 마감일자/상태 →
+  /* 수정 모달: 지역 → 체험단 이름(단독) → 제공내역 → 주소/예약문의 → 마감일자/상태 →
      플랫폼/주말가능여부 → 예약일시 → 주차장/키워드. 세 필드를 한 줄에 다 넣으면
      셀렉트 글자가 잘려서("예약완료"→"예약완" 등) 두 필드씩 짝지어 배치. */
   .edit-form-grid{
     grid-template-columns:1fr 1fr 1fr;
     grid-template-areas:
+      "region region region"
       "name name name"
       "provide provide provide"
       "address address contact"
@@ -533,9 +534,17 @@
   <div class="summary" id="summary"></div>
 
   <div class="panel">
-    <h2>새 체험단 등록</h2>
+    <div class="toolbar" style="margin-bottom:0;">
+      <h2 style="margin:0;">새 체험단 등록</h2>
+      <button type="button" class="tab" id="addFormToggleBtn" onclick="toggleAddForm()">펼치기</button>
+    </div>
+    <div id="addFormBody" style="display:none;margin-top:16px;">
     <div class="form-grid">
       <div class="form-row">
+        <div class="field">
+          <label>지역</label>
+          <input id="in-region" placeholder="예: 서울 강서">
+        </div>
         <div class="field">
           <label>체험단 이름</label>
           <input id="in-name" placeholder="예: OO 맛집 체험단">
@@ -596,11 +605,14 @@
             <option value="unknown">확인필요</option>
             <option value="possible">주말가능</option>
             <option value="impossible">주말불가</option>
+            <option value="sat_only">토욜가능</option>
+            <option value="sun_only">일욜가능</option>
           </select>
         </div>
       </div>
     </div>
     <button class="add-btn" onclick="addItem()">+ 추가하기</button>
+    </div>
   </div>
 
   <div class="panel">
@@ -612,19 +624,21 @@
       <div class="table-wrap">
         <table>
           <colgroup>
-            <col style="width:150px;">
-            <col style="width:140px;">
+            <col style="width:74px;">
+            <col style="width:128px;">
+            <col style="width:128px;">
             <col style="width:95px;">
-            <col style="width:72px;">
+            <col style="width:68px;">
+            <col style="width:76px;">
+            <col style="width:172px;">
+            <col style="width:108px;">
             <col style="width:80px;">
-            <col style="width:190px;">
-            <col style="width:115px;">
-            <col style="width:85px;">
-            <col style="width:84px;">
-            <col style="width:190px;">
+            <col style="width:80px;">
+            <col style="width:168px;">
           </colgroup>
           <thead>
             <tr>
+              <th>지역</th>
               <th>체험단 이름</th>
               <th>제공내역</th>
               <th>상태/예약</th>
@@ -652,6 +666,10 @@
     <button class="cal-modal-close" onclick="closeEditModal()">✕</button>
     <h3 class="cal-modal-title">체험단 수정</h3>
     <div class="edit-form-grid">
+      <div class="field" style="grid-area:region;">
+        <label>지역</label>
+        <input id="edit-region">
+      </div>
       <div class="field" style="grid-area:name;">
         <label>체험단 이름</label>
         <input id="edit-name">
@@ -702,6 +720,8 @@
           <option value="unknown">확인필요</option>
           <option value="possible">주말가능</option>
           <option value="impossible">주말불가</option>
+          <option value="sat_only">토욜가능</option>
+          <option value="sun_only">일욜가능</option>
         </select>
       </div>
       <div class="field" id="edit-resv-wrap" style="grid-area:resv;display:none;">
@@ -783,7 +803,7 @@ const PLATFORM_HOME_URLS = {
 // 캠페인 상세 안내문에 적힌 "휴무일/체험 가능 요일" 문구를 보고 주말(토·일) 방문이
 // 가능한지 표시. campaigns.html(자동 수집 페이지)의 classifyWeekend와 같은 기준—
 // 토요일·일요일 중 하나라도 명시적으로 막혀 있으면 "불가"로 본다(둘 다 열려있어야 "가능").
-const WEEKEND_LABEL = { possible: '🟢 주말가능', impossible: '🔴 주말불가', unknown: '⚪ 확인필요' };
+const WEEKEND_LABEL = { possible: '🟢 주말가능', impossible: '🔴 주말불가', sat_only: '🟡 토욜가능', sun_only: '🟡 일욜가능', unknown: '⚪ 확인필요' };
 
 /* 플랫폼명을 표시할 때 쓰는 공통 헬퍼. "체험완료" 상태일 때만(리뷰 URL을 다시 등록하러
    그 플랫폼에 들어가야 하는 시점) 홈페이지 링크로 활성화하고, 그 외 상태거나 등록된
@@ -806,7 +826,17 @@ function normalizeDate(v){
   return `${y}-${m}-${day}`;
 }
 
+/* "새 체험단 등록" 폼은 평소엔 접혀 있다가 필요할 때만 펼치도록 — 기본값은 항상 닫힘. */
+function toggleAddForm(){
+  const body = document.getElementById('addFormBody');
+  const btn = document.getElementById('addFormToggleBtn');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  btn.textContent = isOpen ? '펼치기' : '접기';
+}
+
 async function addItem(){
+  const region = document.getElementById('in-region').value.trim();
   const name = document.getElementById('in-name').value.trim();
   const provide = document.getElementById('in-provide').value.trim();
   const address = document.getElementById('in-address').value.trim();
@@ -822,7 +852,7 @@ async function addItem(){
 
   const newItem = {
     id: uid(),
-    name, provide, address, contact, parking, deadline, keyword, status, platform, weekend_ok,
+    region, name, provide, address, contact, parking, deadline, keyword, status, platform, weekend_ok,
     resvDate: "", resvTime: ""
   };
 
@@ -833,6 +863,7 @@ async function addItem(){
   }
   await loadInitialData();
 
+  document.getElementById('in-region').value = "";
   document.getElementById('in-name').value = "";
   document.getElementById('in-provide').value = "";
   document.getElementById('in-address').value = "";
@@ -856,6 +887,7 @@ function openEditModal(id){
   if(!it) return;
   editingId = id;
 
+  document.getElementById('edit-region').value = it.region || '';
   document.getElementById('edit-name').value = it.name || '';
   document.getElementById('edit-provide').value = it.provide || '';
   document.getElementById('edit-status').value = it.status || 'wait';
@@ -891,6 +923,7 @@ async function saveEditModal(){
 
   const status = document.getElementById('edit-status').value;
   const payload = {
+    region: document.getElementById('edit-region').value.trim(),
     name,
     provide: document.getElementById('edit-provide').value.trim(),
     status,
@@ -938,6 +971,7 @@ function openDetailModal(id){
     : "";
 
   const rows = [
+    ['지역', it.region],
     ['제공내역', it.provide],
     ['주말', WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown],
     ['주소', it.address],
@@ -1115,6 +1149,7 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
 
     return `
       <tr>
+        <td data-label="지역" class="ellipsis-cell" title="${escapeHtml(it.region)}">${escapeHtml(it.region) || '-'}</td>
         <td data-label="체험단 이름" class="name-cell" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기">${escapeHtml(it.name)}</td>
         <td data-label="제공내역" class="ellipsis-cell" title="${escapeHtml(it.provide)}" onclick="openDetailModal('${it.id}')" style="cursor:pointer;">${escapeHtml(it.provide) || '-'}</td>
         <td data-label="상태/예약" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기" style="cursor:pointer;">
@@ -1151,6 +1186,7 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
             <span style="font-size:11.5px;white-space:nowrap;flex-shrink:0;">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>
           </div>
           <div class="rv-row2">
+            ${it.region ? `<span class="rv-date">${escapeHtml(it.region)}</span><span class="rv-dot">·</span>` : ''}
             <span class="rv-platform">${platformValueHtml(it, 'onclick="event.stopPropagation()"')}</span>
             ${dateLabel ? `<span class="rv-dot">·</span><span class="rv-date">${dateLabel}</span>` : ''}
             ${it.provide ? `<span class="rv-dot">·</span><span class="rv-provide">${escapeHtml(it.provide)}</span>` : ''}
