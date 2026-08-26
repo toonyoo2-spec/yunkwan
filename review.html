@@ -487,9 +487,16 @@
 
   header{ align-items:flex-start; }
 
-  .summary{ grid-template-columns:repeat(2,1fr); gap:8px; }
+  .summary{ grid-template-columns:repeat(4,1fr); gap:6px; }
+  .sum-card{ padding:10px 8px; }
+  .sum-card .num{ font-size:17px; }
+  .sum-card .lbl{ font-size:10.5px; }
 
   .add-btn{ width:100%; text-align:center; }
+
+  /* 새 체험단 등록은 PC에서만 쓰고 모바일에서는 아예 숨김(입력할 일이 거의 없고
+     화면만 차지함) */
+  #addPanel{ display:none; }
 
   .toolbar{ flex-direction:column; align-items:stretch; gap:10px; }
   .tabs{ justify-content:flex-start; }
@@ -497,7 +504,10 @@
   /* 표는 완전히 숨기고, 핵심 정보(이름/상태/플랫폼/날짜/제공내역)만 2줄로 보여주는
      카드 목록으로 대체. 나머지 상세 항목(주소/예약문의/주차장/키워드)은 카드를
      눌러서 여는 요약 팝업에서 확인 — 한눈에 훑어보기엔 이게 더 깔끔함. */
-  .table-scroll{ display:none; }
+  /* PC용 상태별 구역(제목+테이블) 전체를 숨겨야 함 — table-scroll만 숨기면
+     구역 제목(.status-section-title)은 그대로 남아서 빈 제목이 중복으로
+     보이는 버그가 있었음. */
+  #tableSections{ display:none; }
   .rv-cards{ display:flex; flex-direction:column; gap:8px; }
 
   .rv-card{
@@ -581,7 +591,7 @@
 
   <div class="summary" id="summary"></div>
 
-  <div class="panel">
+  <div class="panel" id="addPanel">
     <div class="toolbar" style="margin-bottom:0;">
       <h2 style="margin:0;">새 체험단 등록</h2>
       <button type="button" class="tab" id="addFormToggleBtn" onclick="toggleAddForm()">펼치기</button>
