@@ -570,6 +570,14 @@
     text-overflow:ellipsis;
     white-space:nowrap;
   }
+  .rv-row3{
+    font-size:12px;
+    color:var(--sub);
+    margin-top:2px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
 
   /* 수정 모달: 체험단 이름(단독) → 상태/플랫폼 → 제공내역 → 주말가능여부/예약문의 →
      주소/마감일자 → 예약일시 → 키워드. 이름은 길 수 있어서(예: "섬맛의공방 제주이야기
@@ -1273,6 +1281,7 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
           ${it.region && dateLabel ? `<span class="rv-dot">·</span>` : ''}
           ${dateLabel ? `<span class="rv-date">${dateLabel}</span>` : ''}
         </div>
+        ${it.provide ? `<div class="rv-row3">${escapeHtml(it.provide)}</div>` : ''}
       </div>
     `;
   };
