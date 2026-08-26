@@ -499,7 +499,17 @@
   #addPanel{ display:none; }
 
   .toolbar{ flex-direction:column; align-items:stretch; gap:10px; }
-  .tabs{ justify-content:flex-start; }
+  /* 탭 5개(전체/예약대기/예약완료/체험완료/종료)가 좁은 화면에서 줄바꿈되면
+     한눈에 안 들어와서, 줄바꿈 대신 가로 스크롤 한 줄로 유지 */
+  .tabs{
+    justify-content:flex-start;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:2px;
+  }
+  .tabs::-webkit-scrollbar{ display:none; }
+  .tabs .tab{ flex-shrink:0; }
 
   /* 표는 완전히 숨기고, 핵심 정보(이름/상태/플랫폼/날짜/제공내역)만 2줄로 보여주는
      카드 목록으로 대체. 나머지 상세 항목(주소/예약문의/주차장/키워드)은 카드를
