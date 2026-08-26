@@ -296,17 +296,21 @@
   .cal-modal-title{font-size:17px;font-weight:700;margin-bottom:16px;}
   .edit-form-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:1fr 1fr 1fr;
     grid-template-areas:
-      "region name"
-      "provide provide"
-      "status platform"
-      "weekend weekend"
-      "resv resv"
-      "address contact"
-      "deadline parking"
-      "keyword keyword";
+      "name status platform"
+      "provide provide provide"
+      "weekend weekend contact"
+      "address address deadline"
+      "resv resv resv"
+      "keyword keyword keyword";
     gap:12px;
+  }
+  .edit-form-grid .field{
+    /* 그리드 아이템 기본 min-width는 auto(=내용의 max-content)라서, 폭이 좁은 칸에
+       type=date처럼 안 줄어드는 요소가 하나만 있어도 그 칸 전체 트랙이 넓어지면서
+       같은 트랙을 쓰는 다른 줄(상태/플랫폼 등)까지 같이 찌그러지는 문제가 있었음. */
+    min-width:0;
   }
   .edit-form-grid label{
     display:block;
@@ -498,20 +502,19 @@
     white-space:nowrap;
   }
 
-  /* 수정 모달: 지역 → 체험단 이름(단독) → 제공내역 → 주소/예약문의 → 마감일자/상태 →
-     플랫폼/주말가능여부 → 예약일시 → 주차장/키워드. 세 필드를 한 줄에 다 넣으면
-     셀렉트 글자가 잘려서("예약완료"→"예약완" 등) 두 필드씩 짝지어 배치. */
+  /* 수정 모달: 체험단 이름(단독) → 상태/플랫폼 → 제공내역 → 주말가능여부/예약문의 →
+     주소/마감일자 → 예약일시 → 키워드. 이름은 길 수 있어서(예: "섬맛의공방 제주이야기
+     판교점") 상태·플랫폼과 한 줄에 욱여넣으면 심하게 잘려서 이름만 단독 줄로 뺌. */
   .edit-form-grid{
     grid-template-columns:1fr 1fr 1fr;
     grid-template-areas:
-      "region region region"
       "name name name"
+      "status platform platform"
       "provide provide provide"
-      "address address contact"
-      "deadline deadline status"
-      "platform platform weekend"
+      "weekend weekend contact"
+      "address address deadline"
       "resv resv resv"
-      "parking keyword keyword";
+      "keyword keyword keyword";
   }
 }
 </style>
@@ -666,10 +669,6 @@
     <button class="cal-modal-close" onclick="closeEditModal()">✕</button>
     <h3 class="cal-modal-title">체험단 수정</h3>
     <div class="edit-form-grid">
-      <div class="field" style="grid-area:region;">
-        <label>지역</label>
-        <input id="edit-region">
-      </div>
       <div class="field" style="grid-area:name;">
         <label>체험단 이름</label>
         <input id="edit-name">
@@ -730,10 +729,6 @@
           <input type="date" id="edit-resvDate" onclick="this.showPicker && this.showPicker()">
           <select id="edit-resvTime"></select>
         </div>
-      </div>
-      <div class="field" style="grid-area:parking;">
-        <label>주차장</label>
-        <input id="edit-parking" readonly>
       </div>
       <div class="field" style="grid-area:keyword;">
         <label>키워드</label>
@@ -887,7 +882,6 @@ function openEditModal(id){
   if(!it) return;
   editingId = id;
 
-  document.getElementById('edit-region').value = it.region || '';
   document.getElementById('edit-name').value = it.name || '';
   document.getElementById('edit-provide').value = it.provide || '';
   document.getElementById('edit-status').value = it.status || 'wait';
@@ -895,7 +889,6 @@ function openEditModal(id){
   document.getElementById('edit-weekend').value = it.weekend_ok || 'unknown';
   document.getElementById('edit-address').value = it.address || '';
   document.getElementById('edit-contact').value = it.contact || '';
-  document.getElementById('edit-parking').value = it.address || '';
   document.getElementById('edit-deadline').value = normalizeDate(it.deadline);
   document.getElementById('edit-keyword').value = it.keyword || '';
   document.getElementById('edit-resvDate').value = normalizeDate(it.resvDate);
@@ -923,7 +916,6 @@ async function saveEditModal(){
 
   const status = document.getElementById('edit-status').value;
   const payload = {
-    region: document.getElementById('edit-region').value.trim(),
     name,
     provide: document.getElementById('edit-provide').value.trim(),
     status,
@@ -1224,9 +1216,6 @@ async function loadInitialData(){
 // 주차장 필드는 주소와 항상 동일하게 자동 입력(모두의주차장 검색 링크용)
 document.getElementById('in-address').addEventListener('input', function(){
   document.getElementById('in-parking').value = this.value;
-});
-document.getElementById('edit-address').addEventListener('input', function(){
-  document.getElementById('edit-parking').value = this.value;
 });
 
 // 인증이 완료된 후에만 데이터를 로드하도록 이벤트 리스너 추가
