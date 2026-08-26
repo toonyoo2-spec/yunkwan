@@ -392,10 +392,14 @@ async function togglePicked(id, current){
 }
 
 function renderList(){
+  // 마감일이 지난 건(수집만 되고 자동으로 안 지워지는 항목)은 기본 목록에서 빼서,
+  // 새로고침해도 이미 끝난 캠페인들이 위쪽(마감일 오름차순이라 지난 날짜가 먼저 옴)에
+  // 계속 쌓여 보이는 문제를 막는다. 찜한(picked) 건은 지나도 계속 보여준다.
   const filtered = state.items.filter(it =>
     state.regions.has(it.region_area) &&
     state.sources.has(it.source) &&
-    (!state.weekendOnly || it.weekend_ok === 'possible')
+    (!state.weekendOnly || it.weekend_ok === 'possible') &&
+    (it.picked || it.deadline_type !== 'dated' || !it.deadline_date || daysLeft(it.deadline_date) >= 0)
   );
 
   // 정렬: 픽된 것 먼저, 그 다음 마감일 확정 건 → 임박순, 그 다음 선착순/상시
