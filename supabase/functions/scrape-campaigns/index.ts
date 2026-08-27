@@ -499,14 +499,14 @@ Deno.serve(async (_req) => {
     }
   }
 
-  // 마감 지난 지 3일 넘은 항목은 정리
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 3);
+  // 마감일이 지난 항목은 그날그날 바로 정리 (찜한 건 지나도 계속 보존)
+  const todayKST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
   await sb
     .from("campaign_listings")
     .delete()
     .eq("deadline_type", "dated")
-    .lt("deadline_date", cutoff.toISOString().slice(0, 10));
+    .lt("deadline_date", todayKST)
+    .not("picked", "is", true);
 
   return new Response(
     JSON.stringify({ ok: true, results, saved: interesting.length, totalScraped: all.length }),
