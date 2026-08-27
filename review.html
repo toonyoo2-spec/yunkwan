@@ -288,6 +288,20 @@
     text-overflow:ellipsis;
     cursor:help;
   }
+  .end-btn{
+    margin-left:6px;
+    padding:2px 8px;
+    font-size:11px;
+    font-weight:600;
+    color:var(--end-ink);
+    background:var(--card);
+    border:1px solid var(--end-ink);
+    border-radius:5px;
+    cursor:pointer;
+    white-space:nowrap;
+    vertical-align:middle;
+  }
+  .end-btn:hover{ opacity:0.8; }
   thead th,
   tbody td{
     overflow:hidden;
@@ -1136,6 +1150,16 @@ async function deleteItemFromModal(){
   await loadInitialData();
 }
 
+/* 체험완료 목록에서 지역 칸의 "종료" 버튼으로 바로 상태를 종료 처리 (수정모달을 열 필요 없이 한 번에). */
+async function markAsEnded(id){
+  const { error } = await sb.from('campaigns').update({ status: 'end' }).eq('id', id);
+  if (error) {
+    alert("상태 변경 실패: " + error.message);
+    return;
+  }
+  await loadInitialData();
+}
+
 /* ---- 요약 팝업 ---- */
 function openDetailModal(id){
   const it = items.find(i => i.id === id);
@@ -1359,7 +1383,10 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
       : "";
     return `
       <tr>
-        <td data-label="지역" class="ellipsis-cell" title="${escapeHtml(it.region)}">${escapeHtml(it.region) || '-'}</td>
+        <td data-label="지역" class="ellipsis-cell" title="${escapeHtml(it.region)}">
+          ${escapeHtml(it.region) || '-'}
+          ${it.status === 'done' ? `<button type="button" class="end-btn" onclick="event.stopPropagation(); markAsEnded('${it.id}')">종료</button>` : ''}
+        </td>
         <td data-label="체험단 이름" class="name-cell" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기">${escapeHtml(it.name)}</td>
         <td data-label="제공내역" class="ellipsis-cell" title="${escapeHtml(it.provide)}" onclick="openDetailModal('${it.id}')" style="cursor:pointer;">${escapeHtml(it.provide) || '-'}</td>
         <td data-label="상태/예약" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기" style="cursor:pointer;">
@@ -1396,6 +1423,7 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
           ${it.region ? `<span class="rv-date">${escapeHtml(it.region)}</span>` : ''}
           ${it.region && dateLabel ? `<span class="rv-dot">·</span>` : ''}
           ${dateLabel ? `<span class="rv-date">${dateLabel}</span>` : ''}
+          ${it.status === 'done' ? `<button type="button" class="end-btn" onclick="event.stopPropagation(); markAsEnded('${it.id}')">종료</button>` : ''}
         </div>
         ${(it.provide || it.platform) ? `<div class="rv-row3">
           <span class="rv-row3-provide">${escapeHtml(it.provide)}</span>
