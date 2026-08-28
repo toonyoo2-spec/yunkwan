@@ -1336,7 +1336,7 @@ const DB = {
 
   async init(){
     const [txRes, reviewRes, budgetRes, recurRes, skipRes, overrideRes, cardBillOverrideRes] = await Promise.all([
-      sb.from('transactions').select('*').order('date'),
+      sb.from('transactions').select('*').order('date', { ascending: false }),
       sb.from('monthly_reviews').select('*'),
       sb.from('budgets').select('*'),
       sb.from('recurring_templates').select('*'),
