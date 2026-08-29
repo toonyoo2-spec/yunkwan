@@ -110,6 +110,31 @@
     color:var(--sub);
     margin:26px 0 12px;
   }
+
+  .ticket-list{margin:10px 0;}
+  .ticket-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:6px 0;
+    border-bottom:1px solid var(--line);
+    font-size:12.5px;
+  }
+  .ticket-row:last-child{border-bottom:none;}
+  .ticket-name{flex:1;color:var(--ink);}
+  .ticket-price{font-weight:700;color:var(--accent);}
+  .ticket-status{
+    font-size:10.5px;
+    font-weight:700;
+    padding:2px 7px;
+    border-radius:20px;
+    background:#eef0ec;
+    color:var(--sub);
+  }
+  .ticket-status.available{background:#d4f4dd;color:#2d7a3e;}
+  .ticket-status.sold_out{background:#f3e5e5;color:#a04545;}
+  .ticket-status.not_yet_open{background:#fdf3d9;color:#8a6d16;}
 </style>
 </head>
 <body>
@@ -128,11 +153,13 @@
   <div class="panel">
     <div class="form-grid">
       <div class="field">
-        <label>지하철역</label>
-        <select id="fStation">
-          <option value="판교역">판교역</option>
-          <option value="화정역">화정역</option>
-        </select>
+        <label>지하철역 / 주소 검색</label>
+        <input type="text" id="fStation" list="fStationList" value="판교역" placeholder="역 이름을 입력하세요 (예: 판교역)" autocomplete="off">
+        <datalist id="fStationList">
+          <option value="판교역">
+          <option value="화정역">
+        </datalist>
+        <div class="hint" id="fStationHint"></div>
       </div>
       <div class="field">
         <label>주차 시간</label>
@@ -157,7 +184,7 @@
       </div>
       <div class="field">
         <label>충전 단가 (원/kWh)</label>
-        <input type="number" id="fRate" placeholder="예: 320 (현장/앱에서 확인 후 입력)">
+        <input type="number" id="fRate" placeholder="현장/충전 앱에서 확인 후 입력">
         <div class="hint">단가는 운영사·시간대별로 계속 바뀝니다. 비워두면 충전비는 계산에서 제외됩니다.</div>
       </div>
     </div>
@@ -226,23 +253,79 @@
     ]
   };
 
-  // ===== 민영/제휴 주차장 — 가격 표시 없이 이름 + 딥링크만 =====
+  // ===== 민영/제휴 주차장 =====
+  // moduId가 있으면 실시간 API(실제 판매중인 당일권 가격/재고)를 가져와 보여주고,
+  // 없으면(정확한 상세페이지 ID를 못 찾은 곳) 기존처럼 딥링크만 제공합니다.
+  const CHARGING_API = "https://ev-charging-parking-api.kwan-yun.workers.dev";
+
   const PRIVATE_LOTS = {
     "판교역": [
-      "그레이츠 판교", "힐스테이트 판교역", "판교푸르지오월드마크",
-      "아브뉴프랑 판교", "현대백화점 판교점", "카카오 판교아지트", "판교테크원타워"
+      { name: "그레이츠 판교 (투루파킹)", moduId: "232170" },
+      { name: "힐스테이트 판교역", moduId: "263567" },
+      { name: "판교푸르지오", moduId: "105210" },
+      { name: "아브뉴프랑 판교", moduId: null },
+      { name: "현대백화점 판교점", moduId: "110544" },
+      { name: "카카오 판교아지트", moduId: null },
+      { name: "판교테크원타워", moduId: null }
     ],
     "화정역": [
-      "이마트 화정점", "롯데마트 화정점"
+      { name: "이마트 화정점", moduId: null },
+      { name: "롯데마트 화정점", moduId: null }
     ]
+  };
+
+  const TICKET_STATUS_LABEL = {
+    AVAILABLE: "구매가능",
+    SOLD_OUT: "품절",
+    NOT_YET_OPEN: "오픈예정"
   };
 
   function naverMapLink(query){
     return `https://map.naver.com/p/search/${encodeURIComponent(query)}`;
   }
 
-  function render(){
-    const station = document.getElementById('fStation').value;
+  async function fetchLiveModuData(ids){
+    if(ids.length === 0) return {};
+    try{
+      const res = await fetch(`${CHARGING_API}/modu?ids=${ids.join(',')}`);
+      if(!res.ok) return {};
+      const data = await res.json();
+      const map = {};
+      (data.results || []).forEach(r => { map[r.id] = r; });
+      return map;
+    }catch(e){
+      return {}; // 네트워크 오류 시 조용히 폴백 (딥링크만 표시)
+    }
+  }
+
+  function renderTickets(tickets){
+    if(!tickets || tickets.length === 0) return '';
+    const available = tickets.filter(t => t.status === 'AVAILABLE').slice(0, 4);
+    const shown = available.length > 0 ? available : tickets.slice(0, 3);
+    return `<div class="ticket-list">` + shown.map(t => `
+      <div class="ticket-row">
+        <span class="ticket-name">${escapeHtml(t.name)}</span>
+        <span class="ticket-price">${t.price.toLocaleString()}원</span>
+        <span class="ticket-status ${t.status.toLowerCase()}">${TICKET_STATUS_LABEL[t.status] || t.status}</span>
+      </div>
+    `).join('') + `</div>`;
+  }
+
+  function escapeHtml(str){
+    return (str||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  async function render(){
+    const stationInput = document.getElementById('fStation').value.trim();
+    const SUPPORTED_STATIONS = Object.keys(PUBLIC_LOTS);
+    const station = SUPPORTED_STATIONS.find(s => s === stationInput) || null;
+    const hintEl = document.getElementById('fStationHint');
+    if(!station){
+      hintEl.textContent = `아직 지원하지 않는 지역입니다. 현재 지원: ${SUPPORTED_STATIONS.join(', ')}`;
+    } else {
+      hintEl.textContent = '';
+    }
+
     const duration = document.getElementById('fDuration').value;
     const isWeekend = document.getElementById('fWeekend').value === 'true';
     const kw = parseFloat(document.getElementById('fKw').value) || 0;
@@ -272,19 +355,49 @@
       `;
     }).join('') || '<div class="empty">해당 역의 공영주차장 데이터가 없습니다.</div>';
 
-    // 민영/제휴 주차장
+    // 민영/제휴 주차장 — 실시간 API 우선, 실패/미보유 시 딥링크 폴백
     const privateEl = document.getElementById('privateLots');
-    privateEl.innerHTML = (PRIVATE_LOTS[station] || []).map(name => `
-      <div class="lot-card">
-        <span class="type-badge private">민영/제휴</span>
-        <div class="name">${name}</div>
-        <div class="note">앱 제휴권·할인가는 시즌/요일별로 계속 바뀌어 여기서 계산하지 않습니다. 아래에서 그 자리에서 확인하세요.</div>
-        <div class="links">
-          <a href="https://app.modu.kr/" target="_blank" rel="noopener">모두의주차장에서 확인</a>
-          <a href="${naverMapLink(name + ' 주차장')}" target="_blank" rel="noopener">네이버지도로 보기</a>
+    const lots = PRIVATE_LOTS[station] || [];
+    privateEl.innerHTML = lots.map(lot => `<div class="lot-card" id="lot-${lot.moduId || escapeHtml(lot.name).replace(/\s/g,'')}"><span class="type-badge private">민영/제휴</span><div class="name">${escapeHtml(lot.name)}</div><div class="note">불러오는 중...</div></div>`).join('')
+      || '<div class="empty">해당 역의 제휴 주차장 데이터가 없습니다.</div>';
+
+    const ids = lots.map(l => l.moduId).filter(Boolean);
+    const liveMap = await fetchLiveModuData(ids);
+
+    privateEl.innerHTML = lots.map(lot => {
+      const live = lot.moduId ? liveMap[lot.moduId] : null;
+      const cardId = `lot-${lot.moduId || escapeHtml(lot.name).replace(/\s/g,'')}`;
+
+      if(live && !live.error){
+        const tickets = renderTickets(live.tickets);
+        const base = live.baseFee || {};
+        return `
+          <div class="lot-card" id="${cardId}">
+            <span class="type-badge private">민영/제휴 · 실시간</span>
+            <div class="name">${escapeHtml(live.name || lot.name)}</div>
+            <div class="breakdown">현장요금 기준: 기본 ${escapeHtml(base.baseFee||'-')}, 추가 ${escapeHtml(base.extraFee||'-')}</div>
+            ${tickets || '<div class="note">현재 판매중인 당일권이 없습니다.</div>'}
+            <div class="note" style="margin-top:8px;">기준 시각: ${new Date(live.fetchedAt).toLocaleString('ko-KR')} · 출처: 모두의주차장</div>
+            <div class="links">
+              <a href="${live.sourceUrl}" target="_blank" rel="noopener">모두의주차장에서 결제</a>
+              <a href="${naverMapLink(lot.name + ' 주차장')}" target="_blank" rel="noopener">네이버지도</a>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="lot-card" id="${cardId}">
+          <span class="type-badge private">민영/제휴</span>
+          <div class="name">${escapeHtml(lot.name)}</div>
+          <div class="note">실시간 가격을 자동으로 못 가져왔습니다. 아래 링크에서 직접 확인하세요.</div>
+          <div class="links">
+            <a href="https://app.modu.kr/" target="_blank" rel="noopener">모두의주차장에서 확인</a>
+            <a href="${naverMapLink(lot.name + ' 주차장')}" target="_blank" rel="noopener">네이버지도로 보기</a>
+          </div>
         </div>
-      </div>
-    `).join('') || '<div class="empty">해당 역의 제휴 주차장 데이터가 없습니다.</div>';
+      `;
+    }).join('') || '<div class="empty">해당 역의 제휴 주차장 데이터가 없습니다.</div>';
   }
 
   ['fStation','fDuration','fWeekend','fKw','fRate'].forEach(id => {
