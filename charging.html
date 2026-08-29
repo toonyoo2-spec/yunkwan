@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>전기차 충전 + 주차</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#3a5a52">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BORAKWAN">
+<link rel="stylesheet" href="./common.css">
+<link rel="stylesheet" href="./panel-common.css">
+<style>
+  header{margin-bottom:20px;}
+
+  .notice{
+    background:#fdf3d9;
+    border:1px solid #eadfb0;
+    color:#8a6d16;
+    border-radius:10px;
+    padding:12px 16px;
+    font-size:12.5px;
+    line-height:1.6;
+    margin-bottom:22px;
+  }
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:20px;
+  }
+
+  .form-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+    gap:14px;
+  }
+  .field select, .field input{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:13.5px;
+    background:#fff;
+    color:var(--ink);
+    font-family:inherit;
+    box-sizing:border-box;
+  }
+  .field select:focus, .field input:focus{
+    outline:none;
+    border-color:var(--accent);
+  }
+  .field .hint{
+    font-size:11px;
+    color:var(--sub);
+    margin-top:4px;
+  }
+
+  .lot-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+    gap:14px;
+  }
+  .lot-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 18px;
+  }
+  .lot-card .name{font-size:14.5px;font-weight:700;margin-bottom:4px;}
+  .lot-card .type-badge{
+    display:inline-block;
+    font-size:10.5px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:20px;
+    margin-bottom:8px;
+  }
+  .lot-card .type-badge.public{background:#d4f4dd;color:#2d7a3e;}
+  .lot-card .type-badge.private{background:#ede9fe;color:#7c3aed;}
+  .lot-card .price{font-size:20px;font-weight:800;color:var(--accent);margin:6px 0 2px;}
+  .lot-card .price.est::after{
+    content:" (추정)";
+    font-size:11px;
+    font-weight:600;
+    color:var(--sub);
+  }
+  .lot-card .breakdown{font-size:11.5px;color:var(--sub);margin-bottom:8px;}
+  .lot-card .note{font-size:11.5px;color:var(--sub);margin-bottom:10px;line-height:1.5;}
+  .lot-card .links{display:flex;gap:8px;flex-wrap:wrap;}
+  .lot-card .links a{
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--accent);
+    text-decoration:none;
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:6px 10px;
+  }
+  .lot-card .links a:hover{border-color:var(--accent);}
+
+  .section-title{
+    font-size:13.5px;
+    font-weight:700;
+    color:var(--sub);
+    margin:26px 0 12px;
+  }
+</style>
+</head>
+<body>
+<script src="./nav.js?v=6"></script>
+<div class="wrap" id="appContent">
+  <header>
+    <h1>⚡ 전기차 충전 + 주차</h1>
+    <p>판교역 / 화정역 주변 완속 충전 + 주차 요금 확인</p>
+  </header>
+
+  <div class="notice">
+    ⚠️ 공영주차장 요금은 조례 기준 <b>계산식 추정치</b>입니다. 감면 정책은 지자체 사정에 따라 바뀔 수 있으니 큰 금액이 걸린 경우 현장/공식 안내로 한 번 더 확인하세요.
+    민영·제휴 주차장은 가격이 수시로 바뀌어 이 페이지에 표시하지 않고, 실시간 확인 링크만 제공합니다.
+  </div>
+
+  <div class="panel">
+    <div class="form-grid">
+      <div class="field">
+        <label>지하철역</label>
+        <select id="fStation">
+          <option value="판교역">판교역</option>
+          <option value="화정역">화정역</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>주차 시간</label>
+        <select id="fDuration">
+          <option value="1">1시간</option>
+          <option value="2">2시간</option>
+          <option value="3" selected>3시간</option>
+          <option value="4">4시간</option>
+          <option value="ALL_DAY">종일권 (8시간 충전 가정)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>요일</label>
+        <select id="fWeekend">
+          <option value="false">평일</option>
+          <option value="true">주말/공휴일</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>완속 충전 출력 (kW)</label>
+        <input type="number" id="fKw" value="7" step="0.5" min="1">
+      </div>
+      <div class="field">
+        <label>충전 단가 (원/kWh)</label>
+        <input type="number" id="fRate" placeholder="예: 320 (현장/앱에서 확인 후 입력)">
+        <div class="hint">단가는 운영사·시간대별로 계속 바뀝니다. 비워두면 충전비는 계산에서 제외됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">🅿️ 공영주차장 (조례 기준 추정)</div>
+  <div class="lot-grid" id="publicLots"></div>
+
+  <div class="section-title">🏢 민영 / 앱 제휴 주차장 (실시간 확인 필요)</div>
+  <div class="lot-grid" id="privateLots"></div>
+</div>
+<script src="./common.js"></script>
+<script>
+(function(){
+  const ALL_DAY = "ALL_DAY";
+
+  // ===== 공영주차장 계산식 (조례 기준 추정 — 실제와 다를 수 있음) =====
+  function fee30_10(base, unit, capMin, allDayFee, hours, freeHour){
+    // base: 최초 30분 요금, unit: 이후 10분당 요금, capMin: 일 최대(분당 상한 아님, 원 단위)
+    if(hours === ALL_DAY) return allDayFee;
+    let h = parseFloat(hours);
+    if(freeHour) h = Math.max(0, h - freeHour);
+    if(h <= 0) return 0;
+    const minutes = h * 60;
+    let raw = minutes <= 30 ? base : base + Math.ceil((minutes - 30) / 10) * unit;
+    return Math.min(raw, capMin);
+  }
+
+  const PUBLIC_LOTS = {
+    "판교역": [
+      {
+        name: "판교공영주차장",
+        note: "성남시 조례 추정: 1시간 무료 + 잔여시간 50% 감면, 일 최대 6,000원의 50%",
+        calc: (hours, isWeekend) => {
+          const raw = fee30_10(400, 200, 6000, 6000, hours, 1);
+          return Math.round((hours === ALL_DAY ? 3000 : raw * 0.5));
+        }
+      },
+      {
+        name: "판교역환승주차장",
+        note: "성남시 조례 추정: 전기차 50% 감면, 일 최대 9,900원의 50%",
+        calc: (hours, isWeekend) => {
+          const raw = fee30_10(1500, 500, 9900, 9900, hours, 0);
+          return Math.round((hours === ALL_DAY ? 4950 : raw * 0.5));
+        }
+      }
+    ],
+    "화정역": [
+      {
+        name: "화정역 환승공영주차장",
+        note: "고양시 조례 추정: 1시간 무료 + 잔여시간 50% 감면, 일 최대 8,000원의 50%",
+        calc: (hours, isWeekend) => {
+          const raw = fee30_10(600, 200, 8000, 8000, hours, 1);
+          return Math.round((hours === ALL_DAY ? 4000 : raw * 0.5));
+        }
+      },
+      {
+        name: "덕양구청 부설주차장",
+        note: "고양시 조례 추정: 주말 무료 개방 / 평일 1시간 무료 + 50% 감면",
+        calc: (hours, isWeekend) => {
+          if(isWeekend) return 0;
+          const raw = fee30_10(600, 200, 8000, 8000, hours, 1);
+          return Math.round((hours === ALL_DAY ? 4000 : raw * 0.5));
+        }
+      }
+    ]
+  };
+
+  // ===== 민영/제휴 주차장 — 가격 표시 없이 이름 + 딥링크만 =====
+  const PRIVATE_LOTS = {
+    "판교역": [
+      "그레이츠 판교", "힐스테이트 판교역", "판교푸르지오월드마크",
+      "아브뉴프랑 판교", "현대백화점 판교점", "카카오 판교아지트", "판교테크원타워"
+    ],
+    "화정역": [
+      "이마트 화정점", "롯데마트 화정점"
+    ]
+  };
+
+  function naverMapLink(query){
+    return `https://map.naver.com/p/search/${encodeURIComponent(query)}`;
+  }
+
+  function render(){
+    const station = document.getElementById('fStation').value;
+    const duration = document.getElementById('fDuration').value;
+    const isWeekend = document.getElementById('fWeekend').value === 'true';
+    const kw = parseFloat(document.getElementById('fKw').value) || 0;
+    const rateStr = document.getElementById('fRate').value;
+    const rate = rateStr === '' ? null : parseFloat(rateStr);
+
+    const chargeHours = duration === ALL_DAY ? 8 : parseFloat(duration);
+    const chargedKwh = chargeHours * kw;
+    const chargingCost = rate === null ? null : Math.round(chargedKwh * rate);
+
+    // 공영주차장
+    const publicEl = document.getElementById('publicLots');
+    publicEl.innerHTML = (PUBLIC_LOTS[station] || []).map(lot => {
+      const parkingFee = lot.calc(duration, isWeekend);
+      const total = chargingCost === null ? parkingFee : parkingFee + chargingCost;
+      const breakdown = chargingCost === null
+        ? `주차비만 (충전단가 미입력)`
+        : `충전비 ${chargingCost.toLocaleString()}원 + 주차비 ${parkingFee.toLocaleString()}원`;
+      return `
+        <div class="lot-card">
+          <span class="type-badge public">공영</span>
+          <div class="name">${lot.name}</div>
+          <div class="price est">${total.toLocaleString()}원</div>
+          <div class="breakdown">${breakdown}</div>
+          <div class="note">${lot.note}</div>
+        </div>
+      `;
+    }).join('') || '<div class="empty">해당 역의 공영주차장 데이터가 없습니다.</div>';
+
+    // 민영/제휴 주차장
+    const privateEl = document.getElementById('privateLots');
+    privateEl.innerHTML = (PRIVATE_LOTS[station] || []).map(name => `
+      <div class="lot-card">
+        <span class="type-badge private">민영/제휴</span>
+        <div class="name">${name}</div>
+        <div class="note">앱 제휴권·할인가는 시즌/요일별로 계속 바뀌어 여기서 계산하지 않습니다. 아래에서 그 자리에서 확인하세요.</div>
+        <div class="links">
+          <a href="https://app.modu.kr/" target="_blank" rel="noopener">모두의주차장에서 확인</a>
+          <a href="${naverMapLink(name + ' 주차장')}" target="_blank" rel="noopener">네이버지도로 보기</a>
+        </div>
+      </div>
+    `).join('') || '<div class="empty">해당 역의 제휴 주차장 데이터가 없습니다.</div>';
+  }
+
+  ['fStation','fDuration','fWeekend','fKw','fRate'].forEach(id => {
+    document.getElementById(id).addEventListener('input', render);
+    document.getElementById(id).addEventListener('change', render);
+  });
+
+  window.addEventListener('authReady', render);
+  render();
+})();
+</script>
+<script src="./auth-gate.js?v=2"></script>
+</body>
+</html>
