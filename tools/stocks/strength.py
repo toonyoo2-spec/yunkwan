@@ -143,16 +143,22 @@ def score(features_row, scoreboard_record, regime_status):
     }
 
 
-def calibration(rows):
+def calibration(rows, require_features=True):
     """강도 구간별 실제 적중률. 강도가 의미 있는 값인지 검증하는 유일한 방법입니다.
 
     rows는 {'level': 1~10, 'win': bool} 형태입니다. 강도가 높을수록 적중률이
     높아지지 않으면 이 점수 체계는 틀린 것이므로 가중치를 고쳐야 합니다.
+
+    특징을 만들지 못한 날(수급·일봉이 없어 usable=False)의 거래는 기본으로 제외합니다.
+    그런 거래는 강도가 '근거가 약해서 낮은 것'이 아니라 '잴 수가 없어서 낮은 것'이라,
+    섞으면 강도가 작동하는지 아닌지를 판별할 수 없게 됩니다.
     """
     buckets = {}
     for row in rows:
         level = row.get('level')
         if not level:
+            continue
+        if require_features and not row.get('features_usable', True):
             continue
         bucket = buckets.setdefault(level, {'total': 0, 'wins': 0})
         bucket['total'] += 1

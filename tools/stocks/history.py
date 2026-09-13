@@ -118,6 +118,110 @@ def merge_records(existing, incoming, key='date'):
     return [merged[k] for k in sorted(merged, reverse=True)]
 
 
+DEEP_FLOW_DAYS = 300        # 분봉과 같은 깊이로 맞춥니다
+FLOW_PAGE = 100             # API 1회 응답 상한
+DEEP_DAILY_COUNT = 200      # 일봉 1회 응답 상한
+MAX_FLOW_PAGES = 5
+
+
+def paginate_flows(fetch, days=DEEP_FLOW_DAYS):
+    """until 페이지네이션으로 과거까지 거슬러 모읍니다.
+
+    수급·공매도·대차·신용은 1회 100건이 상한이라, 분봉과 같은 깊이(약 266거래일)를
+    맞추려면 여러 번 나눠 받아야 합니다. 이게 없으면 과거 구간의 특징이 통째로 비어
+    조건이 아예 통과하지 못하고, 검증이 무의미해집니다.
+    """
+    collected, until = {}, None
+    for _ in range(MAX_FLOW_PAGES):
+        page = fetch(FLOW_PAGE, until)
+        rows = (page or {}).get('records', [])
+        if not rows:
+            break
+        for row in rows:
+            collected[row['date']] = row
+        if len(collected) >= days:
+            break
+        next_until = (page or {}).get('nextUntil')
+        if not next_until or next_until == until:
+            break
+        until = next_until
+    return [collected[key] for key in sorted(collected, reverse=True)][:days]
+
+
+def collect_deep_daily(client, symbol, count=300):
+    """일봉을 before 페이지네이션으로 깊게 받습니다."""
+    stored = read_json(daily_path(symbol), {}) or {}
+    merged = {row['timestamp']: row for row in stored.get('candles', [])}
+    before = None
+    for _ in range(4):
+        params = {'symbol': symbol, 'interval': '1d',
+                  'count': DEEP_DAILY_COUNT, 'adjusted': 'false'}
+        if before:
+            params['before'] = before
+        page = client.get_optional('/api/v1/candles', **params)
+        rows = (page or {}).get('candles', [])
+        if not rows:
+            break
+        for row in rows:
+            merged[row['timestamp']] = row
+        if len(merged) >= count or not (page or {}).get('nextBefore'):
+            break
+        before = page['nextBefore']
+    ordered = [merged[key] for key in sorted(merged)][-count:]
+    if ordered:
+        write_json(daily_path(symbol), {'symbol': symbol, 'updated_at': now().isoformat(),
+                                        'candles': ordered})
+    return len(ordered)
+
+
+def collect_deep_flows(client, symbol):
+    """수급 계열 전부를 분봉과 같은 깊이로 맞춥니다."""
+    stored = read_json(flow_path(symbol), {}) or {}
+    sources = {
+        'investor': lambda n, u: client.investor_trading(symbol, count=n, until=u),
+        'short_selling': lambda n, u: client.short_selling(symbol, count=n, until=u),
+        'program_trades': lambda n, u: client.program_trades(symbol, count=n, until=u),
+        'securities_lending': lambda n, u: client.securities_lending(symbol, count=n, until=u),
+        'credit_trades': lambda n, u: client.credit_trades(symbol, count=n, until=u),
+    }
+    record = {'symbol': symbol, 'updated_at': now().isoformat()}
+    depths = {}
+    for key, fetch in sources.items():
+        rows = paginate_flows(fetch)
+        record[key] = merge_records(stored.get(key, []), rows)
+        depths[key] = len(record[key])
+    write_json(flow_path(symbol), record)
+    return depths
+
+
+def deepen(client):
+    """분봉과 기준 데이터의 깊이를 맞춥니다.
+
+    분봉은 266거래일치가 있는데 수급이 30일치뿐이면, 나머지 236일은 특징을 만들 수 없어
+    채점에서 통째로 빠집니다. 그 상태의 검증 결과는 의미가 없습니다.
+    """
+    universe = read_json(universe_path(now().date().isoformat()))
+    if not universe:
+        latest = sorted((STATE / 'universe').glob('*.json'))
+        universe = read_json(latest[-1], {}) if latest else None
+    if not universe:
+        print('유니버스 기록이 없습니다.')
+        return
+    symbols = universe['symbols']
+    print(f'기준 데이터 심화 수집: 종목 {len(symbols)}개', flush=True)
+    collect_index_daily(client)
+    for position, entry in enumerate(symbols, start=1):
+        symbol = entry['symbol']
+        try:
+            bars = collect_deep_daily(client, symbol)
+            depths = collect_deep_flows(client, symbol)
+            print(f'  [{position}/{len(symbols)}] {symbol} {entry.get("name", "")}: '
+                  f'일봉 {bars}개 · 수급 {depths.get("investor", 0)}일', flush=True)
+        except RuntimeError as exc:
+            print(f'  {symbol}: 건너뜀 ({exc})', flush=True)
+    print('심화 수집 완료.', flush=True)
+
+
 def collect_flows(client, symbol):
     """수급·공매도·프로그램매매·대차·신용 시계열을 갱신합니다.
 
@@ -159,11 +263,11 @@ def collect_index_daily(client):
         path = STATE / 'daily' / f'_{symbol}.json'
         stored = read_json(path, {}) or {}
         page = client.get_optional(f'/api/v1/market-indicators/{symbol}/candles',
-                                   interval='1d', count=DAILY_CANDLE_COUNT)
+                                   interval='1d', count=200)
         merged = {row['timestamp']: row for row in stored.get('candles', [])}
         for row in (page or {}).get('candles', []):
             merged[row['timestamp']] = row
-        ordered = [merged[key] for key in sorted(merged)][-DAILY_CANDLE_COUNT:]
+        ordered = [merged[key] for key in sorted(merged)][-300:]
         if ordered:
             write_json(path, {'symbol': symbol, 'updated_at': now().isoformat(),
                               'candles': ordered})
@@ -316,6 +420,8 @@ if __name__ == '__main__':
                 backfill(api, max_days=int(sys.argv[2]) if len(sys.argv) > 2 else MAX_BACKFILL_DAYS)
             elif command == 'reference':
                 collect_reference(api)
+            elif command == 'deepen':
+                deepen(api)
             else:
                 run(api)
         finally:

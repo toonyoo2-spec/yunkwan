@@ -106,6 +106,8 @@ def simulate(plan, bars):
         'symbol': plan['symbol'],
         'setup': plan['setup'],
         'strength_level': (plan.get('strength') or {}).get('level'),
+        # 특징을 만들지 못한 날의 거래는 강도가 의미 없는 값이라 보정에서 빼야 합니다.
+        'features_usable': bool((plan.get('features') or {}).get('usable')),
         'condition_met': bool(plan.get('tradeable')),
         'blocks': plan.get('blocks', []),
         'result': 'traded',
@@ -170,6 +172,7 @@ def flatten_for_scoreboard(simulations, conditions_only=True):
                 'net_pct': entry['net_pct'] if entry['net_pct'] is not None else 0.0,
                 'symbol': run['symbol'],
                 'level': run.get('strength_level'),
+                'features_usable': run.get('features_usable', True),
                 'win': entry['win'],
             })
     return rows
