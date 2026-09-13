@@ -1,32 +1,174 @@
-(function(root){
+/*
+  주식 기록 데이터 검증
+  ---------------------------------------------------------------
+  화면에 들어오는 데이터는 두 경로에서 옵니다.
+    1) 맥북 로컬 뷰어 (http://127.0.0.1:8766/api/reports)
+    2) 사이트 Supabase (stock_reports 테이블)
+
+  두 경로 모두 tools/stocks/publish.py의 화이트리스트를 통과한 같은 형식입니다.
+  가격(원) 값은 애초에 들어오지 않습니다. 비율(%)과 판정만 다룹니다.
+
+  값이 이상하면 조용히 넘기지 않고 예외를 던집니다. 잘못된 숫자를 그럴듯하게
+  보여주는 것이 아무것도 안 보여주는 것보다 나쁘기 때문입니다.
+*/
+(function (root) {
   'use strict';
-  const text = (v, max=200) => { if(typeof v !== 'string' || !v.length || v.length>max) throw Error('텍스트 형식 오류'); return v; };
-  const stamp = v => { text(v,60); if(!/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(v) || !Number.isFinite(Date.parse(v))) throw Error('시각 형식 오류'); return v; };
-  const number = (v, positive=false) => { if(!['string','number'].includes(typeof v) || String(v).trim()==='' || !Number.isFinite(Number(v)) || (positive && Number(v)<=0)) throw Error('숫자 형식 오류'); return Number(v); };
-  function normalize(value){
-    if(!value || !['watchlist-only-v1','daily-v1'].includes(value.strategy_version) || !Array.isArray(value.watchlist) || value.watchlist.length>100) throw Error('수집기의 watchlist.json을 선택하세요.');
-    const symbols=new Set();
-    return {strategy_version:value.strategy_version,assessment:assessment(value.assessment),method_note:typeof value.method_note==='string'?text(value.method_note,1000):null,received_at:stamp(value.received_at),ranked_at:stamp(value.ranked_at),market_status:text(value.market_status),recommendations:[],watchlist:value.watchlist.map(row=>{
-      const symbol=text(row.symbol,6); if(!/^\d{6}$/.test(symbol) || symbols.has(symbol)) throw Error('종목코드 오류'); symbols.add(symbol);
-      return {symbol,name:text(row.name,100),price:number(row.price,true),change_pct:number(row.change_pct),trading_amount:number(row.trading_amount,true),reason:text(row.reason),expected_pct:row.expected_pct==null?null:number(row.expected_pct),sample_count:row.sample_count==null?0:number(row.sample_count),spread_pct:row.spread_pct==null?null:number(row.spread_pct)};
-    })};
+
+  const MAX_ROWS = 200;
+
+  const text = (value, max = 300) => {
+    if (typeof value !== 'string' || !value.length || value.length > max) {
+      throw Error('텍스트 형식 오류');
+    }
+    return value;
+  };
+
+  const optionalText = (value, max = 1000) => (value == null ? null : text(value, max));
+
+  const stamp = (value) => {
+    text(value, 60);
+    if (!Number.isFinite(Date.parse(value))) throw Error('시각 형식 오류');
+    return value;
+  };
+
+  const day = (value) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) throw Error('날짜 형식 오류');
+    return value;
+  };
+
+  const num = (value) => {
+    if (value == null) return null;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) throw Error('숫자 형식 오류');
+    return parsed;
+  };
+
+  const bool = (value) => (typeof value === 'boolean' ? value : null);
+
+  const list = (value) => {
+    if (value == null) return [];
+    if (!Array.isArray(value) || value.length > MAX_ROWS) throw Error('목록 형식 오류');
+    return value;
+  };
+
+  function recommendation(row) {
+    return {
+      symbol: text(row.symbol, 6),
+      name: optionalText(row.name, 100),
+      setup: text(row.setup, 60),
+      reason: optionalText(row.reason, 400),
+      gate: optionalText(row.gate, 300),
+      entryRule: optionalText(row.entry_rule, 200),
+      stopPct: num(row.stop_pct),
+      targetPct: num(row.target_pct),
+      entryDeadline: optionalText(row.entry_deadline, 10),
+      exitTime: optionalText(row.exit_time, 10),
+    };
   }
-  function assessment(a){
-    if(a==null)return null;
-    if(!Array.isArray(a.rows)||a.rows.length>100)throw Error('마감 분석 형식 오류');
-    return {assessed_at:stamp(a.assessed_at),rows:a.rows.map(r=>({symbol:text(r.symbol,6),actual:r.actual==null?null:{actual_pct:number(r.actual.actual_pct),open:number(r.actual.open,true),close:number(r.actual.close,true)},expected_pct:r.expected_pct==null?null:number(r.expected_pct),error_pp:r.error_pp==null?null:number(r.error_pp),direction_hit:typeof r.direction_hit==='boolean'?r.direction_hit:null,status:text(r.status)})),mae_pp:a.mae_pp==null?null:number(a.mae_pp),direction_accuracy_pct:a.direction_accuracy_pct==null?null:number(a.direction_accuracy_pct),benchmark_zero_mae_pp:a.benchmark_zero_mae_pp==null?null:number(a.benchmark_zero_mae_pp)};
+
+  function heldRow(row) {
+    return {
+      symbol: text(row.symbol, 6),
+      name: optionalText(row.name, 100),
+      setup: text(row.setup, 60),
+      gate: optionalText(row.gate, 300),
+    };
   }
-  function fromServer(row){
-    const f=row.forecast;
-    return normalize({strategy_version:'daily-v1',received_at:f.published_at,ranked_at:f.ranked_at,market_status:'08:30 아침 예측 고정',method_note:f.method_note,watchlist:f.predictions,assessment:row.assessment});
+
+  function score(row) {
+    return {
+      hits: num(row.hits),
+      total: num(row.total),
+      hitRate: num(row.hit_rate),
+      lowerBound: num(row.lower_bound),
+      target: num(row.target),
+      status: text(row.status, 20),
+      reason: optionalText(row.reason, 200),
+    };
   }
-  function freshness(record, now=Date.now()){
-    const age=now-Date.parse(record.ranked_at);
-    if(age < -60000) return '기준 시각이 현재보다 미래입니다. 수집 환경을 확인하세요.';
-    if(age > 300000) return '과거 집계 기록입니다. 현재 시세나 매매 신호로 사용하지 마세요.';
-    return '최근 수집된 검토 후보입니다. 매수 신호는 아직 산출하지 않습니다.';
+
+  function ladderEntry(row) {
+    return {
+      targetPct: num(row.target_pct),
+      result: text(row.result, 30),
+      netPct: num(row.net_pct),
+      win: bool(row.win),
+      ambiguous: bool(row.ambiguous_bar),
+    };
   }
-  const api={normalize,freshness,fromServer};
-  if(typeof module!=='undefined' && module.exports) module.exports=api;
-  else root.StockData=api;
-})(typeof window!=='undefined'?window:globalThis);
+
+  function simulation(row) {
+    return {
+      symbol: text(row.symbol, 6),
+      name: optionalText(row.name, 100),
+      setup: text(row.setup, 60),
+      result: text(row.result, 30),
+      recommended: bool(row.recommended),
+      stopPct: num(row.stop_pct),
+      note: optionalText(row.note, 200),
+      ladder: list(row.ladder).map(ladderEntry),
+    };
+  }
+
+  function forecast(value) {
+    if (!value || typeof value !== 'object') throw Error('예보 형식 오류');
+    const board = value.scoreboard && typeof value.scoreboard === 'object' ? value.scoreboard : {};
+    return {
+      tradeDate: day(value.trade_date),
+      publishedAt: stamp(value.published_at),
+      strategyVersion: optionalText(value.strategy_version, 40),
+      targetHitRate: num(value.target_hit_rate),
+      methodNote: optionalText(value.method_note, 1000),
+      regime: value.regime
+        ? {
+            status: optionalText(value.regime.status, 30),
+            allowLong: bool(value.regime.allow_long),
+            reason: optionalText(value.regime.reason, 300),
+          }
+        : null,
+      recommendations: list(value.recommendations).map(recommendation),
+      held: list(value.held).map(heldRow),
+      scoreboard: Object.fromEntries(
+        Object.entries(board)
+          .slice(0, MAX_ROWS)
+          .map(([key, row]) => [key, score(row)])
+      ),
+    };
+  }
+
+  function assessment(value) {
+    if (value == null) return null;
+    const summary = value.summary || {};
+    return {
+      tradeDate: day(value.trade_date),
+      assessedAt: stamp(value.assessed_at),
+      complete: bool(value.complete),
+      simulations: list(value.simulations).map(simulation),
+      summary: {
+        tradedCount: num(summary.traded_count),
+        skippedCount: num(summary.skipped_count),
+        perTarget: summary.per_target || {},
+        note: optionalText(summary.note, 400),
+      },
+    };
+  }
+
+  function normalize(row) {
+    if (!row || typeof row !== 'object') throw Error('기록 형식 오류');
+    return {
+      tradeDate: day(row.trade_date),
+      forecast: forecast(row.forecast),
+      assessment: assessment(row.assessment),
+    };
+  }
+
+  function normalizeAll(rows) {
+    return list(rows)
+      .map(normalize)
+      .sort((a, b) => (a.tradeDate < b.tradeDate ? 1 : -1));
+  }
+
+  const api = { normalize, normalizeAll };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.StockData = api;
+})(typeof window !== 'undefined' ? window : globalThis);

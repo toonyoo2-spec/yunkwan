@@ -1,2 +1,106 @@
-.stock-page{max-width:980px}.hero{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:30px 0}.eyebrow{font-size:11px;letter-spacing:1.6px;color:var(--accent);font-weight:700}h1{font-size:32px;letter-spacing:-1px;margin:8px 0}.sub,.toolbar span,.guide{color:var(--sub);font-size:14px;line-height:1.7}.badge{padding:9px 12px;border-radius:30px;color:var(--accent);background:#e6eee9;font-size:12px;white-space:nowrap}.notice{border:1px solid #ded7ba;background:#f7f1de;border-radius:14px;padding:18px;font-size:14px}.notice p{margin:6px 0 0;color:#756b46;line-height:1.6}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:24px 0 12px}.toolbar span{flex-basis:100%;font-size:12px}button,.import-button,select{font:inherit;border:1px solid var(--line);border-radius:9px;background:white;padding:10px 14px;color:var(--ink)}button,.import-button{cursor:pointer}button:disabled{opacity:.4;cursor:default}.import-button{background:var(--accent);color:white;border-color:var(--accent)}#importFile{width:1px;height:1px;position:absolute;opacity:0}.toolbar:focus-within .import-button{outline:2px solid var(--accent);outline-offset:3px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0}.summary>div{background:white;padding:20px;border:1px solid var(--line);border-radius:14px}.summary span{display:block;color:var(--sub);font-size:12px}.summary strong{display:block;margin-top:12px;font-size:24px}.date-nav{display:flex;gap:10px}.date-nav select{flex:1;min-width:0}.records{margin:24px 0}.freshness{font-size:13px;color:#896324;line-height:1.6}.stock-list{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stock-card{padding:20px;background:white;border:1px solid var(--line);border-radius:14px}.stock-top{display:flex;justify-content:space-between;gap:12px}.stock-card h2{font-size:17px;margin:0 0 5px}.stock-card small{color:var(--sub)}.price{text-align:right;white-space:nowrap;font-weight:700}.change{font-size:13px;margin-top:6px}.up{color:#cf4437}.down{color:#326abd}.reason{font-size:12px;line-height:1.6;color:var(--sub);padding-top:12px;margin:14px 0 0;border-top:1px solid var(--line)}.empty{text-align:center;border:1px dashed var(--line);border-radius:16px;padding:48px 16px;color:var(--sub)}.empty>span{font-size:32px;color:var(--accent)}.empty h2{font-size:19px;color:var(--ink)}.empty p{font-size:14px;line-height:1.8}.guide{border-top:1px solid var(--line);padding:20px 0;margin-top:32px}.guide summary{cursor:pointer;color:var(--ink)}.guide code{overflow-wrap:anywhere}.guide a{color:var(--accent)}#message{font-size:13px;line-height:1.6}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:600px){h1{font-size:27px}.hero{align-items:flex-start}.summary{gap:8px}.summary>div{padding:14px 10px}.summary strong{font-size:20px}.stock-list{grid-template-columns:1fr}.badge{font-size:11px;padding:8px}.stock-card{padding:16px}}
-.analysis-toggle{display:flex;align-items:center;gap:9px;margin:20px 0;font-size:14px;cursor:pointer}.analysis-toggle input{width:18px;height:18px;accent-color:var(--accent)}#analysisSummary{background:#e7eeea;border-radius:12px;padding:16px;font-size:14px;line-height:1.8;margin-bottom:16px}.forecast{font-size:14px;color:var(--accent);font-weight:700}.assessment{background:#f4f5f1;border-radius:8px;padding:12px;font-size:13px;line-height:1.8}#methodNote{font-size:12px}
+/* 주식 기록 화면 스타일 */
+
+.stock-page{max-width:980px}
+.local-banner{padding:16px 0;font-size:14px;color:var(--sub)}
+.local-banner a{color:var(--accent)}
+
+.hero{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:30px 0}
+.eyebrow{font-size:11px;letter-spacing:1.6px;color:var(--accent);font-weight:700}
+h1{font-size:32px;letter-spacing:-1px;margin:8px 0}
+.sub,.guide{color:var(--sub);font-size:14px;line-height:1.7}
+.badge{padding:9px 12px;border-radius:30px;color:var(--accent);background:#e6eee9;font-size:12px;white-space:nowrap}
+
+.notice{border:1px solid #ded7ba;background:#f7f1de;border-radius:14px;padding:18px;font-size:14px;margin-bottom:18px}
+.notice p{margin:6px 0 0;color:#756b46;line-height:1.6}
+
+button,select{font:inherit;border:1px solid var(--line);border-radius:9px;background:white;padding:10px 14px;color:var(--ink)}
+button{cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0}
+.summary>div{background:white;padding:20px;border:1px solid var(--line);border-radius:14px}
+.summary span{display:block;color:var(--sub);font-size:12px}
+.summary strong{display:block;margin-top:12px;font-size:24px}
+
+.regime-box{background:white;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
+.regime-box h2{font-size:14px;margin:0 0 10px;color:var(--sub);font-weight:700}
+.regime-box strong{font-size:15px}
+.regime-box p{margin:6px 0 0;font-size:13.5px;color:var(--sub);line-height:1.6}
+#regime.risk-off strong{color:#b3452f}
+
+.date-nav{display:flex;gap:10px}
+.date-nav select{flex:1;min-width:0}
+.records{margin:24px 0}
+
+.stock-list{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.stock-card{padding:20px;background:white;border:1px solid var(--line);border-radius:14px}
+.stock-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.stock-card h3{font-size:17px;margin:0 0 5px}
+.stock-card small{color:var(--sub)}
+.plan{text-align:right;white-space:nowrap}
+.plan .target{font-weight:700;color:var(--accent);font-size:15px}
+.plan .stop{font-size:13px;color:#b3452f;margin-top:4px}
+.entry-rule{font-size:13px;line-height:1.6;margin:14px 0 0}
+.reason{font-size:12px;line-height:1.6;color:var(--sub);padding-top:12px;margin:12px 0 0;border-top:1px solid var(--line)}
+.gate{font-size:12px;line-height:1.6;color:var(--accent);margin:8px 0 0}
+
+.assessment{background:#f4f5f1;border-radius:8px;padding:12px;font-size:13px;line-height:1.7;margin-top:14px}
+.assessment p{margin:0}
+.assessment .sub{font-size:11.5px;margin-top:6px}
+.assessment .win{color:#1f7a4d;font-weight:700}
+.assessment .loss{color:#b3452f;font-weight:700}
+
+.empty-day{grid-column:1/-1;text-align:center;border:1px dashed var(--line);border-radius:14px;padding:32px 20px}
+.empty-day h3{font-size:16px;margin:0 0 8px}
+.empty-day p{font-size:13.5px;color:var(--sub);line-height:1.7;margin:0}
+
+.held{margin-top:20px;border-top:1px solid var(--line);padding-top:16px}
+.held summary{cursor:pointer;font-size:13.5px;color:var(--sub)}
+.held ul{list-style:none;padding:0;margin:12px 0 0}
+.held li{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.held-name{font-weight:600;white-space:nowrap}
+.held-gate{color:var(--sub);text-align:right}
+
+.method{font-size:12px;margin-top:16px}
+
+.scoreboard-box{background:white;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:24px}
+.scoreboard-box h2{font-size:16px;margin:0 0 6px}
+.scoreboard-box .sub{font-size:12px;margin:0 0 14px}
+.score-table{width:100%;border-collapse:collapse;font-size:13px}
+.score-table th{text-align:right;color:var(--sub);font-size:11.5px;padding:6px 8px;border-bottom:1px solid var(--line)}
+.score-table th:first-child{text-align:left}
+.score-table td{text-align:right;padding:9px 8px;border-bottom:1px solid var(--line)}
+.score-table td:first-child{text-align:left;font-weight:600}
+.score-table tr.passed td:last-child{color:#1f7a4d;font-weight:700}
+.score-table tr.blocked td:last-child{color:#b3452f}
+.score-table tr.observing td:last-child{color:var(--sub)}
+
+.empty{text-align:center;border:1px dashed var(--line);border-radius:16px;padding:48px 16px;color:var(--sub)}
+.empty>span{font-size:32px;color:var(--accent)}
+.empty h2{font-size:19px;color:var(--ink)}
+.empty p{font-size:14px;line-height:1.8}
+.empty a{color:var(--accent)}
+
+.guide{border-top:1px solid var(--line);padding:20px 0;margin-top:32px}
+.guide summary{cursor:pointer;color:var(--ink)}
+.guide code{overflow-wrap:anywhere}
+.guide a{color:var(--accent)}
+.guide p{margin:10px 0}
+
+#message{font-size:13px;line-height:1.6;color:#896324}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+
+@media(max-width:600px){
+  h1{font-size:27px}
+  .hero{align-items:flex-start}
+  .summary{gap:8px}
+  .summary>div{padding:14px 10px}
+  .summary strong{font-size:20px}
+  .stock-list{grid-template-columns:1fr}
+  .badge{font-size:11px;padding:8px}
+  .stock-card{padding:16px}
+  .score-table{font-size:12px}
+  .score-table th,.score-table td{padding:7px 4px}
+  .held li{flex-direction:column;gap:4px}
+  .held-gate{text-align:left}
+}

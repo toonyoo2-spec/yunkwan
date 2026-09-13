@@ -2,9 +2,10 @@
 """맥북 자동 실행 일정(launchd) 등록·해제·확인.
 
 등록되는 작업 (한국시간 기준, 맥북의 시스템 시간대를 따릅니다)
-  08:00 prepare  — 후보 종목과 과거 정규장 데이터 준비
-  08:30 morning  — 그날의 예상 상승률 고정
-  15:40 close    — 정규장 종가로 예상 대비 실제 평가
+  08:00 prepare  — 유니버스·특징·공시·뉴스·새벽 해외시장 수집
+  08:30 morning  — 그날의 추천 고정
+  5분마다 intraday — 장중 실제 돌파 시점 감시. 장 시간이 아니면 즉시 종료합니다
+  15:40 close    — 분봉 축적 + 계획 재현 평가
   16:10 close    — 15:40에 종가가 덜 채워졌을 때를 위한 재시도
   상시  viewer   — http://127.0.0.1:8766 개인 기록 화면 (맥북 내부 전용)
 
@@ -24,9 +25,12 @@ LOGS = Path.home() / 'Library/Logs/BorakwanStocks'
 PREFIX = 'cloud.yunkwan.stocks.'
 WEEKDAYS = (1, 2, 3, 4, 5)  # launchd: 1=월 … 5=금. 휴장일은 실행 후 시장 캘린더로 걸러집니다.
 
+INTRADAY_INTERVAL_SEC = 300     # 5분. 장 시간이 아니면 스크립트가 스스로 즉시 끝냅니다.
+
 JOBS = {
     'prepare': {'args': ['daily_runner.py', 'prepare'], 'times': [(8, 0)]},
     'morning': {'args': ['daily_runner.py', 'morning'], 'times': [(8, 30)]},
+    'intraday': {'args': ['intraday.py'], 'interval': INTRADAY_INTERVAL_SEC},
     'close': {'args': ['daily_runner.py', 'close'], 'times': [(15, 40), (16, 10)]},
     'viewer': {'args': ['local_view.py'], 'keep_alive': True},
 }
@@ -58,6 +62,8 @@ def build_plist(name, job):
     if job.get('keep_alive'):
         plist['RunAtLoad'] = True
         plist['KeepAlive'] = True
+    elif job.get('interval'):
+        plist['StartInterval'] = job['interval']
     else:
         plist['StartCalendarInterval'] = calendar_entries(job['times'])
     return plist
