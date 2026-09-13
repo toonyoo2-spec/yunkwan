@@ -76,6 +76,7 @@ def build_universe(client, date):
         if not stock or not eligible(stock):
             continue
         universe.append({'symbol': row['symbol'], 'name': stock['name'],
+                         'market': stock['market'],
                          'trading_amount': str(row.get('tradingAmount', '0'))})
         if len(universe) >= UNIVERSE_SIZE:
             break

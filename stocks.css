@@ -104,3 +104,29 @@ button:disabled{opacity:.4;cursor:default}
   .held li{flex-direction:column;gap:4px}
   .held-gate{text-align:left}
 }
+
+/* 추천 강도 */
+.stock-card.tier-top{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.stock-card.tier-low{opacity:.78}
+
+.strength{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.strength-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.strength-head strong{font-size:13.5px}
+.strength .tier{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:#eef0ec;color:var(--sub)}
+.strength.top .tier{background:var(--accent);color:#fff}
+.strength.mid .tier{background:#e6eee9;color:var(--accent)}
+
+.strength-bar{display:flex;gap:2px;margin-left:auto}
+.strength-bar span{width:9px;height:14px;border-radius:2px;background:#e4e2da}
+.strength-bar span.on{background:var(--accent)}
+.strength.low .strength-bar span.on{background:#b9beb6}
+
+.strength-why{margin-top:10px}
+.strength-why summary{cursor:pointer;font-size:12px;color:var(--sub)}
+.strength-why ul{list-style:none;padding:0;margin:10px 0 0}
+.strength-why li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px}
+.strength-why li:last-child{border-bottom:none}
+.why-label{font-weight:600;white-space:nowrap}
+.why-detail{color:var(--sub);overflow-wrap:anywhere}
+.why-points{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700;white-space:nowrap}
+.strength-why li.minus .why-points{color:#b3452f}

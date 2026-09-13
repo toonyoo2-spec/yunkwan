@@ -33,11 +33,14 @@ DEFAULT_ANON_KEY = 'sb_publishable_X6OqS-mM1igLrGcc7g4CzQ_fbVXpblY'
 
 # --- 화이트리스트: 여기 없는 필드는 올라가지 않습니다 ---
 
-RECOMMENDATION_FIELDS = ('symbol', 'name', 'setup', 'entry_rule', 'stop_pct',
+RECOMMENDATION_FIELDS = ('symbol', 'name', 'market', 'setup', 'entry_rule', 'stop_pct',
                          'target_pct', 'reason', 'gate', 'entry_deadline', 'exit_time')
-HELD_FIELDS = ('symbol', 'name', 'setup', 'gate')
+HELD_FIELDS = ('symbol', 'name', 'market', 'setup', 'gate')
 LADDER_FIELDS = ('target_pct', 'result', 'net_pct', 'win', 'ambiguous_bar')
-SIMULATION_FIELDS = ('symbol', 'name', 'setup', 'result', 'recommended', 'stop_pct', 'note')
+SIMULATION_FIELDS = ('symbol', 'name', 'setup', 'result', 'recommended', 'stop_pct',
+                     'note', 'strength_level')
+STRENGTH_FIELDS = ('level', 'raw_score', 'components', 'note')
+STRENGTH_COMPONENT_FIELDS = ('label', 'points', 'detail')
 SCORE_FIELDS = ('hits', 'total', 'hit_rate', 'lower_bound', 'target', 'status', 'reason')
 REGIME_FIELDS = ('status', 'allow_long', 'reason')
 
@@ -69,6 +72,16 @@ def assert_no_prices(payload):
     walk(payload)
 
 
+def sanitize_strength(rating):
+    """강도는 비율·판정만 담고 있어 올려도 됩니다. 그래도 필드는 화이트리스트로 거릅니다."""
+    if not isinstance(rating, dict):
+        return None
+    picked = pick(rating, STRENGTH_FIELDS)
+    picked['components'] = [pick(part, STRENGTH_COMPONENT_FIELDS)
+                            for part in (rating.get('components') or [])][:20]
+    return picked
+
+
 def sanitize_forecast(forecast):
     """08:30 고정본에서 업로드 가능한 부분만 뽑습니다."""
     return {
@@ -78,7 +91,8 @@ def sanitize_forecast(forecast):
         'target_hit_rate': forecast.get('target_hit_rate'),
         'method_note': forecast.get('method_note'),
         'regime': pick(forecast.get('regime', {}), REGIME_FIELDS),
-        'recommendations': [pick(row, RECOMMENDATION_FIELDS)
+        'recommendations': [{**pick(row, RECOMMENDATION_FIELDS),
+                             'strength': sanitize_strength(row.get('strength'))}
                             for row in forecast.get('recommendations', [])],
         'held': [pick(row, HELD_FIELDS) for row in forecast.get('held', [])][:20],
         'scoreboard': {key: pick(value, SCORE_FIELDS)

@@ -2,7 +2,7 @@
 """하루 실행 파이프라인.
 
   08:00 prepare  — 유니버스·특징·공시·뉴스·새벽 해외시장을 모아 후보 계획을 만듭니다
-  08:30 morning  — 신뢰도 관문을 통과한 계획만 그날의 추천으로 고정합니다
+  08:30 morning  — 강도 순으로 코스피 7 · 코스닥 3 종목을 그날의 추천으로 고정합니다
   장중  intraday — 5분마다 실제 돌파 시점을 감시합니다 (intraday.py)
   15:40 close    — 분봉을 축적하고, 고정했던 계획을 그대로 재현해 결과를 기록합니다
 
@@ -10,7 +10,10 @@
 기록을 쌓고 있고, 그 기록이 관문을 통과하기 전까지 추천에 넣지 않습니다.
 
 조회 전용입니다. 주문은 하지 않습니다. 모든 저장은 맥북 내부에만 이뤄집니다.
-추천이 0개인 날이 정상입니다. 관문을 통과하지 못하면 숫자를 만들지 않습니다.
+
+매일 정해진 수만큼 추천하되, 강도(1~10)로 차등을 둡니다. 조건이 나쁜 날 추천을
+감추는 대신 강도가 낮은 종목이 나갑니다. 강도에는 셋업의 과거 적중률이 가장 큰
+비중으로 들어가며, 강도 자체가 맞는 값인지는 strength.calibration으로 검증합니다.
 """
 import argparse
 import fcntl
@@ -26,6 +29,7 @@ import history
 import news
 import publish
 import signals
+import strength
 from features import build as build_features
 from store import STATE, read_json, write_json
 from tossapi import Client, TossError, now, parse_time
@@ -34,7 +38,9 @@ STRATEGY_VERSION = 'plan-v2'
 PUBLISH_HOUR = 8                # 정규장 개장(09:00)에 가까울수록 데이터가 신선합니다
 PUBLISH_MINUTES = (30, 40)      # 08:30~08:39 안에서만 발행합니다
 CLOSE_GRACE_MINUTES = 5
-MAX_RECOMMENDATIONS = 5
+# 시장별 추천 정원. 매일 이 수만큼 내보내되, 강도(1~10)로 차등을 둡니다.
+# 조건이 나쁜 날은 추천을 감추는 대신 강도가 낮은 종목이 나갑니다.
+MARKET_QUOTA = {'KOSPI': 7, 'KOSDAQ': 3}
 SCOREBOARD = STATE / 'scoreboard.json'
 KOSPI_DAILY = STATE / 'daily' / '_KOSPI.json'
 
@@ -106,7 +112,7 @@ def prepare(client):
     context = global_context.collect(client, date)
     universe = history.build_universe(client, date)
     index_candles = index_daily_candles(client)
-    candidates, rejected = [], []
+    candidates = []
     for entry in universe['symbols']:
         symbol = entry['symbol']
         history.collect_daily(client, symbol)
@@ -119,44 +125,73 @@ def prepare(client):
         warning_list = client.warnings(symbol)
         for setup_name in signals.SETUPS:
             built = signals.plan(row, warning_list, setup_name)
-            built.update({'name': entry['name'], 'features': row,
-                          'reason': signals.describe(row)})
-            (candidates if built['tradeable'] else rejected).append(built)
+            built.update({'name': entry['name'], 'market': entry.get('market'),
+                          'features': row, 'reason': signals.describe(row)})
+            candidates.append(built)
     prepared = {
         'trade_date': date,
         'prepared_at': now().isoformat(),
         'ranked_at': universe.get('ranked_at'),
         'global_context': context,
         'candidates': candidates,
-        'rejected': rejected[:50],
         'strategy_version': STRATEGY_VERSION,
     }
     write_json(prepared_path(date), prepared)
-    print(f'아침 준비 완료: {date} — 조건 통과 {len(candidates)}건 / 탈락 {len(rejected)}건')
+    passed = sum(1 for row in candidates if row.get('tradeable'))
+    print(f'아침 준비 완료: {date} — 후보 {len(candidates)}건 '
+          f'(조건 통과 {passed}건 / 미충족 {len(candidates) - passed}건)')
     print('새벽 해외시장:', global_context.describe(context))
 
 
 # ---------- 08:30 발행 ----------
 
-def gated_recommendations(candidates, scoreboard, allow_long):
-    """신뢰도 관문을 통과한 계획만 추천으로 내보냅니다."""
-    passed, held = [], []
+def best_target(setup_name, scoreboard):
+    """관문을 통과한 목표 중 가장 높은 것. 통과한 게 없으면 가장 낮은 목표로 시작합니다."""
+    cleared = [target for target in signals.TARGET_LADDER
+               if confidence.gate(f'{setup_name}@{target}%', scoreboard)[0]]
+    if cleared:
+        return max(cleared), True
+    return signals.TARGET_LADDER[0], False
+
+
+def rank_candidates(candidates, scoreboard, regime_status):
+    """모든 후보에 강도를 매겨 순위를 만듭니다. 조건 미충족 종목도 포함합니다."""
+    ranked = []
     for candidate in candidates:
-        if not allow_long:
-            held.append({**candidate, 'gate': '새벽 시장 상황으로 당일 신호 보류'})
+        setup_name = candidate['setup']
+        target_pct, gate_passed = best_target(setup_name, scoreboard)
+        record = scoreboard.get(f'{setup_name}@{target_pct}%')
+        rating = strength.score(candidate.get('features', {}), record, regime_status)
+        # 조건을 통과하지 못한 종목은 강도를 한 단계 더 낮춰, 같은 점수라도 뒤에 서게 합니다.
+        if not candidate.get('tradeable'):
+            rating['level'] = max(1, rating['level'] - 1)
+            rating['components'].append({'label': '조건 미충족', 'points': 0,
+                                         'detail': ', '.join(candidate.get('blocks', []))[:200]})
+        ranked.append({**candidate, 'target_pct': target_pct, 'strength': rating,
+                       'gate': (record or {}).get('reason', '셋업 기록 없음 — 관찰 중'),
+                       'gate_passed': gate_passed})
+    ranked.sort(key=lambda row: (row['strength']['level'], row['strength']['raw_score']),
+                reverse=True)
+    return ranked
+
+
+def select(ranked):
+    """시장별 정원만큼 고릅니다. 같은 종목이 두 셋업으로 중복 추천되지 않게 합니다."""
+    chosen, rest = [], []
+    remaining = dict(MARKET_QUOTA)
+    seen = set()
+    for candidate in ranked:
+        market = candidate.get('market')
+        if candidate['symbol'] in seen:
+            rest.append({**candidate, 'gate': '같은 종목의 다른 셋업이 이미 선정됨'})
             continue
-        cleared = [(target, reason) for target in signals.TARGET_LADDER
-                   for ok, reason in [confidence.gate(f"{candidate['setup']}@{target}%", scoreboard)]
-                   if ok]
-        if cleared:
-            target_pct, reason = max(cleared)
-            passed.append({**candidate, 'target_pct': target_pct, 'gate': reason})
+        if remaining.get(market, 0) > 0:
+            remaining[market] -= 1
+            seen.add(candidate['symbol'])
+            chosen.append(candidate)
         else:
-            record = scoreboard.get(f"{candidate['setup']}@{signals.TARGET_LADDER[0]}%")
-            held.append({**candidate, 'gate': record['reason'] if record
-                         else '기록이 쌓이지 않아 관찰만 합니다'})
-    passed.sort(key=lambda row: row['target_pct'], reverse=True)
-    return passed[:MAX_RECOMMENDATIONS], held
+            rest.append(candidate)
+    return chosen, rest
 
 
 def morning(client):
@@ -180,8 +215,8 @@ def morning(client):
         raise TossError('미래 시각 데이터가 감지되었습니다.')
     scoreboard = read_json(SCOREBOARD, {}) or {}
     regime = prepared['global_context'].get('regime', {})
-    recommendations, held = gated_recommendations(
-        prepared['candidates'], scoreboard, regime.get('allow_long', False))
+    ranked = rank_candidates(prepared['candidates'], scoreboard, regime.get('status'))
+    recommendations, held = select(ranked)
     forecast = {
         **prepared,
         'published_at': current.isoformat(),
@@ -193,15 +228,23 @@ def morning(client):
         'recommendations': recommendations,
         'held': held[:50],
         'target_hit_rate': confidence.TARGET_HIT_RATE,
+        'market_quota': MARKET_QUOTA,
         'method_note': (
-            f'적중률 {confidence.TARGET_HIT_RATE * 100:.0f}% 관문(Wilson 95% 하한)을 통과한 '
-            '셋업만 추천합니다. 적중은 수수료·거래세·슬리피지를 뺀 뒤에도 수익이 남은 거래를 '
-            '뜻합니다. 관문을 넘긴 셋업이 없으면 추천은 0개이며, 오류가 아니라 설계된 동작입니다.'),
+            f'매일 코스피 {MARKET_QUOTA["KOSPI"]}종목 · 코스닥 {MARKET_QUOTA["KOSDAQ"]}종목을 '
+            '강도 순으로 내보냅니다. 강도(1~10)는 근거가 얼마나 모였는지를 나타내며 상승 확률이 '
+            f'아닙니다. 강도 계산에는 셋업의 과거 적중률(목표 {confidence.TARGET_HIT_RATE * 100:.0f}% '
+            '관문, Wilson 95% 하한)이 가장 큰 비중으로 들어갑니다. 적중은 수수료·거래세·슬리피지를 '
+            '뺀 뒤에도 수익이 남은 거래를 뜻합니다. 조건이 나쁜 날은 강도가 낮은 종목이 나갑니다.'),
     }
     write_json(forecast_path(date), forecast)
+    levels = [row['strength']['level'] for row in recommendations]
     print(f'아침 고정 완료: {date} — 추천 {len(recommendations)}건 / 관찰 {len(held)}건')
-    if not recommendations:
-        print('관문을 통과한 셋업이 없어 오늘은 추천하지 않습니다.')
+    if levels:
+        print(f'  강도 분포: 최고 {max(levels)} · 최저 {min(levels)}')
+        for row in recommendations:
+            print(f"  [{row['strength']['level']:2d}] {row.get('market', '?'):6s} "
+                  f"{row['symbol']} {row.get('name', '')} · {row['setup']} "
+                  f"· 목표 {row['target_pct']}% / 손절 {row['stop_pct']:.1f}%")
     publish_soft(date)
 
 
@@ -233,13 +276,15 @@ def assess_day(date):
 
 def rebuild_scoreboard():
     """전체 평가 기록으로 셋업별 적중률을 다시 계산합니다."""
-    rows = []
+    rows, all_rows = [], []
     for path in sorted((STATE / 'reports').glob('*-assessment.json')):
         record = read_json(path, {}) or {}
-        rows.extend(evaluate.flatten_for_scoreboard(record.get('simulations', [])))
+        simulations = record.get('simulations', [])
+        rows.extend(evaluate.flatten_for_scoreboard(simulations))
+        all_rows.extend(evaluate.flatten_for_scoreboard(simulations, conditions_only=False))
     scoreboard = confidence.tally(rows)
     write_json(SCOREBOARD, scoreboard)
-    return scoreboard
+    return scoreboard, all_rows
 
 
 def close(client):
@@ -261,7 +306,14 @@ def close(client):
             write_json(assessment_path(date), result)
             publish_soft(date)
             done += 1
-    scoreboard = rebuild_scoreboard()
+    scoreboard, rows = rebuild_scoreboard()
+    buckets = strength.calibration(rows)
+    if buckets:
+        print('강도별 실제 적중률:')
+        for level, value in sorted(buckets.items(), reverse=True):
+            rate = value['hit_rate_pct']
+            if rate is not None:
+                print(f'  강도 {level:2d}: {value["wins"]}/{value["total"]}건 = {rate:.1f}%')
     passed = [key for key, value in scoreboard.items() if value['status'] == 'passed']
     print(f'마감 평가 {done}일 기록. 관문 통과 셋업 {len(passed)}개.')
     for key, record in sorted(scoreboard.items()):

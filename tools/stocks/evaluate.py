@@ -71,10 +71,12 @@ def walk(bars, start_index, entry_price, stop_price, target_price):
 
 
 def simulate(plan, bars):
-    """계획 하나를 그날 분봉으로 재현합니다. 목표 사다리 전부를 각각 평가합니다."""
-    if not plan.get('tradeable'):
-        return {'symbol': plan['symbol'], 'setup': plan['setup'],
-                'result': 'not_recommended', 'blocks': plan.get('blocks', [])}
+    """계획 하나를 그날 분봉으로 재현합니다. 목표 사다리 전부를 각각 평가합니다.
+
+    조건을 통과하지 못한(tradeable=False) 계획도 채점합니다. 매일 정해진 수를
+    강도 순으로 내보내는 구조라 그런 종목도 실제로 추천에 들어가고, 강도가 낮은
+    구간의 실제 성적을 모아야 강도 계산이 맞는지 검증할 수 있기 때문입니다.
+    """
     if not bars:
         return {'symbol': plan['symbol'], 'setup': plan['setup'],
                 'result': 'no_data', 'note': '해당일 분봉을 모으지 못했습니다'}
@@ -101,6 +103,9 @@ def simulate(plan, bars):
     return {
         'symbol': plan['symbol'],
         'setup': plan['setup'],
+        'strength_level': (plan.get('strength') or {}).get('level'),
+        'condition_met': bool(plan.get('tradeable')),
+        'blocks': plan.get('blocks', []),
         'result': 'traded',
         'entry_price': entry_price,
         'entry_at': entry['at'],
@@ -113,11 +118,18 @@ def simulate(plan, bars):
     }
 
 
-def flatten_for_scoreboard(simulations):
-    """셋업·목표 조합별 집계를 위해 거래 결과를 한 줄씩 폅니다."""
+def flatten_for_scoreboard(simulations, conditions_only=True):
+    """셋업·목표 조합별 집계를 위해 거래 결과를 한 줄씩 폅니다.
+
+    conditions_only=True면 조건을 통과한 거래만 셉니다. 셋업의 관문은 그 셋업의
+    조건이 실제로 먹혔는지를 재는 값이라, 조건 미충족 거래가 섞이면 흐려집니다.
+    강도 보정은 전부 필요하므로 False로 호출합니다.
+    """
     rows = []
     for run in simulations:
         if run.get('result') != 'traded':
+            continue
+        if conditions_only and not run.get('condition_met', True):
             continue
         for entry in run['ladder'].values():
             rows.append({
@@ -125,6 +137,8 @@ def flatten_for_scoreboard(simulations):
                 'result': entry['result'],
                 'net_pct': entry['net_pct'] if entry['net_pct'] is not None else 0.0,
                 'symbol': run['symbol'],
+                'level': run.get('strength_level'),
+                'win': entry['win'],
             })
     return rows
 

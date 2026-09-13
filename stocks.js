@@ -38,6 +38,14 @@
     not_recommended: '추천 아님',
   };
 
+  // 강도 구간별 등급. 8 이상이 근거가 가장 많이 모인 구간입니다.
+  const TIERS = [
+    { min: 8, key: 'top', label: '1순위' },
+    { min: 6, key: 'mid', label: '2순위' },
+    { min: 1, key: 'low', label: '참고' },
+  ];
+  const tierOf = (level) => TIERS.find((tier) => level >= tier.min) || TIERS[TIERS.length - 1];
+
   const STATUS_LABEL = {
     passed: '관문 통과',
     blocked: '관문 미달',
@@ -71,9 +79,11 @@
 
   function recommendationCard(row, assessment) {
     const card = element('article', 'stock-card');
+    if (row.strength) card.classList.add(`tier-${tierOf(row.strength.level).key}`);
     const top = element('div', 'stock-top');
     const left = element('div');
-    left.append(element('h3', null, row.name || row.symbol), element('small', null, row.symbol));
+    const code = element('small', null, row.market ? `${row.symbol} · ${row.market}` : row.symbol);
+    left.append(element('h3', null, row.name || row.symbol), code);
     const right = element('div', 'plan');
     right.append(
       element('div', 'target', `목표 ${plain(row.targetPct)}`),
@@ -81,6 +91,8 @@
     );
     top.append(left, right);
     card.append(top);
+
+    if (row.strength) card.append(strengthBlock(row.strength));
 
     if (row.entryRule) card.append(element('p', 'entry-rule', row.entryRule));
     if (row.reason) card.append(element('p', 'reason', row.reason));
@@ -91,6 +103,43 @@
     );
     if (outcome) card.append(outcomeBlock(outcome, row.targetPct));
     return card;
+  }
+
+  function strengthBlock(rating) {
+    const box = element('div', 'strength');
+    const bar = element('div', 'strength-bar');
+    for (let step = 1; step <= 10; step += 1) {
+      bar.append(element('span', step <= rating.level ? 'on' : 'off'));
+    }
+    const tier = tierOf(rating.level);
+    box.classList.add(tier.key);
+    const head = element('div', 'strength-head');
+    head.append(
+      element('span', 'tier', tier.label),
+      element('strong', null, `강도 ${rating.level} / 10`),
+      bar
+    );
+    box.append(head);
+
+    const details = element('details', 'strength-why');
+    details.append(element('summary', null, '이 강도가 나온 근거'));
+    const table = element('ul');
+    rating.components
+      .slice()
+      .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+      .forEach((part) => {
+        const item = element('li', (part.points ?? 0) < 0 ? 'minus' : null);
+        item.append(
+          element('span', 'why-label', part.label),
+          element('span', 'why-detail', part.detail || ''),
+          element('span', 'why-points', part.points == null ? '' : `${part.points > 0 ? '+' : ''}${part.points}`)
+        );
+        table.append(item);
+      });
+    details.append(table);
+    if (rating.note) details.append(element('p', 'sub', rating.note));
+    box.append(details);
+    return box;
   }
 
   function outcomeBlock(simulation, targetPct) {

@@ -142,21 +142,26 @@ def universal_blocks(f, warnings):
 
 
 def plan(features_row, warnings, setup_name):
-    """한 종목·한 셋업의 계획. 조건을 통과하지 못하면 사유와 함께 None 계획을 돌려줍니다."""
+    """한 종목·한 셋업의 계획.
+
+    조건을 통과하지 못해도 계획 자체는 만들어 돌려줍니다. 매일 5종목을 내보내되
+    강도로 차등을 두는 구조라, 조건 미충족 종목도 순위 비교 대상이어야 하기 때문입니다.
+    통과 여부는 tradeable, 사유는 blocks에 담습니다.
+    """
     if not features_row.get('usable'):
         return {'symbol': features_row['symbol'], 'setup': setup_name, 'tradeable': False,
-                'blocks': [features_row.get('reason', '특징 계산 불가')]}
+                'blocks': [features_row.get('reason', '특징 계산 불가')],
+                'stop_pct': MIN_STOP_PCT, 'target_ladder': list(TARGET_LADDER),
+                'opening_range_minutes': OPENING_RANGE_MINUTES,
+                'entry_deadline': ENTRY_DEADLINE, 'exit_time': EXIT_TIME}
     blocks = universal_blocks(features_row, warnings) + SETUPS[setup_name](features_row)
-    if blocks:
-        return {'symbol': features_row['symbol'], 'setup': setup_name,
-                'tradeable': False, 'blocks': blocks}
     stop_pct = stop_distance_pct(features_row.get('atr_pct'))
     return {
         'symbol': features_row['symbol'],
         'setup': setup_name,
-        'tradeable': True,
-        'blocks': [],
-        'entry_rule': f'09:00~09:30 고가를 위로 돌파하는 첫 1분봉에서 진입',
+        'tradeable': not blocks,
+        'blocks': blocks,
+        'entry_rule': '09:00~09:30 고가를 위로 돌파하는 첫 1분봉에서 진입',
         'opening_range_minutes': OPENING_RANGE_MINUTES,
         'stop_pct': stop_pct,
         'target_ladder': list(TARGET_LADDER),
@@ -168,18 +173,20 @@ def plan(features_row, warnings, setup_name):
 
 
 def describe(features_row):
-    """화면에 그대로 보여줄 선정 근거. 숫자를 그대로 적어 나중에 검증할 수 있게 합니다."""
+    """화면에 그대로 보여줄 선정 근거.
+
+    비율과 판정만 적습니다. 순매수 주식 수 같은 절대 수치는 시세정보에 해당해
+    사이트로 나갈 수 없으므로 '순매수' 여부로만 표현합니다.
+    """
     parts = []
     if features_row.get('relative_strength') is not None:
         parts.append(f'시장 대비 {features_row["relative_strength"]:+.2f}%p')
     if features_row.get('volume_surge'):
         parts.append(f'거래량 {features_row["volume_surge"]:.1f}배')
-    foreigner = features_row.get('foreigner_net')
-    if foreigner:
-        parts.append(f'외국인 5일 순매수 {foreigner / 1000:,.0f}천주')
-    institution = features_row.get('institution_net')
-    if institution:
-        parts.append(f'기관 5일 순매수 {institution / 1000:,.0f}천주')
+    flows = [name for name, key in (('외국인', 'foreigner_net'), ('기관', 'institution_net'))
+             if (features_row.get(key) or 0) > 0]
+    if flows:
+        parts.append(' · '.join(flows) + ' 순매수')
     if features_row.get('atr_pct'):
         parts.append(f'ATR {features_row["atr_pct"]:.1f}%')
     if features_row.get('has_positive_disclosure'):

@@ -51,16 +51,34 @@
     return value;
   };
 
+  function strengthOf(value) {
+    if (value == null) return null;
+    const level = num(value.level);
+    if (level == null || level < 1 || level > 10) throw Error('강도 형식 오류');
+    return {
+      level,
+      rawScore: num(value.raw_score),
+      note: optionalText(value.note, 300),
+      components: list(value.components).map((part) => ({
+        label: text(part.label, 40),
+        points: num(part.points),
+        detail: optionalText(part.detail, 220),
+      })),
+    };
+  }
+
   function recommendation(row) {
     return {
       symbol: text(row.symbol, 6),
       name: optionalText(row.name, 100),
+      market: optionalText(row.market, 20),
       setup: text(row.setup, 60),
       reason: optionalText(row.reason, 400),
       gate: optionalText(row.gate, 300),
       entryRule: optionalText(row.entry_rule, 200),
       stopPct: num(row.stop_pct),
       targetPct: num(row.target_pct),
+      strength: strengthOf(row.strength),
       entryDeadline: optionalText(row.entry_deadline, 10),
       exitTime: optionalText(row.exit_time, 10),
     };
@@ -70,6 +88,7 @@
     return {
       symbol: text(row.symbol, 6),
       name: optionalText(row.name, 100),
+      market: optionalText(row.market, 20),
       setup: text(row.setup, 60),
       gate: optionalText(row.gate, 300),
     };
@@ -105,6 +124,7 @@
       result: text(row.result, 30),
       recommended: bool(row.recommended),
       stopPct: num(row.stop_pct),
+      strengthLevel: num(row.strength_level),
       note: optionalText(row.note, 200),
       ladder: list(row.ladder).map(ladderEntry),
     };
