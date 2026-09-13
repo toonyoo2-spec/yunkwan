@@ -84,16 +84,47 @@ def tally(outcomes):
         setup = row.get('setup')
         if not setup or row.get('result') not in ('target', 'stop', 'timeout'):
             continue
-        bucket = counters.setdefault(setup, {'hits': 0, 'total': 0, 'net_sum': 0.0})
+        bucket = counters.setdefault(setup, {'hits': 0, 'total': 0, 'net_sum': 0.0,
+                                             'wins': [], 'losses': []})
         bucket['total'] += 1
-        bucket['net_sum'] += row.get('net_pct') or 0.0
+        net = row.get('net_pct') or 0.0
+        bucket['net_sum'] += net
         # 적중 = 비용을 뺀 뒤에도 수익이 남은 거래. 목표가 도달만으로 세지 않습니다.
-        if row.get('net_pct', 0) > 0:
+        if net > 0:
             bucket['hits'] += 1
-    return {name: evaluate_setup(
-                value['hits'], value['total'],
-                expectancy=value['net_sum'] / value['total'] if value['total'] else None)
-            for name, value in sorted(counters.items())}
+            bucket['wins'].append(net)
+        else:
+            bucket['losses'].append(net)
+    board = {}
+    for name, value in sorted(counters.items()):
+        total = value['total']
+        record = evaluate_setup(value['hits'], total,
+                                expectancy=value['net_sum'] / total if total else None)
+        record.update(win_loss_profile(value['wins'], value['losses']))
+        board[name] = record
+    return board
+
+
+def win_loss_profile(wins, losses):
+    """평균이익·평균손실과 손익비, 그리고 본전을 맞추는 데 필요한 적중률.
+
+    적중률 목표를 몇 %로 잡아야 하는지는 취향이 아니라 손익비가 결정합니다.
+    평균이익이 평균손실의 절반이면 본전만 맞추는 데도 적중률 67%가 필요합니다.
+    이 숫자를 보여주지 않으면 '70%면 충분하다'는 잘못된 기대가 생깁니다.
+    """
+    average_win = sum(wins) / len(wins) if wins else None
+    average_loss = abs(sum(losses) / len(losses)) if losses else None
+    if not average_win or not average_loss:
+        return {'average_win_pct': average_win, 'average_loss_pct': average_loss,
+                'payoff_ratio': None, 'breakeven_hit_rate': None}
+    payoff = average_win / average_loss
+    return {
+        'average_win_pct': average_win,
+        'average_loss_pct': average_loss,
+        'payoff_ratio': payoff,
+        # 본전 적중률 = 평균손실 / (평균이익 + 평균손실)
+        'breakeven_hit_rate': average_loss / (average_win + average_loss),
+    }
 
 
 def gate(setup_name, scoreboard):

@@ -249,6 +249,12 @@ def report(dates, label, baseline_rates=None):
         if mean_excess is not None:
             line += f' · 지수 대비 {mean_excess:+.2f}%p'
         print(line)
+        win, loss = record.get('average_win_pct'), record.get('average_loss_pct')
+        breakeven = record.get('breakeven_hit_rate')
+        if win and loss and breakeven:
+            print(f'      평균이익 +{win:.2f}% / 평균손실 -{loss:.2f}%'
+                  f' (손익비 {record["payoff_ratio"]:.2f}) → 본전 적중률 {breakeven * 100:.1f}%'
+                  f' · 실제 {rate * 100:.1f}%')
         print(f'      {robustness.summarize(verdict)}')
 
     # 여러 조합을 동시에 시험한 대가를 보정합니다.
