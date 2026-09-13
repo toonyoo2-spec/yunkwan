@@ -32,6 +32,29 @@ def now():
     return datetime.now(KST)
 
 
+def parse_time(value):
+    """ISO 8601 시각 문자열을 파싱합니다.
+
+    macOS 기본 파이썬(3.9)의 fromisoformat은 'Z' 접미사와 일부 소수점 자리수를
+    처리하지 못합니다. API 응답 형식이 바뀌었을 때 조용히 터지지 않도록 정규화합니다.
+    """
+    text = str(value).strip()
+    if text.endswith(('Z', 'z')):
+        text = text[:-1] + '+00:00'
+    try:
+        return datetime.fromisoformat(text)
+    except ValueError:
+        # 소수점 자리수가 3·6자리가 아닌 경우를 잘라냅니다.
+        head, _, tail = text.partition('.')
+        offset = ''
+        for marker in ('+', '-'):
+            position = tail.find(marker)
+            if position > 0:
+                offset = tail[position:]
+                break
+        return datetime.fromisoformat(head + offset)
+
+
 class TossError(RuntimeError):
     pass
 

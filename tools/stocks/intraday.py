@@ -15,7 +15,7 @@ import premarket
 from features import number, opening_range
 from signals import SLIPPAGE_TICKS, tick_size
 from store import STATE, read_json, write_json
-from tossapi import Client, now
+from tossapi import Client, now, parse_time
 
 LIVE_DIR = STATE / 'live'
 OPENING_RANGE_READY = '09:31'   # 이 시각 전에는 레인지가 확정되지 않습니다
@@ -26,8 +26,8 @@ def live_path(date):
 
 
 def in_session(session, moment):
-    start = datetime.fromisoformat(session['startTime'])
-    end = datetime.fromisoformat(session['endTime'])
+    start = parse_time(session['startTime'])
+    end = parse_time(session['endTime'])
     return start <= moment <= end
 
 

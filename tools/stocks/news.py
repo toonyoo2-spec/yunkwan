@@ -27,7 +27,7 @@ from urllib.request import Request, urlopen
 from xml.etree import ElementTree
 
 from store import STATE, read_json, write_json
-from tossapi import KST, now
+from tossapi import KST, now, parse_time
 
 KEYS = STATE / 'news_keys.json'
 CORP_MAP = STATE / 'dart_corp_codes.json'
@@ -80,7 +80,7 @@ def refresh_corp_codes(api_key):
     """종목코드 → DART 고유번호 매핑. 월 1회만 새로 받습니다."""
     cached = read_json(CORP_MAP)
     if cached:
-        age = now() - datetime.fromisoformat(cached['updated_at'])
+        age = now() - parse_time(cached['updated_at'])
         if age < timedelta(days=CORP_MAP_MAX_AGE_DAYS):
             return cached['map']
     request = Request(f'{DART_CORP}?{urlencode({"crtfc_key": api_key})}')

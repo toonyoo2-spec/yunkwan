@@ -28,7 +28,7 @@ import publish
 import signals
 from features import build as build_features
 from store import STATE, read_json, write_json
-from tossapi import Client, TossError, now
+from tossapi import Client, TossError, now, parse_time
 
 STRATEGY_VERSION = 'plan-v2'
 PUBLISH_HOUR = 8                # 정규장 개장(09:00)에 가까울수록 데이터가 신선합니다
@@ -176,7 +176,7 @@ def morning(client):
     prepared = read_json(prepared_path(date))
     if not prepared:
         raise TossError('아침 준비 데이터가 없습니다. prepare 단계를 확인하세요.')
-    if datetime.fromisoformat(prepared['prepared_at']) > current:
+    if parse_time(prepared['prepared_at']) > current:
         raise TossError('미래 시각 데이터가 감지되었습니다.')
     scoreboard = read_json(SCOREBOARD, {}) or {}
     regime = prepared['global_context'].get('regime', {})
@@ -251,7 +251,7 @@ def close(client):
         date = forecast.get('trade_date')
         if not date:
             continue
-        if now() < datetime.fromisoformat(forecast['close_at']) + timedelta(minutes=CLOSE_GRACE_MINUTES):
+        if now() < parse_time(forecast['close_at']) + timedelta(minutes=CLOSE_GRACE_MINUTES):
             continue
         existing = read_json(assessment_path(date))
         if existing and existing.get('complete'):
