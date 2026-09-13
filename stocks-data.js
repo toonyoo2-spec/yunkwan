@@ -23,7 +23,10 @@
     return value;
   };
 
-  const optionalText = (value, max = 1000) => (value == null ? null : text(value, max));
+  // 빈 문자열은 오류가 아니라 '값 없음'입니다. 서버가 빈 detail을 보낼 수 있어
+  // 여기서 null로 바꿔주지 않으면 카드 전체가 렌더링되지 않습니다.
+  const optionalText = (value, max = 1000) =>
+    value == null || value === '' ? null : text(value, max);
 
   const stamp = (value) => {
     text(value, 60);
