@@ -188,6 +188,86 @@ def run(client, limit=None):
     print('\n이 점수는 소급 채점입니다. 유니버스·생존 편향이 있어 실시간 성과와 같지 않습니다.')
 
 
+def collect_rows(dates):
+    """해당 날짜들의 채점 기록을 모읍니다."""
+    wanted = set(dates)
+    rows, all_rows = [], []
+    for path in sorted((STATE / 'reports').glob('*-assessment.json')):
+        date = path.name.split('-assessment')[0]
+        if date not in wanted:
+            continue
+        record = read_json(path, {}) or {}
+        simulations = record.get('simulations', [])
+        rows.extend(evaluate.flatten_for_scoreboard(simulations))
+        all_rows.extend(evaluate.flatten_for_scoreboard(simulations, conditions_only=False))
+    return rows, all_rows
+
+
+def report(dates, label):
+    """한 구간의 성적표. 셋업별 적중률과 강도별 적중률을 함께 보여줍니다."""
+    rows, all_rows = collect_rows(dates)
+    board = confidence.tally(rows)
+    buckets = strength.calibration(all_rows)
+    print(f'\n[{label}] {len(dates)}거래일 · 거래 {len(rows)}건')
+    if not board:
+        print('  채점된 거래가 없습니다.')
+    for key, record in sorted(board.items(), key=lambda item: -(item[1]['lower_bound'] or 0)):
+        rate = record['hit_rate']
+        print(f'  {key}: {record["hits"]}/{record["total"]}건'
+              f' = {rate * 100:.1f}% (하한 {record["lower_bound"] * 100:.1f}%)'
+              if rate is not None else f'  {key}: 표본 없음')
+    if buckets:
+        print('  강도별:', ' · '.join(
+            f'{level}→{value["hit_rate_pct"]:.0f}%({value["total"]}건)'
+            for level, value in sorted(buckets.items(), reverse=True)
+            if value['hit_rate_pct'] is not None))
+    return board, buckets
+
+
+def walkforward(split_date=None):
+    """앞 구간으로 규칙을 보고, 뒤 구간으로 검증합니다.
+
+    과거에 잘 맞는 규칙은 언제든 찾을 수 있습니다. 조건을 바꿔가며 맞을 때까지 돌리면
+    되니까요. 그게 과적합이고, 그렇게 만든 규칙은 실전에서 무너집니다.
+
+    유일한 방어는 '규칙을 만드는 데 쓰지 않은 구간'에서 확인하는 것입니다. 앞 구간을
+    보고 조건을 고쳤다면, 뒤 구간 성적만이 의미 있는 숫자입니다. 뒤 구간을 보고 또
+    고치는 순간 그 구간도 학습 데이터가 되어 버립니다.
+    """
+    dates = stored_dates()
+    if len(dates) < 4:
+        print('구간을 나눌 만큼 날짜가 없습니다.')
+        return
+    split_date = split_date or dates[len(dates) // 2]
+    train = [d for d in dates if d < split_date]
+    test = [d for d in dates if d >= split_date]
+    if not train or not test:
+        print('분할 기준일이 범위를 벗어났습니다:', split_date)
+        return
+    print(f'분할 기준일: {split_date}')
+    print(f'  학습 구간 {train[0]} ~ {train[-1]} ({len(train)}일)')
+    print(f'  검증 구간 {test[0]} ~ {test[-1]} ({len(test)}일)')
+    train_board, _ = report(train, '학습 구간 — 조건을 보고 고쳐도 되는 구간')
+    test_board, _ = report(test, '검증 구간 — 여기 숫자만 의미가 있습니다')
+
+    print('\n[비교] 같은 셋업의 두 구간 적중률')
+    keys = sorted(set(train_board) | set(test_board))
+    if not keys:
+        print('  비교할 셋업이 없습니다.')
+    for key in keys:
+        before = (train_board.get(key) or {}).get('hit_rate')
+        after = (test_board.get(key) or {}).get('hit_rate')
+        if before is None or after is None:
+            print(f'  {key}: 한쪽 구간에 표본이 없어 비교 불가')
+            continue
+        gap = (after - before) * 100
+        verdict = '유지' if gap > -10 else '급락 — 과적합 의심'
+        print(f'  {key}: 학습 {before * 100:.1f}% → 검증 {after * 100:.1f}%'
+              f' ({gap:+.1f}%p) {verdict}')
+    print('\n검증 구간을 보고 조건을 또 고치면 그 구간도 학습 데이터가 됩니다.')
+    print('고친 뒤에는 아직 쓰지 않은 새 구간에서 다시 확인해야 합니다.')
+
+
 if __name__ == '__main__':
     STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     with (STATE / 'runner.lock').open('w') as lock:
@@ -196,8 +276,12 @@ if __name__ == '__main__':
         except BlockingIOError:
             print('다른 수집 실행이 진행 중입니다. 끝난 뒤 다시 실행하세요.')
             sys.exit(1)
+        command = sys.argv[1] if len(sys.argv) > 1 else 'run'
+        if command == 'walkforward':
+            walkforward(sys.argv[2] if len(sys.argv) > 2 else None)
+            sys.exit(0)
         api = Client()
         try:
-            run(api, limit=int(sys.argv[1]) if len(sys.argv) > 1 else None)
+            run(api, limit=int(command) if command.isdigit() else None)
         finally:
             api.save_archive()

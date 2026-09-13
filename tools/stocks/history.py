@@ -230,7 +230,7 @@ def backfill(client, max_days=MAX_BACKFILL_DAYS):
             # 호출 수를 절반 가까이 줄여 정규장 축적을 훨씬 빨리 끝내는 쪽을 택했습니다.
             day_filled += 1
             filled += 1
-        print(f'  {date}: {day_filled}/{len(symbols)}종목 확보 (누적 {filled}건)')
+        print(f'  {date}: {day_filled}/{len(symbols)}종목 확보 (누적 {filled}건)', flush=True)
         empty_streak = empty_streak + 1 if day_filled == 0 else 0
         if empty_streak >= STOP_AFTER_EMPTY_DAYS:
             print(f'거래일 {empty_streak}일 연속으로 받지 못했습니다. 보관 한계로 보고 중단합니다.')
