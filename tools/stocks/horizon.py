@@ -23,6 +23,13 @@
   그래서 손절을 보유 일수의 제곱근에 비례해 넓힙니다. 가격 변동 폭이 시간의
   제곱근에 비례해 커지므로, 그래야 각 기간이 같은 수준의 위험을 집니다.
 
+시장 수익률과 반드시 비교하는 이유 (가장 중요):
+  상승장에서는 아무 종목이나 오래 들고 있어도 수익이 납니다. '20일 보유가 제일
+  좋다'는 결과가 전략의 기여인지, 그냥 시장이 올라서인지 구분하지 못하면
+  그 숫자는 아무 의미가 없습니다. 그래서 같은 기간 지수 수익률을 함께 계산하고,
+  그걸 뺀 초과수익으로 판단합니다. 초과수익이 0 근처면 전략은 아무것도 하지
+  않은 것입니다.
+
 한계: 장중 진입 타이밍은 반영되지 않습니다. 진입은 신호 다음 거래일 시가입니다.
 """
 import math
@@ -91,6 +98,24 @@ def simulate_hold(candles, entry_index, hold_days, stop_pct, target_pct):
     return {'exit_price': close, 'result': 'timeout', 'days': hold_days} if close else None
 
 
+def index_return_pct(index_candles, start_date, hold_days):
+    """같은 기간 지수 수익률. 전략이 시장을 이겼는지 재는 기준선입니다."""
+    positions = [i for i, bar in enumerate(index_candles)
+                 if bar['timestamp'][:10] >= start_date]
+    if not positions:
+        return None
+    begin = positions[0]
+    end = min(begin + hold_days, len(index_candles) - 1)
+    if end <= begin:
+        return None
+    start_price = number(index_candles[begin].get('openPrice')) \
+        or number(index_candles[begin].get('closePrice'))
+    end_price = number(index_candles[end].get('closePrice'))
+    if not start_price or not end_price:
+        return None
+    return (end_price / start_price - 1) * 100
+
+
 def run(symbols=None, horizons=HORIZONS, ratio=TARGET_MULTIPLE):
     index_candles = (read_json(STATE / 'daily' / '_KOSPI.json', {}) or {}).get('candles', [])
     if not index_candles:
@@ -126,10 +151,13 @@ def run(symbols=None, horizons=HORIZONS, ratio=TARGET_MULTIPLE):
                 net = net_return_pct(entry_price, outcome['exit_price'])
                 if net is None:
                     continue
+                benchmark = index_return_pct(index_candles, entry_date, hold)
                 results[hold].append({
                     'symbol': symbol, 'date': entry_date, 'net_pct': net,
                     'win': net > 0, 'result': outcome['result'],
                     'stop_pct': stop_pct, 'target_pct': target_pct,
+                    'benchmark_pct': benchmark,
+                    'excess_pct': None if benchmark is None else net - benchmark,
                 })
 
     if not signal_count:
@@ -138,7 +166,7 @@ def run(symbols=None, horizons=HORIZONS, ratio=TARGET_MULTIPLE):
     print(f'종목 {len(symbols)}개 · 신호 {signal_count}건 · 손익비 {ratio:g}:1 고정')
     print('진입은 신호 다음 거래일 시가, 비용은 왕복 수수료·거래세·슬리피지 차감.')
     print('손절은 보유 일수의 제곱근에 비례해 넓힙니다 (기간별 위험을 맞추기 위해).\n')
-    print(f"{'보유':>4}  {'거래':>5}  {'적중률':>7}  {'거래당':>8}  {'누적합':>9}  {'최대낙폭':>9}  {'연속손실':>6}")
+    print(f"{'보유':>4}  {'거래':>5}  {'적중률':>7}  {'거래당':>8}  {'지수':>8}  {'초과':>8}  {'연속손실':>6}")
     print('(누적합·최대낙폭은 거래당 수익률을 단순 합산한 값입니다. 투입 비중을 반영한')
     print(' 계좌 수익률이 아니며, 거래 수가 많을수록 절대값이 커집니다.)')
     print('-' * 62)
@@ -151,10 +179,14 @@ def run(symbols=None, horizons=HORIZONS, ratio=TARGET_MULTIPLE):
         risk = verdict['risk']
         rate = verdict['hit_rate'] or 0
         mean_net = fmean(row['net_pct'] for row in rows)
+        marks = [row['benchmark_pct'] for row in rows if row['benchmark_pct'] is not None]
+        excess = [row['excess_pct'] for row in rows if row['excess_pct'] is not None]
+        mean_mark = fmean(marks) if marks else 0.0
+        mean_excess = fmean(excess) if excess else 0.0
         print(f'{hold:>3}일  {len(rows):>5}  {rate * 100:>6.1f}%  {mean_net:>+7.2f}%'
-              f'  {risk["total_return_pct"]:>+8.1f}%  {risk["max_drawdown_pct"]:>+8.1f}%'
+              f'  {mean_mark:>+7.2f}%  {mean_excess:>+7.2f}%'
               f'  {risk["longest_losing_streak"]:>5}회')
-        summary[hold] = (verdict, mean_net)
+        summary[hold] = (verdict, mean_excess)
 
     print('\n판정 (우연 배제·집중도·견딜 수 있는 손실):')
     for hold, (verdict, _) in summary.items():
@@ -162,9 +194,13 @@ def run(symbols=None, horizons=HORIZONS, ratio=TARGET_MULTIPLE):
 
     best = max(summary.items(), key=lambda item: item[1][1]) if summary else None
     if best:
-        hold, (verdict, mean_net) = best
-        print(f'\n거래당 기대값이 가장 높은 구간: {hold}일 보유 ({mean_net:+.2f}%/거래)')
-        print('다만 기대값이 높아도 우연 판정을 통과하지 못했다면 근거가 되지 못합니다.')
+        hold, (verdict, mean_excess) = best
+        print(f'\n시장 대비 초과수익이 가장 높은 구간: {hold}일 보유 ({mean_excess:+.2f}%p/거래)')
+        if mean_excess <= 0.1:
+            print('초과수익이 0 근처입니다. 수익이 났더라도 시장이 오른 덕이지')
+            print('전략이 기여한 것이 아닙니다.')
+        else:
+            print('다만 초과수익이 있어도 우연 판정을 통과하지 못했다면 근거가 되지 못합니다.')
     # 요약 파일로도 남겨 사이트에 올릴 수 있게 합니다.
     saved = []
     for hold, (verdict, mean_net) in summary.items():
@@ -174,6 +210,7 @@ def run(symbols=None, horizons=HORIZONS, ratio=TARGET_MULTIPLE):
             'hit_rate_pct': (verdict['hit_rate'] or 0) * 100,
             'mean_net_pct': mean_net,
             'total_return_pct': risk['total_return_pct'],
+            'excess_pct': mean_net,
             'max_drawdown_pct': risk['max_drawdown_pct'],
             'longest_losing_streak': risk['longest_losing_streak'],
             'verdict': verdict['chance']['reason'],
