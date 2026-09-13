@@ -25,6 +25,7 @@ from datetime import datetime
 import confidence
 import evaluate
 import history
+import robustness
 import signals
 import strength
 from features import build as build_features, number
@@ -154,6 +155,9 @@ def run(client, limit=None):
             'assessed_at': now().isoformat(),
             'source': BACKTEST_MARK,
             'regime': regime,
+            # 시장 레짐을 함께 남깁니다. 한 레짐의 성적을 다른 레짐에 적용하면 안 되므로,
+            # 나중에 레짐별로 따로 채점할 수 있어야 합니다.
+            'market_regime': robustness.market_regime(index_candles, date),
             'overnight': {k: v['change_pct'] for k, v in markets.items()},
             'simulations': simulations,
             'summary': evaluate.summarize(simulations),
@@ -198,29 +202,75 @@ def collect_rows(dates):
             continue
         record = read_json(path, {}) or {}
         simulations = record.get('simulations', [])
-        rows.extend(evaluate.flatten_for_scoreboard(simulations))
-        all_rows.extend(evaluate.flatten_for_scoreboard(simulations, conditions_only=False))
+        regime_label = (record.get('market_regime') or {}).get('label', 'unknown')
+        for target, bucket in ((rows, evaluate.flatten_for_scoreboard(simulations)),
+                               (all_rows, evaluate.flatten_for_scoreboard(
+                                   simulations, conditions_only=False))):
+            target.extend({**row, 'date': date, 'regime': regime_label} for row in bucket)
     return rows, all_rows
 
 
-def report(dates, label):
-    """한 구간의 성적표. 셋업별 적중률과 강도별 적중률을 함께 보여줍니다."""
+def group_by(rows, key):
+    buckets = {}
+    for row in rows:
+        buckets.setdefault(row.get(key), []).append(row)
+    return buckets
+
+
+def report(dates, label, baseline_rates=None):
+    """한 구간의 성적표.
+
+    적중률 숫자 하나만 보면 속습니다. 그 숫자가 우연인지, 한 곳에서 몰아 나왔는지,
+    견딜 수 있는 손실인지, 특정 시장 상황에서만 되는 건지를 함께 봅니다.
+    """
     rows, all_rows = collect_rows(dates)
     board = confidence.tally(rows)
-    buckets = strength.calibration(all_rows)
     print(f'\n[{label}] {len(dates)}거래일 · 거래 {len(rows)}건')
     if not board:
         print('  채점된 거래가 없습니다.')
-    for key, record in sorted(board.items(), key=lambda item: -(item[1]['lower_bound'] or 0)):
+        return board, {}
+
+    # 셋업별: 적중률 + 우연일 확률 + 집중도 + 견딜 수 있는 손실
+    p_values = {}
+    for key in sorted(board, key=lambda name: -(board[name]['lower_bound'] or 0)):
+        record = board[key]
+        subset = [row for row in rows if row['setup'] == key]
+        baseline = (baseline_rates or {}).get(key, robustness.DEFAULT_BASELINE)
+        verdict = robustness.assess(subset, baseline)
+        p_values[key] = verdict['chance']['p_value']
         rate = record['hit_rate']
-        print(f'  {key}: {record["hits"]}/{record["total"]}건'
-              f' = {rate * 100:.1f}% (하한 {record["lower_bound"] * 100:.1f}%)'
-              if rate is not None else f'  {key}: 표본 없음')
+        print(f'  {key}: {record["hits"]}/{record["total"]}건 = {rate * 100:.1f}%'
+              f' (하한 {record["lower_bound"] * 100:.1f}%)')
+        print(f'      {robustness.summarize(verdict)}')
+
+    # 여러 조합을 동시에 시험한 대가를 보정합니다.
+    corrected = robustness.benjamini_hochberg(p_values)
+    survivors = [key for key, value in corrected.items() if value['survives']]
+    if corrected:
+        tested = next(iter(corrected.values()))['tested']
+        print(f'  다중비교 보정({tested}개 조합 동시 검정): '
+              + (', '.join(survivors) + ' 만 살아남음' if survivors
+                 else '살아남는 조합 없음 — 통과처럼 보인 것은 우연일 수 있습니다'))
+
+    # 강도가 실제로 작동하는지
+    buckets = strength.calibration(all_rows)
     if buckets:
-        print('  강도별:', ' · '.join(
+        print('  강도별 적중률:', ' · '.join(
             f'{level}→{value["hit_rate_pct"]:.0f}%({value["total"]}건)'
             for level, value in sorted(buckets.items(), reverse=True)
             if value['hit_rate_pct'] is not None))
+
+    # 시장 레짐별로 나눠 봅니다. 한 레짐에만 통하는 전략인지 확인하는 용도입니다.
+    by_regime = group_by(rows, 'regime')
+    if len(by_regime) > 1:
+        print('  레짐별 적중률:', ' · '.join(
+            f'{name}→{100 * sum(1 for r in subset if r.get("win")) / len(subset):.0f}%'
+            f'({len(subset)}건)'
+            for name, subset in sorted(by_regime.items()) if subset))
+    elif by_regime:
+        only = next(iter(by_regime))
+        print(f'  주의: 표본이 전부 "{only}" 레짐입니다. 다른 시장 상황에서도 통한다는'
+              f' 근거가 없습니다.')
     return board, buckets
 
 

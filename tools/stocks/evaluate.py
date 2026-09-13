@@ -10,6 +10,8 @@
   - 진입은 돌파가에 1틱 불리하게 체결됐다고 봅니다.
   - 모든 손익은 수수료·거래세·슬리피지를 뺀 값입니다.
 """
+import random
+
 from features import number, opening_range
 from signals import (EXIT_TIME, SLIPPAGE_TICKS, TARGET_LADDER, net_return_pct,
                      round_trip_cost_pct, tick_size)
@@ -116,6 +118,36 @@ def simulate(plan, bars):
         'cost_pct': round_trip_cost_pct(entry_price, entry_price),
         'ladder': ladder,
     }
+
+
+def random_entry_baseline(plan, bars, target_pct, trials=20, seed=0):
+    """같은 종목·같은 날, 무작위 시점에 진입했다면 어땠을지.
+
+    우리 진입 규칙(개장 레인지 돌파)이 실제로 값어치가 있는지 재는 기준선입니다.
+    아무 시점에나 사도 같은 적중률이 나온다면, 그 규칙은 아무것도 하지 않은 것입니다.
+    상승장에서는 아무 때나 사도 잘 맞으므로, 이 비교 없이는 전략의 기여를 알 수 없습니다.
+    """
+    minutes = plan.get('opening_range_minutes', 30)
+    usable = [index for index, bar in enumerate(bars)
+              if index >= minutes and bar_time(bar) <= plan.get('entry_deadline', '13:00')]
+    if not usable:
+        return None
+    generator = random.Random(f"{seed}:{plan['symbol']}:{bars[0]['timestamp'][:10]}")
+    wins = 0
+    counted = 0
+    for _ in range(trials):
+        index = generator.choice(usable)
+        entry_price = number(bars[index]['closePrice'])
+        if not entry_price:
+            continue
+        stop_price = entry_price * (1 - plan['stop_pct'] / 100)
+        target_price = entry_price * (1 + target_pct / 100)
+        outcome = walk(bars, index, entry_price, stop_price, target_price)
+        net = net_return_pct(entry_price, outcome['price'])
+        counted += 1
+        wins += 1 if (net is not None and net > 0) else 0
+    return {'wins': wins, 'total': counted,
+            'hit_rate': wins / counted if counted else None}
 
 
 def flatten_for_scoreboard(simulations, conditions_only=True):
