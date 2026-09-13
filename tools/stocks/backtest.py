@@ -143,9 +143,10 @@ def run(client, limit=None):
         # 조건 미충족 계획도 채점합니다 — 실제 운영에서도 강도 순으로 추천에 들어갑니다.
         tradeable = [p for p in plans if p.get('tradeable')]
         simulations = []
+        index_minutes = (read_json(history.index_path('KOSPI', date), {}) or {}).get('candles', [])
         for plan in plans:
             stored = read_json(history.history_path(plan['symbol'], date), {}) or {}
-            result = evaluate.simulate(plan, stored.get('candles', []))
+            result = evaluate.simulate(plan, stored.get('candles', []), index_minutes)
             result['name'] = plan['symbol']
             result['recommended'] = False       # 소급 채점은 실제 추천이 아니었습니다.
             simulations.append(result)
@@ -239,8 +240,15 @@ def report(dates, label, baseline_rates=None):
         verdict = robustness.assess(subset, baseline)
         p_values[key] = verdict['chance']['p_value']
         rate = record['hit_rate']
-        print(f'  {key}: {record["hits"]}/{record["total"]}건 = {rate * 100:.1f}%'
-              f' (하한 {record["lower_bound"] * 100:.1f}%)')
+        nets = [row['net_pct'] for row in subset if row.get('net_pct') is not None]
+        excess = [row['excess_pct'] for row in subset if row.get('excess_pct') is not None]
+        mean_net = sum(nets) / len(nets) if nets else 0.0
+        mean_excess = sum(excess) / len(excess) if excess else None
+        line = (f'  {key}: {record["hits"]}/{record["total"]}건 = {rate * 100:.1f}%'
+                f' (하한 {record["lower_bound"] * 100:.1f}%) · 거래당 {mean_net:+.2f}%')
+        if mean_excess is not None:
+            line += f' · 지수 대비 {mean_excess:+.2f}%p'
+        print(line)
         print(f'      {robustness.summarize(verdict)}')
 
     # 여러 조합을 동시에 시험한 대가를 보정합니다.

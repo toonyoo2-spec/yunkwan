@@ -72,7 +72,32 @@ def walk(bars, start_index, entry_price, stop_price, target_price):
             'at': last['timestamp'], 'ambiguous': False}
 
 
-def simulate(plan, bars):
+def index_move_pct(index_bars, start_stamp, end_stamp):
+    """진입~청산 구간의 지수 등락률.
+
+    스윙 테스트에서 '수익이 났어도 시장이 오른 덕'인 경우를 걸러냈듯이,
+    장중 전략에도 같은 잣대를 대야 합니다. 장중 구간은 지수 움직임이 작아
+    보통 0에 가깝지만, 확인하지 않으면 알 수 없습니다.
+    """
+    if not index_bars:
+        return None
+    begin = next((bar for bar in index_bars if bar['timestamp'] >= start_stamp), None)
+    finish = None
+    for bar in index_bars:
+        if bar['timestamp'] <= end_stamp:
+            finish = bar
+        else:
+            break
+    if not begin or not finish or begin['timestamp'] >= finish['timestamp']:
+        return None
+    start_price = number(begin.get('openPrice')) or number(begin.get('closePrice'))
+    end_price = number(finish.get('closePrice'))
+    if not start_price or not end_price:
+        return None
+    return (end_price / start_price - 1) * 100
+
+
+def simulate(plan, bars, index_bars=None):
     """계획 하나를 그날 분봉으로 재현합니다. 목표 사다리 전부를 각각 평가합니다.
 
     조건을 통과하지 못한(tradeable=False) 계획도 채점합니다. 매일 정해진 수를
@@ -93,6 +118,7 @@ def simulate(plan, bars):
         target_price = entry_price * (1 + target_pct / 100)
         outcome = walk(bars, entry['index'], entry_price, stop_price, target_price)
         net = net_return_pct(entry_price, outcome['price'])
+        benchmark = index_move_pct(index_bars, entry['at'], outcome['at'])
         ladder[str(target_pct)] = {
             'target_pct': target_pct,
             'result': outcome['result'],
@@ -100,6 +126,8 @@ def simulate(plan, bars):
             'exit_at': outcome['at'],
             'ambiguous_bar': outcome['ambiguous'],
             'net_pct': net,
+            'benchmark_pct': benchmark,
+            'excess_pct': None if (net is None or benchmark is None) else net - benchmark,
             'win': net is not None and net > 0,
         }
     return {
@@ -173,6 +201,8 @@ def flatten_for_scoreboard(simulations, conditions_only=True):
                 'symbol': run['symbol'],
                 'level': run.get('strength_level'),
                 'features_usable': run.get('features_usable', True),
+                'benchmark_pct': entry.get('benchmark_pct'),
+                'excess_pct': entry.get('excess_pct'),
                 'win': entry['win'],
             })
     return rows
