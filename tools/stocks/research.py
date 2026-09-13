@@ -54,6 +54,7 @@ def setup_section(rows):
             'total': record['total'],
             'hit_rate_pct': (record['hit_rate'] or 0) * 100,
             'lower_bound_pct': (record['lower_bound'] or 0) * 100,
+            'expectancy_pct': record.get('expectancy_pct'),
             'status': record['status'],
             'gate_reason': record['reason'],
             'chance_verdict': verdict['chance']['verdict'],

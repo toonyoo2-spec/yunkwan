@@ -43,7 +43,8 @@ SIMULATION_FIELDS = ('symbol', 'name', 'setup', 'result', 'recommended', 'stop_p
                      'note', 'strength_level')
 STRENGTH_FIELDS = ('level', 'raw_score', 'components', 'note')
 STRENGTH_COMPONENT_FIELDS = ('label', 'points', 'detail')
-SCORE_FIELDS = ('hits', 'total', 'hit_rate', 'lower_bound', 'target', 'status', 'reason')
+SCORE_FIELDS = ('hits', 'total', 'hit_rate', 'lower_bound', 'expectancy_pct',
+                'target', 'status', 'reason')
 REGIME_FIELDS = ('status', 'allow_long', 'reason')
 
 # 원 단위 값이 들어 있는 키. 방어적으로 한 번 더 확인합니다.
@@ -184,7 +185,8 @@ def upsert(config, token, row):
 
 
 # 분석 요약에 허용되는 필드. 전부 비율(%)·건수·판정 문구이며 가격은 없습니다.
-RESEARCH_SETUP_FIELDS = ('hits', 'total', 'hit_rate_pct', 'lower_bound_pct', 'status',
+RESEARCH_SETUP_FIELDS = ('hits', 'total', 'hit_rate_pct', 'lower_bound_pct',
+                         'expectancy_pct', 'status',
                          'gate_reason', 'chance_verdict', 'chance_reason',
                          'concentration_reason', 'max_drawdown_pct',
                          'longest_losing_streak', 'total_return_pct',

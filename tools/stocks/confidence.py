@@ -28,23 +28,45 @@ def wilson_lower_bound(hits, total, z=CONFIDENCE_Z):
     return max(0.0, (centre - margin) / denominator)
 
 
-def evaluate_setup(hits, total, target=TARGET_HIT_RATE, min_samples=MIN_SAMPLES):
-    """셋업 하나의 통과 여부를 판정합니다."""
+MIN_EXPECTANCY_PCT = 0.0    # 거래당 기대값이 이보다 커야 합니다 (비용 차감 후)
+
+
+def evaluate_setup(hits, total, target=TARGET_HIT_RATE, min_samples=MIN_SAMPLES,
+                   expectancy=None):
+    """셋업 하나의 통과 여부를 판정합니다.
+
+    적중률만으로는 판정할 수 없습니다. 목표 1%·손절 2.5%처럼 손익비가 나쁘면
+    적중률 67%로도 돈을 잃습니다(67% × 0.8% − 33% × 2.0% = −0.1%). 실제로
+    이 시스템의 첫 결과가 정확히 그랬습니다 — 적중률 67.7%, 거래당 −0.45%.
+
+    그래서 두 조건을 모두 넘겨야 통과입니다.
+      1) 적중률 하한(Wilson 95%)이 목표 이상
+      2) 거래당 기대값이 0보다 큼 (수수료·거래세·슬리피지 차감 후)
+    """
     lower = wilson_lower_bound(hits, total)
+    profitable = expectancy is None or expectancy > MIN_EXPECTANCY_PCT
+    expectancy_note = '' if expectancy is None else f' · 거래당 {expectancy:+.2f}%'
+
     if total < min_samples:
         status = 'observing'
-        reason = f'표본 {total}건 — {min_samples}건을 모아야 판정합니다'
-    elif lower >= target:
+        reason = f'표본 {total}건 — {min_samples}건을 모아야 판정합니다{expectancy_note}'
+    elif lower >= target and profitable:
         status = 'passed'
-        reason = f'적중률 하한 {lower * 100:.1f}% ≥ 목표 {target * 100:.0f}%'
+        reason = f'적중률 하한 {lower * 100:.1f}% ≥ 목표 {target * 100:.0f}%{expectancy_note}'
+    elif lower >= target and not profitable:
+        status = 'blocked'
+        reason = (f'적중률 하한 {lower * 100:.1f}%로 목표는 넘겼지만 거래당 기대값이 '
+                  f'{expectancy:+.2f}%입니다 — 자주 맞히고 크게 잃는 구조라 추천하지 않습니다')
     else:
         status = 'blocked'
-        reason = f'적중률 하한 {lower * 100:.1f}% < 목표 {target * 100:.0f}% — 추천하지 않습니다'
+        reason = (f'적중률 하한 {lower * 100:.1f}% < 목표 {target * 100:.0f}%'
+                  f'{expectancy_note} — 추천하지 않습니다')
     return {
         'hits': hits,
         'total': total,
         'hit_rate': hits / total if total else None,
         'lower_bound': lower,
+        'expectancy_pct': expectancy,
         'target': target,
         'status': status,
         'reason': reason,
@@ -52,18 +74,25 @@ def evaluate_setup(hits, total, target=TARGET_HIT_RATE, min_samples=MIN_SAMPLES)
 
 
 def tally(outcomes):
-    """청산 기록들을 셋업 이름별로 집계합니다. outcome은 evaluate.py가 만든 결과 행입니다."""
+    """청산 기록들을 셋업 이름별로 집계합니다. outcome은 evaluate.py가 만든 결과 행입니다.
+
+    적중 횟수와 함께 거래당 기대값도 모읍니다. 적중률만으로는 '자주 맞히고 크게 잃는'
+    전략을 걸러낼 수 없기 때문입니다.
+    """
     counters = {}
     for row in outcomes:
         setup = row.get('setup')
         if not setup or row.get('result') not in ('target', 'stop', 'timeout'):
             continue
-        bucket = counters.setdefault(setup, {'hits': 0, 'total': 0})
+        bucket = counters.setdefault(setup, {'hits': 0, 'total': 0, 'net_sum': 0.0})
         bucket['total'] += 1
+        bucket['net_sum'] += row.get('net_pct') or 0.0
         # 적중 = 비용을 뺀 뒤에도 수익이 남은 거래. 목표가 도달만으로 세지 않습니다.
         if row.get('net_pct', 0) > 0:
             bucket['hits'] += 1
-    return {name: evaluate_setup(value['hits'], value['total'])
+    return {name: evaluate_setup(
+                value['hits'], value['total'],
+                expectancy=value['net_sum'] / value['total'] if value['total'] else None)
             for name, value in sorted(counters.items())}
 
 
