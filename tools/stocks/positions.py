@@ -38,6 +38,9 @@ VERDICT_HOLD = 'hold'
 VERDICT_SELL = 'sell'
 VERDICT_SWITCH = 'switch'
 
+STRATEGY_SWING = 'swing'    # 단타·스윙. 아래 규칙을 그대로 적용합니다.
+STRATEGY_LONG = 'long'      # 장기 보유. 기간 만료·강도 붕괴·교체로 매도 신호를 내지 않습니다.
+
 
 def trading_days_between(client, start_date, end_date):
     """두 날짜 사이의 거래일 수. 휴장일은 세지 않습니다."""
@@ -97,13 +100,25 @@ def judge(position, price, candidates, best_alternative, held_days):
         return {**base, 'verdict': VERDICT_SELL, 'trigger': 'target',
                 'reason': f'목표 +{target_pct:.1f}%에 도달했습니다. 계획대로 실현합니다.'}
 
-    if held_days >= MAX_HOLD_DAYS:
+    long_term = position.get('strategy') == STRATEGY_LONG
+    base['strategy'] = position.get('strategy', STRATEGY_SWING)
+
+    if not long_term and held_days >= MAX_HOLD_DAYS:
         return {**base, 'verdict': VERDICT_SELL, 'trigger': 'timeout',
                 'reason': f'{MAX_HOLD_DAYS}거래일을 넘겼습니다. 살 때의 근거가 유효한 기간이 지났습니다.'}
 
     current = find_candidate(candidates, position['symbol'])
     level = (current or {}).get('strength', {}).get('level')
     base['current_strength'] = level
+
+    if long_term:
+        # 장기 보유에는 단타 규칙을 적용하지 않습니다. 손절·목표만 지키고
+        # 나머지는 현황만 알려줍니다. 오래 들고 온 종목을 며칠 강도로 팔라고 하면
+        # 그건 근거 없는 신호입니다.
+        note = f'장기 보유 {held_days}거래일째.'
+        if level is not None:
+            note += f' 오늘 단기 강도 {level}/10 (참고용 — 장기 판단 근거가 아닙니다).'
+        return {**base, 'verdict': VERDICT_HOLD, 'trigger': 'long_term', 'reason': note}
 
     if level is not None and level <= STRENGTH_COLLAPSE:
         return {**base, 'verdict': VERDICT_SELL, 'trigger': 'strength_collapse',

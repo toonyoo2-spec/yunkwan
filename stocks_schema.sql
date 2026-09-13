@@ -113,3 +113,13 @@ create policy stock_positions_update_own on public.stock_positions
 drop policy if exists stock_positions_delete_own on public.stock_positions;
 create policy stock_positions_delete_own on public.stock_positions
   for delete using (auth.uid() = owner_id);
+
+-- 보유 성격 구분.
+--   swing: 단타·스윙. 손절·목표·보유기간 규칙을 그대로 적용합니다.
+--   long : 장기 보유. 보유기간 만료와 강도 붕괴로 매도 신호를 내지 않습니다.
+alter table public.stock_positions
+  add column if not exists strategy text not null default 'swing';
+alter table public.stock_positions
+  drop constraint if exists stock_positions_strategy_check;
+alter table public.stock_positions
+  add constraint stock_positions_strategy_check check (strategy in ('swing', 'long'));

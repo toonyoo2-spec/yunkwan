@@ -232,7 +232,8 @@ def publish_research(summary):
 # 보유 종목 판정에서 사이트로 올려도 되는 필드.
 # 손익률(%)과 판정만 올립니다. 현재가는 올리지 않습니다.
 VERDICT_FIELDS = ('verdict', 'trigger', 'reason', 'held_days', 'net_pnl_pct',
-                  'current_strength', 'switch_to', 'best_alternative', 'decided_at')
+                  'current_strength', 'switch_to', 'best_alternative', 'decided_at',
+                  'strategy')
 
 
 def get_json(url, config, token):
@@ -271,7 +272,7 @@ def fetch_open_positions():
     token = sign_in(config)
     url = (f"{config['url']}/rest/v1/{POSITIONS_TABLE}"
            "?status=eq.open&select=id,symbol,name,market,entry_date,entry_price,"
-           "quantity,target_pct,stop_pct&order=entry_date.asc")
+           "quantity,target_pct,stop_pct,strategy&order=entry_date.asc")
     return get_json(url, config, token)
 
 

@@ -207,7 +207,7 @@
     if (window.STOCK_LOCAL_MODE) return [];
     const { data, error } = await window.sb
       .from('stock_positions')
-      .select('id,symbol,name,market,entry_date,entry_price,quantity,target_pct,stop_pct,verdict')
+      .select('id,symbol,name,market,entry_date,entry_price,quantity,target_pct,stop_pct,strategy,verdict')
       .eq('status', 'open')
       .order('entry_date', { ascending: true });
     if (error) return [];
@@ -233,10 +233,11 @@
       const card = element('article', 'position');
       const top = element('div', 'position-top');
       const left = element('div');
+      const kind = row.strategy === 'long' ? '장기' : '스윙';
       left.append(
         element('h3', null, row.name || row.symbol),
         element('small', null,
-          `${row.symbol} · ${row.market || ''} · ${row.entry_date} 매수 · ${row.quantity}주`)
+          `${row.symbol} · ${row.market || ''} · ${kind} · ${row.entry_date} 매수 · ${row.quantity}주`)
       );
       const pnl = verdict.net_pnl_pct;
       const right = element('div', `pnl ${pnl > 0 ? 'up' : pnl < 0 ? 'down' : ''}`,
@@ -299,6 +300,7 @@
         quantity: Number(data.quantity),
         target_pct: data.target_pct ? Number(data.target_pct) : null,
         stop_pct: data.stop_pct ? Number(data.stop_pct) : null,
+        strategy: data.strategy || 'swing',
       };
       if (!/^[A-Za-z0-9]{6}$/.test(payload.symbol)) {
         setMessage('종목코드는 6자리입니다.');
