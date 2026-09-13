@@ -153,6 +153,49 @@ def collect_daily(client, symbol):
                                     'candles': ordered})
 
 
+def collect_index_daily(client):
+    """상대강도 기준이 되는 지수 일봉. 종목과 다른 엔드포인트라 따로 받습니다."""
+    for symbol in INDEX_SYMBOLS:
+        path = STATE / 'daily' / f'_{symbol}.json'
+        stored = read_json(path, {}) or {}
+        page = client.get_optional(f'/api/v1/market-indicators/{symbol}/candles',
+                                   interval='1d', count=DAILY_CANDLE_COUNT)
+        merged = {row['timestamp']: row for row in stored.get('candles', [])}
+        for row in (page or {}).get('candles', []):
+            merged[row['timestamp']] = row
+        ordered = [merged[key] for key in sorted(merged)][-DAILY_CANDLE_COUNT:]
+        if ordered:
+            write_json(path, {'symbol': symbol, 'updated_at': now().isoformat(),
+                              'candles': ordered})
+            print(f'  지수 {symbol}: 일봉 {len(ordered)}개', flush=True)
+
+
+def collect_reference(client):
+    """일봉·수급·지수 일봉을 모읍니다. 휴장일에도 돌아갑니다.
+
+    소급 수집(backfill)은 분봉만 받습니다. 특징 계산(ATR·거래량 추세·상대강도·수급)에는
+    일봉과 수급 시계열이 필요하므로, 채점 전에 이 단계를 한 번 돌려야 합니다.
+    """
+    universe = read_json(universe_path(now().date().isoformat()))
+    if not universe:
+        latest = sorted((STATE / 'universe').glob('*.json'))
+        universe = read_json(latest[-1], {}) if latest else None
+    if not universe:
+        universe = build_universe(client, now().date().isoformat())
+    symbols = universe['symbols']
+    print(f'기준 데이터 수집: 종목 {len(symbols)}개', flush=True)
+    collect_index_daily(client)
+    for entry in symbols:
+        symbol = entry['symbol']
+        try:
+            collect_daily(client, symbol)
+            collect_flows(client, symbol)
+            print(f'  {symbol} {entry.get("name", "")}: 일봉·수급 완료', flush=True)
+        except RuntimeError as exc:
+            print(f'  {symbol}: 건너뜀 ({exc})', flush=True)
+    print('기준 데이터 수집 완료.', flush=True)
+
+
 def run(client, date=None):
     """장 마감 후 1회 실행. 휴장일이면 아무것도 하지 않습니다."""
     date = date or now().date().isoformat()
@@ -271,6 +314,8 @@ if __name__ == '__main__':
                 depth_probe(api)
             elif command == 'backfill':
                 backfill(api, max_days=int(sys.argv[2]) if len(sys.argv) > 2 else MAX_BACKFILL_DAYS)
+            elif command == 'reference':
+                collect_reference(api)
             else:
                 run(api)
         finally:
