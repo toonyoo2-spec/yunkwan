@@ -15,6 +15,7 @@
 
 저장 위치는 맥북 내부뿐입니다.
 """
+import fcntl
 import sys
 from datetime import timedelta
 
@@ -208,7 +209,6 @@ def backfill(client, max_days=MAX_BACKFILL_DAYS):
         if not session:
             continue                    # 휴장일은 연속 실패로 세지 않습니다.
         trading_days += 1
-        pre_session = client.pre_market_session(date)
         day_filled = 0
         for symbol in symbols:
             if read_json(history_path(symbol, date)):
@@ -224,8 +224,9 @@ def backfill(client, max_days=MAX_BACKFILL_DAYS):
             write_json(history_path(symbol, date),
                        {'symbol': symbol, 'date': date, 'collected_at': now().isoformat(),
                         'session': session, 'candles': bars, 'backfilled': True})
-            if pre_session:
-                premarket.collect_candles(client, symbol, date, pre_session)
+            # 프리마켓은 소급하지 않습니다. 과거 호가 조회 API가 없어 스프레드를 알 수 없고,
+            # 스프레드 없는 프리마켓 분봉만으로는 그 가설을 채점할 수 없기 때문입니다.
+            # 호출 수를 절반 가까이 줄여 정규장 축적을 훨씬 빨리 끝내는 쪽을 택했습니다.
             day_filled += 1
             filled += 1
         print(f'  {date}: {day_filled}/{len(symbols)}종목 확보 (누적 {filled}건)')
@@ -253,14 +254,23 @@ def depth_probe(client, symbol='005930'):
 
 
 if __name__ == '__main__':
-    api = Client()
-    command = sys.argv[1] if len(sys.argv) > 1 else 'run'
-    try:
-        if command == 'probe':
-            depth_probe(api)
-        elif command == 'backfill':
-            backfill(api, max_days=int(sys.argv[2]) if len(sys.argv) > 2 else MAX_BACKFILL_DAYS)
-        else:
-            run(api)
-    finally:
-        api.save_archive()
+    # 예약 작업(daily_runner)과 같은 락을 씁니다. 같은 키로 토큰을 새로 발급하면
+    # 상대 실행의 토큰이 무효화되므로, 동시에 돌지 않도록 막아야 합니다.
+    STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with (STATE / 'runner.lock').open('w') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            print('다른 수집 실행이 진행 중입니다. 끝난 뒤 다시 실행하세요.')
+            sys.exit(1)
+        api = Client()
+        command = sys.argv[1] if len(sys.argv) > 1 else 'run'
+        try:
+            if command == 'probe':
+                depth_probe(api)
+            elif command == 'backfill':
+                backfill(api, max_days=int(sys.argv[2]) if len(sys.argv) > 2 else MAX_BACKFILL_DAYS)
+            else:
+                run(api)
+        finally:
+            api.save_archive()

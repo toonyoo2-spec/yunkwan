@@ -8,6 +8,7 @@
 - 응답 원본은 호출자가 모아서 저장할 수 있게 archive에 쌓아둡니다.
 """
 import json
+import os
 import time
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
@@ -20,7 +21,10 @@ KST = timezone(timedelta(hours=9))
 CONFIG = STATE / 'config.json'
 TOKEN_CACHE = STATE / 'toss_token.json'
 
-MIN_INTERVAL_SEC = 1.1      # 호출 간 최소 간격. 한도 정책이 공개 수치가 아니라 보수적으로 잡습니다.
+# 호출 간 최소 간격. 한도 정책이 공개 수치가 아니라 기본값을 보수적으로 잡습니다.
+# 과거 데이터 소급 수집처럼 오래 걸리는 작업은 TOSS_MIN_INTERVAL로 낮출 수 있습니다.
+# 429가 나면 지수 백오프로 알아서 물러나므로, 낮춰도 데이터가 깨지지는 않습니다.
+MIN_INTERVAL_SEC = max(0.2, float(os.environ.get('TOSS_MIN_INTERVAL', '1.1')))
 MAX_RETRY = 4
 BACKOFF_BASE_SEC = 2.0
 TOKEN_MARGIN_SEC = 120      # 만료 직전 토큰을 재사용하지 않기 위한 여유
