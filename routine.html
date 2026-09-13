@@ -103,37 +103,50 @@
   .history-day.full .hd-score{color:var(--conf-ink);}
   .history-day.none .hd-score{color:var(--line);}
 
-  /* 좌: 체크리스트 / 우: 업무 메모 (모바일에서는 1단으로 접힘) */
+  /* 좌: 체크리스트 / 우: 업무 메모 (모바일에서는 1단으로 접힘)
+     체크 목록은 폭이 더 필요 없으므로 왼쪽은 고정폭에 가깝게 두고,
+     남는 가로 공간은 전부 메모 칸이 쓰게 합니다. */
   .routine-grid{
     display:grid;
-    grid-template-columns:1fr 1.2fr;
-    gap:20px;
-    align-items:start;
-    max-width:1100px;
+    grid-template-columns:minmax(300px, 380px) 1fr;
+    gap:16px;
+    align-items:stretch;
+  }
+  /* 왼쪽 칸의 패널들을 세로로 쌓되, 아래 여백은 grid gap이 담당합니다. */
+  .check-column{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
   }
 
   .panel{
     background:var(--card);
     border:1px solid var(--line);
     border-radius:12px;
-    padding:20px;
-    margin-bottom:20px;
+    padding:16px 18px;
   }
+
+  /* 메모 패널은 왼쪽 칸 높이에 맞춰 늘어나고, 남는 높이는 textarea가 먹습니다.
+     (예전에는 메모 칸이 짧아 오른쪽 아래가 통째로 비어 보였습니다) */
+  .memo-panel{ display:flex; flex-direction:column; }
+  .memo-panel .field{ flex:1; display:flex; flex-direction:column; margin-bottom:0; }
+  .memo-panel textarea{ flex:1; }
 
   /* ---- 체크 항목 ---- */
   .check-item{
     display:flex;
     align-items:center;
-    gap:12px;
-    padding:11px 13px;
+    gap:10px;
+    padding:8px 12px;
     border:1px solid var(--line);
-    border-radius:9px;
+    border-radius:8px;
     background:#fff;
-    margin-bottom:7px;
+    margin-bottom:5px;
     cursor:pointer;
     user-select:none;
     transition:border-color .12s ease, background .12s ease;
   }
+  .check-item:last-child{ margin-bottom:0; }
   .check-item:hover{ border-color:var(--accent); }
   .check-item.checked{
     background:var(--conf-bg);
@@ -176,6 +189,7 @@
 
   .ai-btn{
     margin-top:10px;
+    align-self:flex-start;  /* memo-panel이 flex라서 안 쓰면 버튼이 전체 폭으로 늘어남 */
     background:#fff;
     color:var(--accent);
     border:1px solid var(--accent);
@@ -235,7 +249,8 @@
   .status-msg.error{ color:#b3452f; }
 
   @media (max-width:900px){
-    .routine-grid{ grid-template-columns:1fr; gap:0; }
+    .routine-grid{ grid-template-columns:1fr; gap:14px; }
+    .memo-panel textarea{ min-height:150px; }
     .owner-toggle{ max-width:100%; }
     .history-day{ flex:1; min-width:40px; width:auto; }
   }
@@ -284,14 +299,12 @@
    - Supabase 접속 값은 ./supabase-config.js 한 곳에서만 관리합니다.
    - 체크 항목은 DB 컬럼이 아니라 아래 ROUTINE_ITEMS에만 정의돼 있습니다.
      사람마다 항목이 달라도 DB는 그대로 두고 이 배열만 고치면 됩니다.
-   - AI 요약은 Anthropic API를 직접 부르지 않고 Cloudflare Worker를 거칩니다.
-     (API 키가 프론트엔드에 노출되지 않도록 ai-summary-worker.js 참고)
+   - AI 요약은 ledger.html의 analyze-spending과 동일하게 Supabase Edge Function
+     (summarize-routine)을 거칩니다. API 키는 Supabase 시크릿(GEMINI_API_KEY)에만
+     있고 프론트엔드에는 노출되지 않습니다.
+     소스: supabase/functions/summarize-routine/index.ts
    ========================================================= */
 
-// 배포한 Worker URL로 교체하세요. (wrangler deploy 후 출력되는 주소)
-const AI_WORKER_URL = "https://ai-summary-worker.kwan-yun.workers.dev";
-
-const OWNERS = ["관", "보라"];
 const HISTORY_DAYS = 14;     // 최근 며칠치를 요약 줄에 보여줄지
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -439,7 +452,7 @@ function renderBody(){
   `).join('');
 
   const memoHtml = hasMemo(state.owner) ? `
-    <div class="panel">
+    <div class="panel memo-panel">
       <h2>출근해서 한 일</h2>
       <div class="field">
         <label for="workMemo">업무 메모</label>
@@ -452,7 +465,7 @@ function renderBody(){
       </div>
     </div>` : '';
 
-  el.innerHTML = `<div class="routine-grid"><div>${checksHtml}</div>${memoHtml}</div>`;
+  el.innerHTML = `<div class="routine-grid"><div class="check-column">${checksHtml}</div>${memoHtml}</div>`;
 
   el.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.addEventListener('change', () => {
@@ -570,16 +583,23 @@ async function summarize(){
   setStatus("AI가 정리하는 중...");
 
   try{
-    const res = await fetch(AI_WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memo }),
-    });
+    const { data, error } = await sb.functions.invoke('summarize-routine', { body: { memo } });
 
-    const data = await res.json().catch(() => ({}));
+    if(error){
+      // supabase-js는 Edge Function이 non-2xx를 반환하면 진짜 에러 메시지 대신
+      // "non-2xx status code"라는 뭉뚱그린 문구만 줘서, 응답 본문(context)을 직접 읽어옴
+      let detail = error.message;
+      if(error.context && typeof error.context.json === 'function'){
+        try{
+          const body = await error.context.json();
+          if(body?.error) detail = body.error;
+        }catch(_){/* 본문이 JSON이 아니면 원래 메시지 유지 */}
+      }
+      throw new Error(detail);
+    }
 
-    if(!res.ok || !data.summary){
-      setStatus("요약 실패: " + (data.error || `서버 오류 (${res.status})`), true);
+    if(!data || !data.summary){
+      setStatus("요약 결과가 비어 있습니다", true);
       return;
     }
 
@@ -590,7 +610,7 @@ async function summarize(){
     setStatus("요약 완료 — 아직 저장 전이니 저장하기를 눌러주세요");
   }catch(err){
     console.error("AI 요약 요청 실패:", err);
-    setStatus("요청 실패: " + err.message, true);
+    setStatus("요약 실패: " + err.message, true);
   }finally{
     btn.disabled = false;
   }
