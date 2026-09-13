@@ -15,8 +15,17 @@
   하루 안에 목표가와 손절가를 모두 건드렸으면 손절로 처리합니다. 일봉으로는
   순서를 알 수 없고, 유리한 쪽을 가정하면 비교가 거짓말이 됩니다.
 
+손절 폭을 보유 기간에 맞춰 넓히는 이유 (중요):
+  1%짜리 손절을 10일 들고 있으면 거의 확실히 털립니다. 같은 손절 폭으로 1일과
+  10일을 비교하면 '보유 기간의 효과'가 아니라 '손절이 버티는지'를 재게 됩니다.
+  실제로 고정 폭으로 돌렸더니 손익비와 무관하게 모든 기간이 적중률 30% 근처로
+  나왔습니다. 무작위(50%)보다 한참 낮은 값이라 측정이 잘못됐다는 신호였습니다.
+  그래서 손절을 보유 일수의 제곱근에 비례해 넓힙니다. 가격 변동 폭이 시간의
+  제곱근에 비례해 커지므로, 그래야 각 기간이 같은 수준의 위험을 집니다.
+
 한계: 장중 진입 타이밍은 반영되지 않습니다. 진입은 신호 다음 거래일 시가입니다.
 """
+import math
 import sys
 from statistics import fmean
 
@@ -103,10 +112,13 @@ def run(symbols=None, horizons=HORIZONS, ratio=TARGET_MULTIPLE):
             continue
         for entry_index in signal_dates(candles, index_candles):
             signal_count += 1
-            stop_pct = stop_distance_pct(atr_pct(candles[:entry_index]))
-            target_pct = stop_pct * ratio
+            base_stop = stop_distance_pct(atr_pct(candles[:entry_index]))
             entry_date = candles[entry_index + 1]['timestamp'][:10]
             for hold in horizons:
+                # 변동 폭은 시간의 제곱근에 비례합니다. 보유 기간이 길수록 손절을
+                # 그만큼 넓혀야 각 기간이 같은 수준의 위험을 지게 됩니다.
+                stop_pct = base_stop * math.sqrt(hold)
+                target_pct = stop_pct * ratio
                 outcome = simulate_hold(candles, entry_index, hold, stop_pct, target_pct)
                 if not outcome:
                     continue
@@ -124,7 +136,8 @@ def run(symbols=None, horizons=HORIZONS, ratio=TARGET_MULTIPLE):
         print('신호가 하나도 나오지 않았습니다. 일봉이 더 필요합니다.')
         return
     print(f'종목 {len(symbols)}개 · 신호 {signal_count}건 · 손익비 {ratio:g}:1 고정')
-    print(f'진입은 신호 다음 거래일 시가, 비용은 왕복 수수료·거래세·슬리피지 차감.\n')
+    print('진입은 신호 다음 거래일 시가, 비용은 왕복 수수료·거래세·슬리피지 차감.')
+    print('손절은 보유 일수의 제곱근에 비례해 넓힙니다 (기간별 위험을 맞추기 위해).\n')
     print(f"{'보유':>4}  {'거래':>5}  {'적중률':>7}  {'거래당':>8}  {'누적합':>9}  {'최대낙폭':>9}  {'연속손실':>6}")
     print('(누적합·최대낙폭은 거래당 수익률을 단순 합산한 값입니다. 투입 비중을 반영한')
     print(' 계좌 수익률이 아니며, 거래 수가 많을수록 절대값이 커집니다.)')
