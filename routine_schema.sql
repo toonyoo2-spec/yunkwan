@@ -1,19 +1,21 @@
--- routine_logs: 평일 루틴 체크 + 업무 메모/AI 요약 (routine.html 전용)
--- 하루에 1행만 존재하며, log_date를 기준으로 upsert 합니다.
+-- routine_logs: 사람(관/보라) × 날짜별 루틴 체크 + 업무 메모/AI 요약
+-- (routine.html 전용) — (log_date, owner) 조합당 1행이며 upsert로 저장합니다.
 create table if not exists public.routine_logs (
-  log_date date primary key,               -- 하루에 1행
-  wake_up boolean default false,           -- 05:45 기상
-  leave_home boolean default false,        -- 06:00 출근(집에서 나옴)
-  exercise_start boolean default false,    -- 07:20 운동 시작
-  arrive_work boolean default false,       -- 08:30 출근(도착)
-  leave_work boolean default false,        -- 17:30 퇴근
-  sleep boolean default false,             -- 23:00 취침
-  task_edit boolean default false,         -- 20:00 편집
-  task_blog boolean default false,         -- 20:00 블로그쓰기
+  log_date date not null,
+  owner text not null check (owner in ('관', '보라')),
+  -- 체크 항목은 사람마다 다를 수 있어 고정 컬럼 대신 jsonb로 둡니다.
+  -- 항목 정의는 DB가 아니라 routine.html의 ROUTINE_ITEMS에 있습니다.
+  -- 예: {"wake_up": true, "task_blog": false}
+  checks jsonb not null default '{}'::jsonb,
   work_memo text,                          -- 하루 중 쌓아둔 메모(원본)
   work_summary text,                       -- AI가 요약/정리한 결과
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  primary key (log_date, owner)
 );
+
+-- 최근 날짜부터 훑는 조회(날짜별 히스토리)를 위한 인덱스
+create index if not exists routine_logs_owner_date_idx
+  on public.routine_logs (owner, log_date desc);
 
 -- 업데이트 시각 자동 갱신
 -- search_path를 고정해두지 않으면 Supabase 보안 린터가 경고합니다.

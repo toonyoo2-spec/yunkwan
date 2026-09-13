@@ -16,6 +16,93 @@
 <style>
   header{margin-bottom:20px;}
 
+  /* ---- 사람 선택 (index.html의 owner-toggle과 동일한 규칙) ---- */
+  .owner-toggle{
+    display:flex;
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+    margin-bottom:14px;
+    max-width:320px;
+  }
+  .owner-toggle button{
+    flex:1;
+    border:none;
+    background:#fff;
+    padding:9px 0;
+    font-size:13px;
+    font-weight:600;
+    color:var(--sub);
+    cursor:pointer;
+  }
+  .owner-toggle button + button{border-left:1px solid var(--line);}
+  .owner-toggle button.active[data-owner="관"]{background:var(--owner-gwan-bg);color:var(--owner-gwan-ink);}
+  .owner-toggle button.active[data-owner="보라"]{background:var(--owner-bora-bg);color:var(--owner-bora-ink);}
+
+  /* ---- 날짜 이동 ---- */
+  .date-nav{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+  }
+  .date-nav button{
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    border-radius:7px;
+    padding:7px 12px;
+    font-size:13px;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .date-nav button:hover{border-color:var(--accent);}
+  .date-nav input[type=date]{
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:7px 10px;
+    font-size:13.5px;
+    background:#fff;
+    color:var(--ink);
+    font-family:inherit;
+  }
+  .date-nav input[type=date]:focus{outline:none;border-color:var(--accent);}
+  .date-nav .weekday{font-size:13px;color:var(--sub);}
+  .date-nav .today-badge{
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--conf-ink);
+    background:var(--conf-bg);
+    border-radius:20px;
+    padding:3px 10px;
+  }
+
+  /* ---- 최근 날짜 요약 ---- */
+  .history{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  .history-day{
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:8px;
+    padding:6px 0;
+    width:46px;
+    text-align:center;
+    cursor:pointer;
+    font-family:inherit;
+    color:var(--ink);
+  }
+  .history-day:hover{border-color:var(--accent);}
+  .history-day.current{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
+  .history-day .hd-date{font-size:11px;color:var(--sub);}
+  .history-day .hd-score{font-size:12.5px;font-weight:700;margin-top:2px;}
+  .history-day.full .hd-score{color:var(--conf-ink);}
+  .history-day.none .hd-score{color:var(--line);}
+
   /* 좌: 체크리스트 / 우: 업무 메모 (모바일에서는 1단으로 접힘) */
   .routine-grid{
     display:grid;
@@ -31,12 +118,6 @@
     border-radius:12px;
     padding:20px;
     margin-bottom:20px;
-  }
-
-  .today{
-    font-size:13px;
-    color:var(--sub);
-    margin-bottom:14px;
   }
 
   /* ---- 체크 항목 ---- */
@@ -155,6 +236,8 @@
 
   @media (max-width:900px){
     .routine-grid{ grid-template-columns:1fr; gap:0; }
+    .owner-toggle{ max-width:100%; }
+    .history-day{ flex:1; min-width:40px; width:auto; }
   }
 </style>
 </head>
@@ -163,40 +246,27 @@
 <div class="wrap" id="appContent">
 
   <header>
-    <h1>✅ 오늘의 루틴</h1>
-    <p>평일 루틴 체크와 업무 메모를 하루 한 줄로 기록합니다</p>
+    <h1>✅ 루틴</h1>
+    <p>사람별 · 날짜별로 루틴 체크와 업무 메모를 기록합니다</p>
   </header>
 
-  <div class="routine-grid">
-
-    <div>
-      <div class="panel">
-        <h2>고정 루틴</h2>
-        <div class="today" id="todayLabel"></div>
-        <div id="fixedChecks"></div>
-      </div>
-
-      <div class="panel">
-        <h2>20시 체크리스트</h2>
-        <div id="taskChecks"></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>출근해서 한 일</h2>
-      <div class="field">
-        <label for="workMemo">업무 메모</label>
-        <textarea id="workMemo" placeholder="하루 중 생각날 때마다 자유롭게 적어두세요..."></textarea>
-      </div>
-      <button class="ai-btn" id="summarizeBtn">✨ AI로 요약 정리하기</button>
-
-      <div class="summary-box" id="summaryBox">
-        <div class="summary-head">AI 업무일지 요약</div>
-        <div id="summaryText"></div>
-      </div>
-    </div>
-
+  <div class="owner-toggle" id="ownerToggle">
+    <button type="button" data-owner="관">관</button>
+    <button type="button" data-owner="보라">보라</button>
   </div>
+
+  <div class="date-nav">
+    <button type="button" id="prevDay" title="하루 전">‹</button>
+    <input type="date" id="datePicker">
+    <button type="button" id="nextDay" title="하루 뒤">›</button>
+    <button type="button" id="todayBtn">오늘</button>
+    <span class="weekday" id="weekdayLabel"></span>
+    <span class="today-badge" id="todayBadge" hidden>오늘</span>
+  </div>
+
+  <div class="history" id="history"></div>
+
+  <div id="routineBody"></div>
 
   <div class="save-row">
     <button class="save-btn" id="saveBtn">저장하기</button>
@@ -210,8 +280,10 @@
 <script src="./common.js"></script>
 <script>
 /* =========================================================
-   루틴 체크 (routine_logs 테이블, 하루 1행)
+   루틴 체크 (routine_logs, (log_date, owner) 하루 1행)
    - Supabase 접속 값은 ./supabase-config.js 한 곳에서만 관리합니다.
+   - 체크 항목은 DB 컬럼이 아니라 아래 ROUTINE_ITEMS에만 정의돼 있습니다.
+     사람마다 항목이 달라도 DB는 그대로 두고 이 배열만 고치면 됩니다.
    - AI 요약은 Anthropic API를 직접 부르지 않고 Cloudflare Worker를 거칩니다.
      (API 키가 프론트엔드에 노출되지 않도록 ai-summary-worker.js 참고)
    ========================================================= */
@@ -219,19 +291,32 @@
 // 배포한 Worker URL로 교체하세요. (wrangler deploy 후 출력되는 주소)
 const AI_WORKER_URL = "https://ai-summary-worker.kwan-yun.workers.dev";
 
-const FIXED_ITEMS = [
-  { key:"wake_up",        time:"05:45", label:"기상" },
-  { key:"leave_home",     time:"06:00", label:"출근 (집에서 나옴)" },
-  { key:"exercise_start", time:"07:20", label:"운동 시작" },
-  { key:"arrive_work",    time:"08:30", label:"출근 (도착)" },
-  { key:"leave_work",     time:"17:30", label:"퇴근" },
-  { key:"sleep",          time:"23:00", label:"취침" },
-];
-const TASK_ITEMS = [
-  { key:"task_edit", label:"편집" },
-  { key:"task_blog", label:"블로그쓰기" },
-];
-const ALL_ITEMS = [...FIXED_ITEMS, ...TASK_ITEMS];
+const OWNERS = ["관", "보라"];
+const HISTORY_DAYS = 14;     // 최근 며칠치를 요약 줄에 보여줄지
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+// 사람별 루틴 정의. 보라는 아직 비어 있습니다.
+// 항목을 추가할 때 key만 겹치지 않게 하면 DB 변경 없이 바로 반영됩니다.
+const ROUTINE_ITEMS = {
+  "관": [
+    { section: "고정 루틴", items: [
+      { key:"wake_up",        time:"05:45", label:"기상" },
+      { key:"leave_home",     time:"06:00", label:"출근 (집에서 나옴)" },
+      { key:"exercise_start", time:"07:20", label:"운동 시작" },
+      { key:"arrive_work",    time:"08:30", label:"출근 (도착)" },
+      { key:"leave_work",     time:"17:30", label:"퇴근" },
+      { key:"sleep",          time:"23:00", label:"취침" },
+    ]},
+    { section: "20시 체크리스트", items: [
+      { key:"task_edit", label:"편집" },
+      { key:"task_blog", label:"블로그쓰기" },
+    ]},
+  ],
+  "보라": [],
+};
+
+// 업무 메모 + AI 요약을 쓰는 사람. 보라는 항목이 정해지면 추가하세요.
+const MEMO_OWNERS = ["관"];
 
 const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
   auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
@@ -246,60 +331,146 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+/* ---------- 날짜 유틸 ---------- */
 // toISOString()은 UTC 기준이라 새벽 시간대에 전날 날짜가 나옵니다.
 // 05:45 기상 체크가 어제 행에 저장되면 안 되므로 로컬 날짜를 직접 만듭니다.
-function todayLocal(){
-  const d = new Date();
+function toKey(d){
   const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
-
-const todayStr = todayLocal();
-
-// 체크 상태는 항상 새 객체로 갈아끼웁니다. (기존 객체를 직접 고치지 않음)
-function emptyState(){
-  const checks = Object.fromEntries(ALL_ITEMS.map(item => [item.key, false]));
-  return { ...checks, work_memo: "", work_summary: "" };
+function fromKey(key){
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
 }
-let state = emptyState();
+function shiftDays(key, delta){
+  const d = fromKey(key);
+  d.setDate(d.getDate() + delta);
+  return toKey(d);
+}
 
-function setField(key, value){
-  state = { ...state, [key]: value };
+const TODAY = toKey(new Date());
+
+/* ---------- 상태 (항상 새 객체로 교체) ---------- */
+let state = {
+  owner: "관",
+  date: TODAY,
+  checks: {},        // { [itemKey]: boolean }
+  work_memo: "",
+  work_summary: "",
+  history: {},       // { [dateKey]: 체크 개수 }
+};
+
+function setState(patch){
+  state = { ...state, ...patch };
+}
+
+function itemsFor(owner){
+  return (ROUTINE_ITEMS[owner] || []).flatMap(group => group.items);
+}
+function hasMemo(owner){
+  return MEMO_OWNERS.includes(owner);
 }
 
 /* ---------- 렌더링 ---------- */
-function renderChecks(items, containerId){
-  const el = document.getElementById(containerId);
-  el.innerHTML = items.map(item => `
-    <label class="check-item" data-row="${item.key}">
-      ${item.time ? `<span class="check-time">${item.time}</span>` : ''}
-      <input type="checkbox" data-key="${escapeHtml(item.key)}">
-      <span class="check-label">${escapeHtml(item.label)}</span>
-    </label>
+function renderOwnerToggle(){
+  document.querySelectorAll('#ownerToggle button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.owner === state.owner);
+  });
+}
+
+function renderDateNav(){
+  document.getElementById('datePicker').value = state.date;
+  document.getElementById('weekdayLabel').textContent =
+    `(${WEEKDAYS[fromKey(state.date).getDay()]})`;
+  document.getElementById('todayBadge').hidden = state.date !== TODAY;
+}
+
+function renderHistory(){
+  const el = document.getElementById('history');
+  const total = itemsFor(state.owner).length;
+
+  if(total === 0){ el.innerHTML = ""; return; }
+
+  const days = [];
+  for(let i = HISTORY_DAYS - 1; i >= 0; i--) days.push(shiftDays(TODAY, -i));
+
+  el.innerHTML = days.map(key => {
+    const done = state.history[key] || 0;
+    const cls = done === 0 ? 'none' : (done >= total ? 'full' : '');
+    const d = fromKey(key);
+    return `<button type="button" class="history-day ${cls}${key === state.date ? ' current' : ''}" data-date="${key}">
+      <div class="hd-date">${d.getMonth()+1}/${d.getDate()}</div>
+      <div class="hd-score">${done}/${total}</div>
+    </button>`;
+  }).join('');
+
+  el.querySelectorAll('.history-day').forEach(btn => {
+    btn.addEventListener('click', () => goToDate(btn.dataset.date));
+  });
+}
+
+function renderBody(){
+  const el = document.getElementById('routineBody');
+  const groups = ROUTINE_ITEMS[state.owner] || [];
+
+  // 기록할 항목이 하나도 없으면 저장 버튼도 숨깁니다.
+  const isEmpty = groups.length === 0 && !hasMemo(state.owner);
+  document.querySelector('.save-row').style.display = isEmpty ? 'none' : 'flex';
+
+  if(isEmpty){
+    el.innerHTML = `<div class="panel"><div class="empty">
+      ${escapeHtml(state.owner)}님의 루틴이 아직 없습니다.<br>
+      항목이 정해지면 routine.html의 ROUTINE_ITEMS에 추가하세요.
+    </div></div>`;
+    return;
+  }
+
+  const checksHtml = groups.map(group => `
+    <div class="panel">
+      <h2>${escapeHtml(group.section)}</h2>
+      ${group.items.map(item => `
+        <label class="check-item${state.checks[item.key] ? ' checked' : ''}">
+          ${item.time ? `<span class="check-time">${escapeHtml(item.time)}</span>` : ''}
+          <input type="checkbox" data-key="${escapeHtml(item.key)}"${state.checks[item.key] ? ' checked' : ''}>
+          <span class="check-label">${escapeHtml(item.label)}</span>
+        </label>
+      `).join('')}
+    </div>
   `).join('');
+
+  const memoHtml = hasMemo(state.owner) ? `
+    <div class="panel">
+      <h2>출근해서 한 일</h2>
+      <div class="field">
+        <label for="workMemo">업무 메모</label>
+        <textarea id="workMemo" placeholder="하루 중 생각날 때마다 자유롭게 적어두세요...">${escapeHtml(state.work_memo)}</textarea>
+      </div>
+      <button class="ai-btn" id="summarizeBtn">✨ AI로 요약 정리하기</button>
+      <div class="summary-box" id="summaryBox" style="display:${state.work_summary ? 'block' : 'none'}">
+        <div class="summary-head">AI 업무일지 요약</div>
+        <div id="summaryText">${escapeHtml(state.work_summary)}</div>
+      </div>
+    </div>` : '';
+
+  el.innerHTML = `<div class="routine-grid"><div>${checksHtml}</div>${memoHtml}</div>`;
 
   el.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.addEventListener('change', () => {
-      setField(cb.dataset.key, cb.checked);
+      setState({ checks: { ...state.checks, [cb.dataset.key]: cb.checked } });
       cb.closest('.check-item').classList.toggle('checked', cb.checked);
+      renderHistoryLive();
     });
   });
+
+  const btn = document.getElementById('summarizeBtn');
+  if(btn) btn.addEventListener('click', summarize);
 }
 
-function syncChecksToDom(){
-  ALL_ITEMS.forEach(item => {
-    const cb = document.querySelector(`input[data-key="${item.key}"]`);
-    if(!cb) return;
-    cb.checked = !!state[item.key];
-    cb.closest('.check-item').classList.toggle('checked', cb.checked);
-  });
-}
-
-function showSummary(text){
-  const box = document.getElementById('summaryBox');
-  if(!text){ box.style.display = 'none'; return; }
-  document.getElementById('summaryText').textContent = text;
-  box.style.display = 'block';
+// 체크를 누르는 즉시 오늘 칸의 숫자도 따라 움직이게 합니다. (저장 전 미리보기)
+function renderHistoryLive(){
+  const done = Object.values(state.checks).filter(Boolean).length;
+  setState({ history: { ...state.history, [state.date]: done } });
+  renderHistory();
 }
 
 function setStatus(message, isError){
@@ -308,32 +479,81 @@ function setStatus(message, isError){
   el.classList.toggle('error', !!isError);
 }
 
-/* ---------- 오늘 기록 불러오기 ---------- */
-async function loadToday(){
+function renderAll(){
+  renderOwnerToggle();
+  renderDateNav();
+  renderHistory();
+  renderBody();
+}
+
+/* ---------- 불러오기 ---------- */
+async function loadDay(){
   const { data, error } = await sb
     .from('routine_logs')
-    .select('*')
-    .eq('log_date', todayStr)
+    .select('checks, work_memo, work_summary')
+    .eq('log_date', state.date)
+    .eq('owner', state.owner)
     .maybeSingle();
 
   if(error){
     console.error("루틴 불러오기 실패:", error);
-    setStatus("오늘 기록을 불러오지 못했습니다: " + error.message, true);
+    setStatus("기록을 불러오지 못했습니다: " + error.message, true);
     return;
   }
-  if(!data) return;
 
-  const checks = Object.fromEntries(ALL_ITEMS.map(item => [item.key, !!data[item.key]]));
-  state = {
-    ...state,
-    ...checks,
-    work_memo: data.work_memo || "",
-    work_summary: data.work_summary || "",
-  };
+  setState({
+    checks: (data && data.checks) || {},
+    work_memo: (data && data.work_memo) || "",
+    work_summary: (data && data.work_summary) || "",
+  });
+  renderBody();
+}
 
-  syncChecksToDom();
-  document.getElementById('workMemo').value = state.work_memo;
-  showSummary(state.work_summary);
+async function loadHistory(){
+  const total = itemsFor(state.owner).length;
+  if(total === 0){ setState({ history: {} }); renderHistory(); return; }
+
+  const from = shiftDays(TODAY, -(HISTORY_DAYS - 1));
+  const { data, error } = await sb
+    .from('routine_logs')
+    .select('log_date, checks')
+    .eq('owner', state.owner)
+    .gte('log_date', from)
+    .lte('log_date', TODAY);
+
+  if(error){
+    console.error("히스토리 불러오기 실패:", error);
+    return; // 요약 줄은 부가 정보라 실패해도 본문은 그대로 씁니다.
+  }
+
+  const history = {};
+  (data || []).forEach(row => {
+    history[row.log_date] = Object.values(row.checks || {}).filter(Boolean).length;
+  });
+  setState({ history });
+  renderHistory();
+}
+
+async function refresh(){
+  await Promise.all([loadDay(), loadHistory()]);
+}
+
+/* ---------- 이동 ---------- */
+function goToDate(dateKey){
+  if(!dateKey || dateKey === state.date) return;
+  setState({ date: dateKey });
+  setStatus("");
+  renderDateNav();
+  renderHistory();
+  refresh();
+}
+
+function goToOwner(owner){
+  if(owner === state.owner) return;
+  setState({ owner, checks: {}, work_memo: "", work_summary: "", history: {} });
+  setStatus("");
+  renderAll();
+  refresh();
 }
 
 /* ---------- AI 요약 ---------- */
@@ -363,8 +583,10 @@ async function summarize(){
       return;
     }
 
-    setField('work_summary', data.summary);
-    showSummary(data.summary);
+    setState({ work_summary: data.summary });
+    const box = document.getElementById('summaryBox');
+    document.getElementById('summaryText').textContent = data.summary;
+    box.style.display = 'block';
     setStatus("요약 완료 — 아직 저장 전이니 저장하기를 눌러주세요");
   }catch(err){
     console.error("AI 요약 요청 실패:", err);
@@ -377,14 +599,23 @@ async function summarize(){
 /* ---------- 저장 (upsert) ---------- */
 async function save(){
   const btn = document.getElementById('saveBtn');
-  setField('work_memo', document.getElementById('workMemo').value);
+  const memoEl = document.getElementById('workMemo');
+  if(memoEl) setState({ work_memo: memoEl.value });
 
   btn.disabled = true;
   setStatus("저장 중...");
 
+  const payload = {
+    log_date: state.date,
+    owner: state.owner,
+    checks: state.checks,
+    work_memo: state.work_memo,
+    work_summary: state.work_summary,
+  };
+
   const { error } = await sb
     .from('routine_logs')
-    .upsert({ log_date: todayStr, ...state }, { onConflict: 'log_date' });
+    .upsert(payload, { onConflict: 'log_date,owner' });
 
   btn.disabled = false;
 
@@ -394,17 +625,23 @@ async function save(){
     return;
   }
   setStatus("저장 완료 ✓");
+  loadHistory();
 }
 
 /* ---------- 초기화 ---------- */
-document.getElementById('todayLabel').textContent = todayStr;
-renderChecks(FIXED_ITEMS, 'fixedChecks');
-renderChecks(TASK_ITEMS, 'taskChecks');
-document.getElementById('summarizeBtn').addEventListener('click', summarize);
+document.querySelectorAll('#ownerToggle button').forEach(btn => {
+  btn.addEventListener('click', () => goToOwner(btn.dataset.owner));
+});
+document.getElementById('prevDay').addEventListener('click', () => goToDate(shiftDays(state.date, -1)));
+document.getElementById('nextDay').addEventListener('click', () => goToDate(shiftDays(state.date, 1)));
+document.getElementById('todayBtn').addEventListener('click', () => goToDate(TODAY));
+document.getElementById('datePicker').addEventListener('change', (e) => goToDate(e.target.value));
 document.getElementById('saveBtn').addEventListener('click', save);
 
+renderAll();
+
 // 인증이 완료된 후에만 데이터를 로드합니다.
-window.addEventListener('authReady', loadToday);
+window.addEventListener('authReady', refresh);
 </script>
 <script src="./auth-gate.js?v=2"></script>
 </body>
