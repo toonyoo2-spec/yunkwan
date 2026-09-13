@@ -179,8 +179,19 @@ def run(client, limit=None):
     if not scoreboard:
         print('  채점된 거래가 없습니다. 조건이 너무 엄격하거나 분봉이 부족합니다.')
     for key, record in sorted(scoreboard.items(),
-                              key=lambda item: -(item[1]['lower_bound'] or 0)):
-        print(f'  {key}: {record["reason"]} (표본 {record["total"]}건, 적중 {record["hits"]}건)')
+                              key=lambda item: -(item[1].get('expectancy_pct') or -99)):
+        subset = [row for row in rows if row['setup'] == key]
+        excess = [row['excess_pct'] for row in subset if row.get('excess_pct') is not None]
+        mark = f' · 지수 대비 {sum(excess) / len(excess):+.2f}%p' if excess else ''
+        print(f'  {key}: {record["reason"]}{mark}')
+        win, loss = record.get('average_win_pct'), record.get('average_loss_pct')
+        breakeven = record.get('breakeven_hit_rate')
+        if win and loss and breakeven:
+            actual = (record.get('hit_rate') or 0) * 100
+            verdict = '수익 구조' if actual / 100 > breakeven else '손실 구조'
+            print(f'      평균이익 +{win:.2f}% / 평균손실 -{loss:.2f}%'
+                  f' (손익비 {record["payoff_ratio"]:.2f}) → 본전 적중률'
+                  f' {breakeven * 100:.1f}% vs 실제 {actual:.1f}% — {verdict}')
     buckets = strength.calibration(all_rows)
     if buckets:
         print('\n강도별 실제 적중률 (강도가 의미 있는 값인지 확인):')
