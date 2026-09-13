@@ -104,6 +104,10 @@
   .history-day .hd-score{font-size:12.5px;font-weight:700;margin-top:2px;}
   .history-day.full .hd-score{color:var(--conf-ink);}
   .history-day.none .hd-score{color:var(--line);}
+  /* 주말은 기록 대상이 아니라 한눈에 구분되게 흐리게 둡니다. */
+  .history-day.weekend{background:transparent;border-style:dashed;}
+  .history-day.weekend .hd-date{opacity:.45;}
+  .history-day.weekend .hd-score{color:var(--line);}
 
   /* 좌: 체크리스트 / 우: 업무 메모 (모바일에서는 1단으로 접힘)
      체크 목록은 폭이 더 필요 없으므로 왼쪽은 고정폭에 가깝게 두고,
@@ -266,7 +270,7 @@
 
   <header>
     <h1>✅ 루틴</h1>
-    <p>사람별 · 날짜별로 루틴 체크와 업무 메모를 기록합니다</p>
+    <p>사람별 · 날짜별로 평일 루틴 체크와 업무 메모를 기록합니다 (주말 제외)</p>
   </header>
 
   <div class="owner-toggle" id="ownerToggle">
@@ -364,6 +368,11 @@ function shiftDays(key, delta){
   d.setDate(d.getDate() + delta);
   return toKey(d);
 }
+// 이 루틴은 평일 기준입니다. 주말은 체크/저장 없이 비워둡니다.
+function isWeekend(key){
+  const day = fromKey(key).getDay();
+  return day === 0 || day === 6;
+}
 
 const TODAY = toKey(new Date());
 
@@ -415,11 +424,22 @@ function renderHistory(){
   el.style.setProperty('--cols', days.length);
 
   el.innerHTML = days.map(key => {
+    const d = fromKey(key);
+    const dateLabel = `${d.getMonth()+1}/${d.getDate()}`;
+    const current = key === state.date ? ' current' : '';
+
+    // 주말은 달성도 없이 자리만 비워둡니다. (평일 리듬이 보이도록 칸 자체는 남김)
+    if(isWeekend(key)){
+      return `<button type="button" class="history-day weekend${current}" data-date="${key}">
+        <div class="hd-date">${dateLabel}</div>
+        <div class="hd-score">—</div>
+      </button>`;
+    }
+
     const done = state.history[key] || 0;
     const cls = done === 0 ? 'none' : (done >= total ? 'full' : '');
-    const d = fromKey(key);
-    return `<button type="button" class="history-day ${cls}${key === state.date ? ' current' : ''}" data-date="${key}">
-      <div class="hd-date">${d.getMonth()+1}/${d.getDate()}</div>
+    return `<button type="button" class="history-day ${cls}${current}" data-date="${key}">
+      <div class="hd-date">${dateLabel}</div>
       <div class="hd-score">${done}/${total}</div>
     </button>`;
   }).join('');
@@ -433,9 +453,19 @@ function renderBody(){
   const el = document.getElementById('routineBody');
   const groups = ROUTINE_ITEMS[state.owner] || [];
 
-  // 기록할 항목이 하나도 없으면 저장 버튼도 숨깁니다.
+  // 주말이거나 기록할 항목이 없으면 본문 대신 안내만 띄우고 저장 버튼도 숨깁니다.
+  const weekend = isWeekend(state.date);
   const isEmpty = groups.length === 0 && !hasMemo(state.owner);
-  document.querySelector('.save-row').style.display = isEmpty ? 'none' : 'flex';
+  document.querySelector('.save-row').style.display = (weekend || isEmpty) ? 'none' : 'flex';
+
+  if(weekend){
+    const d = fromKey(state.date);
+    el.innerHTML = `<div class="panel"><div class="empty">
+      ${d.getMonth()+1}월 ${d.getDate()}일은 ${WEEKDAYS[d.getDay()]}요일입니다.<br>
+      이 루틴은 평일에만 기록합니다.
+    </div></div>`;
+    return;
+  }
 
   if(isEmpty){
     el.innerHTML = `<div class="panel"><div class="empty">
@@ -508,6 +538,13 @@ function renderAll(){
 
 /* ---------- 불러오기 ---------- */
 async function loadDay(){
+  // 주말에는 저장되는 기록이 없으므로 조회도 건너뜁니다.
+  if(isWeekend(state.date)){
+    setState({ checks: {}, work_memo: "", work_summary: "" });
+    renderBody();
+    return;
+  }
+
   const { data, error } = await sb
     .from('routine_logs')
     .select('checks, work_memo, work_summary')
@@ -561,10 +598,14 @@ async function refresh(){
 /* ---------- 이동 ---------- */
 function goToDate(dateKey){
   if(!dateKey || dateKey === state.date) return;
-  setState({ date: dateKey });
+  // 불러오기는 비동기라, 먼저 화면을 새 날짜 기준으로 비워둡니다.
+  // 안 그러면 응답이 올 때까지 이전 날짜의 체크 상태가 그대로 보이고
+  // (주말↔평일 전환도 늦게 반영), 그 사이에 저장하면 엉뚱한 날짜에 덮어씁니다.
+  setState({ date: dateKey, checks: {}, work_memo: "", work_summary: "" });
   setStatus("");
   renderDateNav();
   renderHistory();
+  renderBody();
   refresh();
 }
 
@@ -625,6 +666,8 @@ async function summarize(){
 
 /* ---------- 저장 (upsert) ---------- */
 async function save(){
+  if(isWeekend(state.date)) return; // 주말에는 저장할 내용이 없습니다.
+
   const btn = document.getElementById('saveBtn');
   const memoEl = document.getElementById('workMemo');
   if(memoEl) setState({ work_memo: memoEl.value });
