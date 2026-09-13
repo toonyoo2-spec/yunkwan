@@ -28,14 +28,22 @@ CONCENTRATION_WARN = 0.4        # 수익의 40% 이상이 한 곳에서 나오�
 def binomial_tail(hits, total, probability):
     """total번 중 hits번 이상 성공할 확률. 기준 성공률이 probability일 때.
 
-    scipy 없이 정확 이항분포로 계산합니다. 이 값이 작을수록 '우연이라기엔 너무
-    잘 나왔다'는 뜻입니다.
+    scipy 없이 계산합니다. 조합 수를 그대로 곱하면 표본이 1000건만 넘어가도
+    float 범위를 넘어 터지므로, 로그 공간에서 더한 뒤 지수를 취합니다.
+    이 값이 작을수록 '우연이라기엔 너무 잘 나왔다'는 뜻입니다.
     """
     if total <= 0 or not 0 < probability < 1:
         return 1.0
     hits = max(0, min(total, int(hits)))
-    return sum(math.comb(total, k) * probability ** k * (1 - probability) ** (total - k)
-               for k in range(hits, total + 1))
+    log_p, log_q = math.log(probability), math.log(1 - probability)
+    log_factorial = math.lgamma(total + 1)
+    tail = 0.0
+    for k in range(hits, total + 1):
+        log_term = (log_factorial - math.lgamma(k + 1) - math.lgamma(total - k + 1)
+                    + k * log_p + (total - k) * log_q)
+        if log_term > -745:          # exp가 0으로 내려가는 지점 아래는 무시합니다
+            tail += math.exp(log_term)
+    return min(1.0, tail)
 
 
 def chance_verdict(hits, total, baseline=DEFAULT_BASELINE):
