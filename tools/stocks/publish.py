@@ -36,7 +36,10 @@ DEFAULT_ANON_KEY = 'sb_publishable_X6OqS-mM1igLrGcc7g4CzQ_fbVXpblY'
 # --- 화이트리스트: 여기 없는 필드는 올라가지 않습니다 ---
 
 RECOMMENDATION_FIELDS = ('symbol', 'name', 'market', 'setup', 'entry_rule', 'stop_pct',
-                         'target_pct', 'reason', 'gate', 'entry_deadline', 'exit_time')
+                         'target_pct', 'reason', 'gate', 'entry_deadline', 'exit_time',
+                         'gate_passed', 'blocks', 'tradeable')
+REPORT_NUMBER_FIELDS = ('key', 'label', 'unit', 'value', 'note')
+REPORT_FLAG_FIELDS = ('key', 'label', 'value', 'detail')
 HELD_FIELDS = ('symbol', 'name', 'market', 'setup', 'gate')
 LADDER_FIELDS = ('target_pct', 'result', 'net_pct', 'win', 'ambiguous_bar')
 SIMULATION_FIELDS = ('symbol', 'name', 'setup', 'result', 'recommended', 'stop_pct',
@@ -76,6 +79,21 @@ def assert_no_prices(payload):
     walk(payload)
 
 
+def sanitize_report(report):
+    """종목 리포트용 특징. 전부 비율·배수·참거짓이라 시세 복원이 불가능합니다."""
+    if not isinstance(report, dict):
+        return None
+    return {
+        'numbers': [pick(row, REPORT_NUMBER_FIELDS)
+                    for row in (report.get('numbers') or [])][:20],
+        'flags': [pick(row, REPORT_FLAG_FIELDS)
+                  for row in (report.get('flags') or [])][:12],
+        'news_count': report.get('news_count'),
+        'positive_labels': (report.get('positive_labels') or [])[:8],
+        'negative_labels': (report.get('negative_labels') or [])[:8],
+    }
+
+
 def sanitize_strength(rating):
     """강도는 비율·판정만 담고 있어 올려도 됩니다. 그래도 필드는 화이트리스트로 거릅니다."""
     if not isinstance(rating, dict):
@@ -112,7 +130,9 @@ def sanitize_forecast(forecast):
         'regime': pick(forecast.get('regime', {}), REGIME_FIELDS),
         'goal': sanitize_goal(forecast.get('goal')),
         'recommendations': [{**pick(row, RECOMMENDATION_FIELDS),
-                             'strength': sanitize_strength(row.get('strength'))}
+                             'strength': sanitize_strength(row.get('strength')),
+                             'report': sanitize_report(row.get('report')),
+                             'setup_record': pick(row.get('setup_record') or {}, SCORE_FIELDS)}
                             for row in forecast.get('recommendations', [])],
         'held': [pick(row, HELD_FIELDS) for row in forecast.get('held', [])][:20],
         'scoreboard': {key: pick(value, SCORE_FIELDS)

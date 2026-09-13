@@ -12,7 +12,11 @@
 """
 import math
 
-TARGET_HIT_RATE = 0.70      # 사용자가 요구한 최소 적중률
+# 최소 적중률. 임의로 정한 숫자가 아니라 손익비가 결정한 선입니다.
+# orb_strict@2.0%의 본전 적중률이 55.7%로 나왔고, 그 아래면 아무리 잘 맞혀도
+# 계좌가 줄어듭니다. 적중률 70%를 요구하면 손익비가 나쁜 설정만 통과하게 되어
+# (본전선 79.3% vs 실제 77.3% → 손실) 오히려 지는 전략을 고르게 됩니다.
+TARGET_HIT_RATE = 0.55
 CONFIDENCE_Z = 1.96         # 95% 신뢰구간
 MIN_SAMPLES = 30            # 이보다 표본이 적으면 통과시키지 않고 '관찰 중'으로 둡니다
 
@@ -29,44 +33,72 @@ def wilson_lower_bound(hits, total, z=CONFIDENCE_Z):
 
 
 MIN_EXPECTANCY_PCT = 0.0    # 거래당 기대값이 이보다 커야 합니다 (비용 차감 후)
+MIN_EXCESS_PCT = 0.0        # 같은 기간 지수보다 나아야 합니다
 
 
 def evaluate_setup(hits, total, target=TARGET_HIT_RATE, min_samples=MIN_SAMPLES,
-                   expectancy=None):
+                   expectancy=None, excess=None, breakeven=None):
     """셋업 하나의 통과 여부를 판정합니다.
 
-    적중률만으로는 판정할 수 없습니다. 목표 1%·손절 2.5%처럼 손익비가 나쁘면
-    적중률 67%로도 돈을 잃습니다(67% × 0.8% − 33% × 2.0% = −0.1%). 실제로
-    이 시스템의 첫 결과가 정확히 그랬습니다 — 적중률 67.7%, 거래당 −0.45%.
+    통과 조건 (전부 만족해야 함):
+      1) 표본 30건 이상
+      2) 실제 적중률이 '본전 적중률'을 넘을 것
+         — 고정된 70%가 아니라 그 셋업의 손익비가 정하는 선입니다. 손익비가 좋으면
+           50%로도 충분하고, 나쁘면 80%로도 모자랍니다.
+      3) 거래당 기대값 > 0 (비용 차감 후)
+      4) 같은 기간 지수 대비 초과수익 > 0 — 시장이 오른 덕인지 가려냅니다
 
-    그래서 두 조건을 모두 넘겨야 통과입니다.
-      1) 적중률 하한(Wilson 95%)이 목표 이상
-      2) 거래당 기대값이 0보다 큼 (수수료·거래세·슬리피지 차감 후)
+    확립(established) vs 잠정(provisional):
+      위 조건을 통과해도, 적중률의 Wilson 95% 하한이 본전선을 넘지 못하면 '잠정'입니다.
+      "수익 구조로 보이지만 표본이 적어 우연일 가능성을 배제하지 못했다"는 뜻입니다.
+      막지는 않되 화면에 그대로 표시해, 확립된 것과 구분해서 보게 합니다.
     """
     lower = wilson_lower_bound(hits, total)
+    observed = hits / total if total else None
+    bar = breakeven if breakeven is not None else target
     profitable = expectancy is None or expectancy > MIN_EXPECTANCY_PCT
-    expectancy_note = '' if expectancy is None else f' · 거래당 {expectancy:+.2f}%'
+    beats_market = excess is None or excess > MIN_EXCESS_PCT
+    beats_breakeven = observed is not None and observed > bar
+
+    notes = []
+    if expectancy is not None:
+        notes.append(f'거래당 {expectancy:+.2f}%')
+    if excess is not None:
+        notes.append(f'지수 대비 {excess:+.2f}%p')
+    suffix = (' · ' + ' · '.join(notes)) if notes else ''
+    established = lower > bar
 
     if total < min_samples:
-        status = 'observing'
-        reason = f'표본 {total}건 — {min_samples}건을 모아야 판정합니다{expectancy_note}'
-    elif lower >= target and profitable:
+        status, reason = 'observing', f'표본 {total}건 — {min_samples}건을 모아야 판정합니다{suffix}'
+    elif not beats_breakeven:
+        status = 'blocked'
+        reason = (f'적중률 {observed * 100:.1f}%가 본전선 {bar * 100:.1f}% 아래입니다'
+                  f'{suffix} — 구조상 계좌가 줄어듭니다')
+    elif not profitable:
+        status = 'blocked'
+        reason = f'거래당 기대값 {expectancy:+.2f}% — 수익이 남지 않아 추천하지 않습니다'
+    elif not beats_market:
+        status = 'blocked'
+        reason = (f'지수 대비 {excess:+.2f}%p — 시장을 이기지 못해 추천하지 않습니다'
+                  f' (그냥 지수를 사는 편이 낫습니다)')
+    elif established:
         status = 'passed'
-        reason = f'적중률 하한 {lower * 100:.1f}% ≥ 목표 {target * 100:.0f}%{expectancy_note}'
-    elif lower >= target and not profitable:
-        status = 'blocked'
-        reason = (f'적중률 하한 {lower * 100:.1f}%로 목표는 넘겼지만 거래당 기대값이 '
-                  f'{expectancy:+.2f}%입니다 — 자주 맞히고 크게 잃는 구조라 추천하지 않습니다')
+        reason = (f'적중률 {observed * 100:.1f}% > 본전선 {bar * 100:.1f}%'
+                  f' · 하한 {lower * 100:.1f}%도 본전선 위 — 확립{suffix}')
     else:
-        status = 'blocked'
-        reason = (f'적중률 하한 {lower * 100:.1f}% < 목표 {target * 100:.0f}%'
-                  f'{expectancy_note} — 추천하지 않습니다')
+        status = 'passed'
+        reason = (f'적중률 {observed * 100:.1f}% > 본전선 {bar * 100:.1f}%{suffix}'
+                  f' · 다만 하한 {lower * 100:.1f}%는 본전선 아래라 잠정입니다'
+                  f' (표본 {total}건)')
     return {
         'hits': hits,
         'total': total,
-        'hit_rate': hits / total if total else None,
+        'hit_rate': observed,
         'lower_bound': lower,
         'expectancy_pct': expectancy,
+        'excess_pct': excess,
+        'breakeven_used': bar,
+        'established': established,
         'target': target,
         'status': status,
         'reason': reason,
@@ -85,10 +117,12 @@ def tally(outcomes):
         if not setup or row.get('result') not in ('target', 'stop', 'timeout'):
             continue
         bucket = counters.setdefault(setup, {'hits': 0, 'total': 0, 'net_sum': 0.0,
-                                             'wins': [], 'losses': []})
+                                             'excess': [], 'wins': [], 'losses': []})
         bucket['total'] += 1
         net = row.get('net_pct') or 0.0
         bucket['net_sum'] += net
+        if row.get('excess_pct') is not None:
+            bucket['excess'].append(row['excess_pct'])
         # 적중 = 비용을 뺀 뒤에도 수익이 남은 거래. 목표가 도달만으로 세지 않습니다.
         if net > 0:
             bucket['hits'] += 1
@@ -98,9 +132,14 @@ def tally(outcomes):
     board = {}
     for name, value in sorted(counters.items()):
         total = value['total']
-        record = evaluate_setup(value['hits'], total,
-                                expectancy=value['net_sum'] / total if total else None)
-        record.update(win_loss_profile(value['wins'], value['losses']))
+        excess = value['excess']
+        profile = win_loss_profile(value['wins'], value['losses'])
+        record = evaluate_setup(
+            value['hits'], total,
+            expectancy=value['net_sum'] / total if total else None,
+            excess=sum(excess) / len(excess) if excess else None,
+            breakeven=profile.get('breakeven_hit_rate'))
+        record.update(profile)
         board[name] = record
     return board
 

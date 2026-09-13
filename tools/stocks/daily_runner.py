@@ -171,7 +171,9 @@ def rank_candidates(candidates, scoreboard, regime_status):
                                          'detail': ', '.join(candidate.get('blocks', []))[:200]})
         ranked.append({**candidate, 'target_pct': target_pct, 'strength': rating,
                        'gate': (record or {}).get('reason', '셋업 기록 없음 — 관찰 중'),
-                       'gate_passed': gate_passed})
+                       'gate_passed': gate_passed,
+                       'setup_record': record,
+                       'report': signals.report_features(candidate.get('features', {}))})
     ranked.sort(key=lambda row: (row['strength']['level'], row['strength']['raw_score']),
                 reverse=True)
     return ranked

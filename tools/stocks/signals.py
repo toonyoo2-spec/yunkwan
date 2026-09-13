@@ -172,6 +172,61 @@ def plan(features_row, warnings, setup_name):
     }
 
 
+# 리포트에 보여줄 수 있는 특징. 전부 비율(%)·배수·참거짓이며 원 단위 값이나
+# 주식 수 같은 절대 수치는 들어 있지 않습니다(시세정보에 해당).
+REPORT_FEATURES = (
+    ('relative_strength', '시장 대비 강도', '%p', '전일 종목 등락률 − 지수 등락률. 양수면 시장보다 강했다는 뜻'),
+    ('volume_surge', '거래량 증가', '배', '전일 거래량 ÷ 직전 20일 평균'),
+    ('price_position', '20일 고가 대비', '비율', '1.0이면 신고가. 높을수록 추세 상단'),
+    ('atr_pct', 'ATR', '%', '일간 평균 변동 폭. 손절 폭을 정하는 기준'),
+    ('volatility_pct', '변동성', '%', '일간 수익률 표준편차. 6% 초과면 제외'),
+    ('short_ratio_pct', '공매도 비중', '%', '전일 거래대금 중 공매도 비율. 15% 초과면 제외'),
+    ('lending_change_pct', '대차 잔고 5일 증감', '%', '공매도의 선행지표. +20% 초과면 제외'),
+    ('margin_loan_rate_pct', '신용융자 잔고', '%', '상장주식수 대비. 3% 초과면 반대매매 위험'),
+    ('stock_loan_rate_pct', '신용대주 잔고', '%', '개인이 빌려 판 물량'),
+    ('sample_days', '사용한 일봉', '일', '특징 계산에 쓴 과거 일봉 수'),
+)
+
+FLAG_FEATURES = (
+    ('has_positive_disclosure', '호재 공시', 'positive_labels'),
+    ('has_negative_disclosure', '악재 공시', 'negative_labels'),
+)
+FLOW_FEATURES = (
+    ('foreigner_net', '외국인 수급'),
+    ('institution_net', '기관 수급'),
+    ('program_net', '프로그램 수급'),
+)
+
+
+def report_features(features_row):
+    """리포트용 특징 묶음. 비율만 남기고 절대 수치는 제외합니다."""
+    numbers = []
+    for key, label, unit, note in REPORT_FEATURES:
+        value = features_row.get(key)
+        if value is None:
+            continue
+        numbers.append({'key': key, 'label': label, 'unit': unit,
+                        'value': round(float(value), 4), 'note': note})
+    flags = []
+    for key, label, labels_key in FLAG_FEATURES:
+        if features_row.get(key) is None:
+            continue
+        flags.append({'key': key, 'label': label, 'value': bool(features_row[key]),
+                      'detail': ', '.join(features_row.get(labels_key) or [])})
+    # 수급은 방향만 올립니다. 순매수 주식 수는 시세정보라 제외합니다.
+    for key, label in FLOW_FEATURES:
+        value = features_row.get(key)
+        if value is None:
+            continue
+        flags.append({'key': key, 'label': label, 'value': value > 0,
+                      'detail': '순매수' if value > 0 else '순매도'})
+    news_count = features_row.get('news_count')
+    return {'numbers': numbers, 'flags': flags,
+            'news_count': news_count if news_count is not None else None,
+            'positive_labels': features_row.get('positive_labels') or [],
+            'negative_labels': features_row.get('negative_labels') or []}
+
+
 def describe(features_row):
     """화면에 그대로 보여줄 선정 근거.
 

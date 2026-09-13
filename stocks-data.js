@@ -67,6 +67,28 @@
     };
   }
 
+  function reportOf(value) {
+    if (value == null) return null;
+    return {
+      numbers: list(value.numbers).map((row) => ({
+        key: text(row.key, 40),
+        label: text(row.label, 40),
+        unit: optionalText(row.unit, 10),
+        value: num(row.value),
+        note: optionalText(row.note, 200),
+      })),
+      flags: list(value.flags).map((row) => ({
+        key: text(row.key, 40),
+        label: text(row.label, 40),
+        value: bool(row.value),
+        detail: optionalText(row.detail, 120),
+      })),
+      newsCount: num(value.news_count),
+      positiveLabels: list(value.positive_labels).map((v) => text(v, 60)),
+      negativeLabels: list(value.negative_labels).map((v) => text(v, 60)),
+    };
+  }
+
   function recommendation(row) {
     return {
       symbol: text(row.symbol, 6),
@@ -79,6 +101,10 @@
       stopPct: num(row.stop_pct),
       targetPct: num(row.target_pct),
       strength: strengthOf(row.strength),
+      report: reportOf(row.report),
+      setupRecord: row.setup_record ? score(row.setup_record) : null,
+      blocks: list(row.blocks).map((v) => text(v, 200)),
+      tradeable: bool(row.tradeable),
       entryDeadline: optionalText(row.entry_deadline, 10),
       exitTime: optionalText(row.exit_time, 10),
     };
@@ -100,9 +126,16 @@
       total: num(row.total),
       hitRate: num(row.hit_rate),
       lowerBound: num(row.lower_bound),
+      expectancyPct: num(row.expectancy_pct),
+      excessPct: num(row.excess_pct),
+      averageWinPct: num(row.average_win_pct),
+      averageLossPct: num(row.average_loss_pct),
+      payoffRatio: num(row.payoff_ratio),
+      breakevenHitRate: num(row.breakeven_hit_rate),
+      established: bool(row.established),
       target: num(row.target),
       status: text(row.status, 20),
-      reason: optionalText(row.reason, 200),
+      reason: optionalText(row.reason, 300),
     };
   }
 

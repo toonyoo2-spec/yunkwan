@@ -104,7 +104,169 @@
       (s) => s.symbol === row.symbol && s.setup === row.setup
     );
     if (outcome) card.append(outcomeBlock(outcome, row.targetPct));
+
+    const open = element('button', 'report-open', '상세 리포트 보기');
+    open.addEventListener('click', () => openReport(row, outcome));
+    card.append(open);
+    card.addEventListener('click', (event) => {
+      if (event.target.closest('button, details, summary, a')) return;
+      openReport(row, outcome);
+    });
     return card;
+  }
+
+  // ---- 상세 리포트 -------------------------------------------------------
+
+  const fmtValue = (row) => {
+    if (row.value == null) return '—';
+    if (row.unit === '배') return `${row.value.toFixed(2)}배`;
+    if (row.unit === '비율') return row.value.toFixed(3);
+    if (row.unit === '일') return `${row.value}일`;
+    if (row.unit === '%p') return `${row.value > 0 ? '+' : ''}${row.value.toFixed(2)}%p`;
+    return `${row.value > 0 ? '+' : ''}${row.value.toFixed(2)}%`;
+  };
+
+  function section(title) {
+    const box = element('section', 'report-section');
+    box.append(element('h4', null, title));
+    return box;
+  }
+
+  function keyValueTable(rows) {
+    const table = element('table', 'report-table');
+    rows.forEach(({ label, value, note, tone }) => {
+      const tr = element('tr', tone || null);
+      tr.append(element('th', null, label), element('td', null, value));
+      table.append(tr);
+      if (note) {
+        const hint = element('tr', 'note-row');
+        const cell = element('td', null, note);
+        cell.colSpan = 2;
+        hint.append(cell);
+        table.append(hint);
+      }
+    });
+    return table;
+  }
+
+  function openReport(row, outcome) {
+    const dialog = $('reportDialog');
+    const body = $('reportBody');
+    body.replaceChildren();
+
+    $('reportTitle').textContent = row.name || row.symbol;
+    $('reportSubtitle').textContent =
+      `${row.symbol} · ${row.market || ''} · ${row.setup}`;
+
+    // 1. 판정
+    const verdict = section('판정');
+    const tier = row.strength ? tierOf(row.strength.level) : null;
+    verdict.append(keyValueTable([
+      { label: '추천 강도', value: row.strength ? `${row.strength.level} / 10 (${tier.label})` : '—' },
+      { label: '목표', value: plain(row.targetPct), tone: 'good' },
+      { label: '손절', value: plain(row.stopPct), tone: 'bad' },
+      { label: '진입 조건', value: row.entryRule || '—' },
+      { label: '진입 마감', value: row.entryDeadline || '—',
+        note: '이 시각까지 조건이 안 나오면 그날은 진입하지 않습니다.' },
+      { label: '청산 시각', value: row.exitTime || '—',
+        note: '목표·손절 미도달 시 이 시각에 정리합니다.' },
+    ]));
+    body.append(verdict);
+
+    // 2. 이 셋업의 과거 성적 — 왜 믿을 수 있는가
+    if (row.setupRecord) {
+      const s = row.setupRecord;
+      const past = section('이 셋업의 과거 성적');
+      past.append(keyValueTable([
+        { label: '표본', value: `${s.total ?? 0}건 중 ${s.hits ?? 0}건 적중` },
+        { label: '적중률', value: plain((s.hitRate ?? 0) * 100),
+          tone: (s.hitRate ?? 0) > (s.breakevenHitRate ?? 1) ? 'good' : 'bad' },
+        { label: '본전 적중률', value: plain((s.breakevenHitRate ?? 0) * 100),
+          note: '손익비가 정하는 선입니다. 실제 적중률이 이보다 높아야 계좌가 늘어납니다.' },
+        { label: '평균이익 / 평균손실',
+          value: `${pct(s.averageWinPct)} / ${pct(s.averageLossPct)}` },
+        { label: '손익비', value: s.payoffRatio == null ? '—' : s.payoffRatio.toFixed(2) },
+        { label: '거래당 기대값', value: pct(s.expectancyPct),
+          tone: (s.expectancyPct ?? 0) > 0 ? 'good' : 'bad' },
+        { label: '지수 대비', value: s.excessPct == null ? '—' : `${pct(s.excessPct)}p`,
+          tone: (s.excessPct ?? 0) > 0 ? 'good' : 'bad',
+          note: '같은 기간 지수보다 나았는지. 이게 0 이하면 그냥 지수를 사는 편이 낫습니다.' },
+        { label: '신뢰 수준', value: s.established ? '확립' : '잠정',
+          tone: s.established ? 'good' : 'warn',
+          note: s.established
+            ? '적중률 95% 하한도 본전선 위입니다.'
+            : '수익 구조로 보이지만 표본이 적어 우연일 가능성을 배제하지 못했습니다.' },
+      ]));
+      if (s.reason) past.append(element('p', 'report-note', s.reason));
+      body.append(past);
+    }
+
+    // 3. 강도 점수 내역
+    if (row.strength?.components?.length) {
+      const score = section('강도 점수 내역');
+      score.append(keyValueTable(
+        row.strength.components
+          .slice()
+          .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+          .map((part) => ({
+            label: part.label,
+            value: `${part.points > 0 ? '+' : ''}${part.points ?? 0}`,
+            note: part.detail || null,
+            tone: (part.points ?? 0) < 0 ? 'bad' : (part.points ?? 0) > 0 ? 'good' : null,
+          }))
+      ));
+      score.append(element('p', 'report-note',
+        `합계 ${row.strength.rawScore ?? '—'} / 100 → 강도 ${row.strength.level}`));
+      body.append(score);
+    }
+
+    // 4. 선정 근거 수치
+    if (row.report?.numbers?.length) {
+      const data = section('선정 근거 수치');
+      data.append(keyValueTable(row.report.numbers.map((n) => ({
+        label: n.label, value: fmtValue(n), note: n.note,
+      }))));
+      body.append(data);
+    }
+
+    // 5. 수급·공시
+    if (row.report?.flags?.length || row.report?.newsCount != null) {
+      const flow = section('수급 · 공시 · 뉴스');
+      const rows = row.report.flags.map((f) => ({
+        label: f.label,
+        value: f.detail || (f.value ? '있음' : '없음'),
+        tone: f.key.startsWith('has_negative') ? (f.value ? 'bad' : null)
+          : f.value ? 'good' : null,
+      }));
+      if (row.report.newsCount != null) {
+        rows.push({ label: '관련 기사', value: `${row.report.newsCount}건` });
+      }
+      flow.append(keyValueTable(rows));
+      body.append(flow);
+    }
+
+    // 6. 결과 (마감 후)
+    if (outcome) {
+      const result = section('마감 결과');
+      result.append(outcomeBlock(outcome, row.targetPct));
+      body.append(result);
+    }
+
+    // 7. 걸린 조건
+    if (row.blocks?.length) {
+      const blocked = section('걸린 조건');
+      const ul = element('ul', 'block-list');
+      row.blocks.forEach((b) => ul.append(element('li', null, b)));
+      blocked.append(ul);
+      body.append(blocked);
+    }
+
+    body.append(element('p', 'report-caution',
+      '이 리포트는 근거를 정리한 것이지 수익을 약속하지 않습니다. 가격은 표시하지 않습니다 — '
+      + '토스 시세는 맥북 밖으로 나가지 않습니다.'));
+
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
   }
 
   function strengthBlock(rating) {
@@ -576,6 +738,12 @@
     bindPositionForm();
     await load();
     setInterval(load, REFRESH_MS);
+  });
+
+  $('reportClose').addEventListener('click', () => {
+    const dialog = $('reportDialog');
+    if (typeof dialog.close === 'function') dialog.close();
+    else dialog.removeAttribute('open');
   });
 
   $('recordSelect').addEventListener('change', (event) => {
