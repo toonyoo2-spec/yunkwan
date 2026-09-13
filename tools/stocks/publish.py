@@ -24,6 +24,7 @@ from tossapi import now
 
 SITE_CONFIG = STATE / 'site.json'
 TABLE = 'stock_reports'
+RESEARCH_TABLE = 'stock_research'
 TIMEOUT_SEC = 20
 
 # 사이트가 브라우저에 그대로 노출하는 값입니다(supabase-config.js). 비밀이 아니므로
@@ -163,6 +164,52 @@ def upsert(config, token, row):
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates,return=minimal',
     })
+
+
+# 분석 요약에 허용되는 필드. 전부 비율(%)·건수·판정 문구이며 가격은 없습니다.
+RESEARCH_SETUP_FIELDS = ('hits', 'total', 'hit_rate_pct', 'lower_bound_pct', 'status',
+                         'gate_reason', 'chance_verdict', 'chance_reason',
+                         'concentration_reason', 'max_drawdown_pct',
+                         'longest_losing_streak', 'total_return_pct',
+                         'survives_correction', 'tested_count')
+RESEARCH_HORIZON_FIELDS = ('hold_days', 'trades', 'hit_rate_pct', 'mean_net_pct',
+                           'total_return_pct', 'max_drawdown_pct',
+                           'longest_losing_streak', 'verdict')
+
+
+def sanitize_research(summary):
+    """분석 요약에서 올려도 되는 부분만 뽑습니다."""
+    return {
+        'updated_at': summary.get('updated_at'),
+        'trade_days': summary.get('trade_days'),
+        'date_range': summary.get('date_range'),
+        'trade_count': summary.get('trade_count'),
+        'target_hit_rate_pct': summary.get('target_hit_rate_pct'),
+        'setups': {key: pick(value, RESEARCH_SETUP_FIELDS)
+                   for key, value in (summary.get('setups') or {}).items()},
+        'regimes': summary.get('regimes'),
+        'strength': summary.get('strength'),
+        'horizon': [pick(row, RESEARCH_HORIZON_FIELDS)
+                    for row in (summary.get('horizon') or [])],
+        'walkforward': summary.get('walkforward'),
+        'caveats': summary.get('caveats'),
+    }
+
+
+def publish_research(summary):
+    """분석 요약 1행을 사이트에 올립니다. 계정마다 한 행만 유지합니다."""
+    payload = sanitize_research(summary)
+    assert_no_prices(payload)
+    config = load_site_config()
+    token = sign_in(config)
+    url = f"{config['url']}/rest/v1/{RESEARCH_TABLE}?on_conflict=owner_id"
+    post_json(url, {'payload': payload, 'updated_at': now().isoformat()}, {
+        'apikey': config['anon_key'],
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal',
+    })
+    print('분석 요약 업로드 완료 — 비율과 판정만 올렸습니다.')
 
 
 def publish(date):

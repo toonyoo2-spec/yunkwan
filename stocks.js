@@ -53,6 +53,7 @@
   };
 
   let records = [];
+  let research = null;
   let index = 0;
 
   function element(tag, className, textContent) {
@@ -199,6 +200,116 @@
     wrap.append(table);
   }
 
+  function renderResearch() {
+    const section = $('researchSection');
+    if (!research) {
+      section.hidden = true;
+      return;
+    }
+    section.hidden = false;
+    const range = research.dateRange ? `${research.dateRange[0]} ~ ${research.dateRange[1]}` : '—';
+    $('researchMeta').textContent =
+      `${range} · ${research.tradeDays ?? 0}거래일 · 채점 ${research.tradeCount ?? 0}건`;
+
+    const body = $('researchBody');
+    body.replaceChildren();
+
+    // 셋업별: 적중률만이 아니라 우연 판정까지 함께 봅니다.
+    const setups = Object.entries(research.setups || {});
+    if (setups.length) {
+      body.append(element('h3', 'research-h', '셋업별 성적'));
+      const table = element('table', 'score-table');
+      const head = element('tr');
+      ['셋업 @ 목표', '표본', '적중률', '하한', '우연 배제', '최대낙폭'].forEach((label) =>
+        head.append(element('th', null, label))
+      );
+      table.append(head);
+      setups
+        .sort((a, b) => (b[1].lowerBoundPct ?? 0) - (a[1].lowerBoundPct ?? 0))
+        .forEach(([key, row]) => {
+          const tr = element('tr', row.survivesCorrection ? 'passed' : 'blocked');
+          tr.append(
+            element('td', null, key),
+            element('td', null, `${row.total ?? 0}건`),
+            element('td', null, plain(row.hitRatePct)),
+            element('td', null, plain(row.lowerBoundPct)),
+            element('td', null, row.survivesCorrection ? '통과' : '미통과'),
+            element('td', null, plain(row.maxDrawdownPct))
+          );
+          table.append(tr);
+          const why = element('tr', 'why-row');
+          const cell = element('td', null, [row.chanceReason, row.concentrationReason]
+            .filter(Boolean).join(' · '));
+          cell.colSpan = 6;
+          why.append(cell);
+          table.append(why);
+        });
+      body.append(table);
+      const tested = setups[0][1].testedCount;
+      if (tested) {
+        body.append(element('p', 'sub',
+          `${tested}개 조합을 동시에 검정했습니다. 보정 없이 보면 전부 무의미해도 그중 하나는 우연히 통과한 것처럼 보입니다.`));
+      }
+    }
+
+    // 강도가 실제로 작동하는지
+    const verdict = research.strength?.verdict;
+    if (verdict) {
+      body.append(element('h3', 'research-h', '강도 검증'));
+      body.append(element('p', verdict.works ? 'verdict-good' : 'verdict-bad', verdict.reason));
+    }
+
+    // 보유 기간 비교
+    if (research.horizon?.length) {
+      body.append(element('h3', 'research-h', '보유 기간 비교'));
+      const table = element('table', 'score-table');
+      const head = element('tr');
+      ['보유', '거래', '적중률', '거래당', '최대낙폭', '연속손실'].forEach((label) =>
+        head.append(element('th', null, label))
+      );
+      table.append(head);
+      const best = research.horizon.reduce((a, b) =>
+        (b.meanNetPct ?? -99) > (a.meanNetPct ?? -99) ? b : a);
+      research.horizon.forEach((row) => {
+        const tr = element('tr', row === best ? 'passed' : null);
+        tr.append(
+          element('td', null, `${row.holdDays}일`),
+          element('td', null, `${row.trades ?? 0}건`),
+          element('td', null, plain(row.hitRatePct)),
+          element('td', null, pct(row.meanNetPct)),
+          element('td', null, plain(row.maxDrawdownPct)),
+          element('td', null, `${row.longestLosingStreak ?? 0}회`)
+        );
+        table.append(tr);
+      });
+      body.append(table);
+      body.append(element('p', 'sub',
+        `거래당 기대값이 가장 높은 구간: ${best.holdDays}일 보유. 기대값이 높아도 우연 판정을 통과하지 못하면 근거가 되지 못합니다.`));
+    }
+
+    // 시장 레짐
+    const regimes = research.regimes;
+    if (regimes?.by_regime) {
+      body.append(element('h3', 'research-h', '시장 상황별'));
+      const line = Object.entries(regimes.by_regime)
+        .map(([name, value]) => `${name} ${plain(value.hit_rate_pct)} (${value.total}건)`)
+        .join(' · ');
+      body.append(element('p', null, line));
+      if (regimes.single_regime_warning) {
+        body.append(element('p', 'verdict-bad', regimes.single_regime_warning));
+      }
+    }
+
+    if (research.caveats?.length) {
+      const details = element('details', 'research-caveats');
+      details.append(element('summary', null, '이 숫자를 읽을 때 주의할 점'));
+      const list = element('ul');
+      research.caveats.forEach((line) => list.append(element('li', null, line)));
+      details.append(list);
+      body.append(details);
+    }
+  }
+
   function render() {
     const record = records[index];
     const select = $('recordSelect');
@@ -214,7 +325,7 @@
     $('prev').disabled = index >= records.length - 1;
     $('next').disabled = index <= 0;
 
-    $('empty').hidden = !!record;
+    $('empty').hidden = !!record || !!research;
     ['regimeSection', 'summary', 'records', 'scoreboardSection'].forEach((id) => {
       const node = $(id);
       if (node) node.hidden = !record;
@@ -289,6 +400,19 @@
     return data || [];
   }
 
+  async function loadResearch() {
+    try {
+      if (window.STOCK_LOCAL_MODE) {
+        const response = await fetch('/api/research', { cache: 'no-store' });
+        return response.ok ? window.StockData.research(await response.json()) : null;
+      }
+      const { data } = await window.sb.from('stock_research').select('payload').limit(1);
+      return data?.length ? window.StockData.research(data[0].payload) : null;
+    } catch {
+      return null;   // 분석 요약이 없어도 나머지 화면은 그대로 보여줍니다.
+    }
+  }
+
   let loading = false;
   async function load() {
     if (loading) return;
@@ -296,8 +420,10 @@
     try {
       const raw = window.STOCK_LOCAL_MODE ? await loadLocal() : await loadSite();
       records = window.StockData.normalizeAll(raw);
+      research = await loadResearch();
       index = Math.min(index, Math.max(0, records.length - 1));
       render();
+      renderResearch();
       setMessage(
         records.length
           ? ''

@@ -10,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import publish
+import research
 from store import STATE, read_json
 
 HOST, PORT = '127.0.0.1', 8766
@@ -74,6 +75,12 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split('?', 1)[0]
         if path == '/api/reports':
             body = json.dumps(reports(), ensure_ascii=False).encode()
+            mime = 'application/json'
+        elif path == '/api/research':
+            # 사이트에 올리는 것과 같은 정제 형식으로 돌려줍니다.
+            summary = read_json(research.RESEARCH_FILE)
+            body = json.dumps(publish.sanitize_research(summary) if summary else None,
+                              ensure_ascii=False).encode()
             mime = 'application/json'
         elif path == '/':
             body = local_page().encode()

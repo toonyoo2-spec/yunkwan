@@ -188,7 +188,50 @@
       .sort((a, b) => (a.tradeDate < b.tradeDate ? 1 : -1));
   }
 
-  const api = { normalize, normalizeAll };
+  function research(value) {
+    if (!value || typeof value !== 'object') return null;
+    const setups = value.setups && typeof value.setups === 'object' ? value.setups : {};
+    return {
+      updatedAt: value.updated_at || null,
+      tradeDays: num(value.trade_days),
+      tradeCount: num(value.trade_count),
+      dateRange: Array.isArray(value.date_range) ? value.date_range.slice(0, 2).map(day) : null,
+      targetHitRatePct: num(value.target_hit_rate_pct),
+      setups: Object.fromEntries(
+        Object.entries(setups)
+          .slice(0, MAX_ROWS)
+          .map(([key, row]) => [key, {
+            hits: num(row.hits),
+            total: num(row.total),
+            hitRatePct: num(row.hit_rate_pct),
+            lowerBoundPct: num(row.lower_bound_pct),
+            status: optionalText(row.status, 20),
+            chanceVerdict: optionalText(row.chance_verdict, 20),
+            chanceReason: optionalText(row.chance_reason, 240),
+            concentrationReason: optionalText(row.concentration_reason, 240),
+            maxDrawdownPct: num(row.max_drawdown_pct),
+            longestLosingStreak: num(row.longest_losing_streak),
+            survivesCorrection: bool(row.survives_correction),
+            testedCount: num(row.tested_count),
+          }])
+      ),
+      regimes: value.regimes || null,
+      strength: value.strength || null,
+      horizon: list(value.horizon).map((row) => ({
+        holdDays: num(row.hold_days),
+        trades: num(row.trades),
+        hitRatePct: num(row.hit_rate_pct),
+        meanNetPct: num(row.mean_net_pct),
+        totalReturnPct: num(row.total_return_pct),
+        maxDrawdownPct: num(row.max_drawdown_pct),
+        longestLosingStreak: num(row.longest_losing_streak),
+        verdict: optionalText(row.verdict, 240),
+      })),
+      caveats: list(value.caveats).map((line) => text(line, 300)),
+    };
+  }
+
+  const api = { normalize, normalizeAll, research };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.StockData = api;
 })(typeof window !== 'undefined' ? window : globalThis);

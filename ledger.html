@@ -914,11 +914,12 @@ const DOW = ["일","월","화","수","목","금","토"];
 /* =================================================================================
    0-1. 결제수단
    ================================================================================= */
-const PAYMENT_METHODS = ["현대카드[보라]", "하나[보라]", "농협[관]"];
+const PAYMENT_METHODS = ["현대카드[보라]", "하나[보라]", "농협[관]", "복지포인트[관]"];
 const PAYMENT_META = {
   "현대카드[보라]": { person:"보라", type:"신용카드", desc:"1~31일 사용분이 익월 12일에 한 번에 청구돼요. 청구일에 하나은행 잔고에서 자동으로 빠져나가요." },
   "하나[보라]":     { person:"보라", type:"체크카드", desc:"보라 수입에서 즉시 빠져나가요. 현대카드 대금도 매월 12일에 여기서 자동으로 빠져나가요." },
   "농협[관]":       { person:"관",   type:"체크카드", desc:"관 수입에서 즉시 빠져나가요." },
+  "복지포인트[관]": { person:"관",   type:"복지포인트", desc:"매월 1일에 20만원이 충전돼요. 여기서 결제한 금액은 잔액에서 바로 빠지고, 현금이 아니라서 '잔액' 계산에는 영향을 주지 않아요." },
 };
 /* 하나/농협 카드는 실제 통장 잔고를 그대로 추적합니다. 아래 시작 잔고는 2026-08-03
    기준으로 입력한 값이라, 2026-08-03 이전 거래는 이미 그 잔고에 녹아있는 걸로 보고
@@ -942,6 +943,48 @@ const CREDIT_CARD_BASE_OVERRIDES = {
   // "결제수단|YYYY-MM": { anchor:'YYYY-MM-DD'(이 날짜부터 거래를 더함), amount }
   "현대카드[보라]|2026-07": { anchor: '2026-07-30', amount: 2156086 },
 };
+
+/* ---- 복지포인트 ----
+   통장이 아니라 포인트라서 통장과 기준일이 다릅니다. 그래서 기준일/시작잔액을
+   결제수단별로 따로 둡니다.
+
+   아래 시작잔액은 2026-09-13 기준 실제 잔액이라, 그 이전 사용분은 이미 이 값에
+   녹아 있는 걸로 보고 계산에서 제외합니다. 충전도 기준일 "다음"에 오는 1일부터
+   더합니다 (9/1 충전분은 이미 85,367에 포함돼 있으므로 또 더하면 안 됨).
+
+   앞으로 기준일을 다시 잡을 일이 생기면, 그 시점의 실제 잔액을 넣고 날짜를
+   바꾸면 됩니다. 단 기준일을 "오늘"로 잡으면 그날보다 앞선 날짜로 뒤늦게
+   입력하는 거래가 계산에서 빠지니, 이미 쓴 건 전부 시작잔액에 녹여야 합니다. */
+const POINT_BALANCE_ANCHOR   = { "복지포인트[관]": '2026-09-13' };
+const POINT_STARTING_BALANCE = { "복지포인트[관]": 85367 };
+const POINT_MONTHLY_GRANT    = { "복지포인트[관]": 200000 };
+
+function isPointPayment(payment){ return !!POINT_MONTHLY_GRANT[payment]; }
+function balanceAnchorFor(payment){ return POINT_BALANCE_ANCHOR[payment] || CARD_BALANCE_ANCHOR; }
+function startingBalanceFor(payment){
+  return POINT_STARTING_BALANCE[payment] ?? (CARD_STARTING_BALANCE[payment] || 0);
+}
+
+/* 복지포인트 월 충전 이벤트. 기준일 다음에 오는 매월 1일마다 한 건씩 만듭니다.
+   아직 오지 않은 날짜는 제외해서, 다음 달을 미리 열어봐도 충전이 미리 잡히지
+   않게 합니다(카드 청구 이벤트와 같은 규칙). */
+function pointGrantEvents(payment, rangeStart, rangeEndExclusive){
+  const grant = POINT_MONTHLY_GRANT[payment];
+  if(!grant) return [];
+
+  const today = todayStr();
+  const events = [];
+  let ym = shiftYm(balanceAnchorFor(payment).slice(0,7), 1); // 기준일 다음 달부터
+  while(true){
+    const date = ym + '-01';
+    if(date >= rangeEndExclusive) break;
+    if(date >= rangeStart && date <= today){
+      events.push({ date, amount: grant, label: '복지포인트 월 충전' });
+    }
+    ym = shiftYm(ym, 1);
+  }
+  return events;
+}
 
 /* ---- 미지정(구분 없음) 거래 일괄 자동 분류 ----
    완벽하진 않을 수 있어 1차 정리용입니다. 실행 후 사람이 직접 확인/수정하는 걸 전제로 합니다. */
@@ -1214,7 +1257,9 @@ function cardBillRecurringKey(payment){ return 'cardbill:' + payment; }
 
 function creditCardBillEvents(payment, rangeStart, rangeEndExclusive){
   const meta = PAYMENT_META[payment];
-  if(!meta || meta.type === '신용카드') return [];
+  // 카드 대금이 빠져나가는 건 체크카드(통장)뿐입니다. 신용카드 자신이나
+  // 복지포인트에는 청구가 붙지 않습니다.
+  if(!meta || meta.type !== '체크카드') return [];
   const cards = PAYMENT_METHODS.filter(p => PAYMENT_META[p].type==='신용카드' && PAYMENT_META[p].person===meta.person);
   if(!cards.length) return [];
 
@@ -1256,7 +1301,9 @@ function computeTotalSummary(ym){
   const cashExpense = tx.reduce((s,t)=>{
     if(t.type !== '지출') return s;
     const meta = t.payment ? PAYMENT_META[t.payment] : null;
-    if(meta && meta.type === '신용카드') return s;
+    // 신용카드는 이번 달에 현금이 나가지 않고, 복지포인트는 애초에 현금이 아닙니다.
+    // (지출 합계에는 그대로 잡히고, 현금 기준 "잔액" 계산에서만 빠집니다)
+    if(meta && (meta.type === '신용카드' || meta.type === '복지포인트')) return s;
     return s + Number(t.amount||0);
   }, 0);
   const cardBillMap = (todayStr() >= `${ym}-12`) ? creditCardExpenseByScope(all, shiftYm(ym,-1)) : {};
@@ -1268,14 +1315,15 @@ function computeTotalSummary(ym){
 
 /* 결제수단별 현황 줄을 계산합니다(DOM 조작 없이 데이터만 반환 — "카드 현황" 카드의
    서브라인으로 씀). 신용카드(현대카드)는 보고 있는 달 1일~말일 사용분만 합산해서
-   보여주고(달이 바뀌면 0원부터 다시 누적), 체크카드(하나/농협)는 CARD_BALANCE_ANCHOR
-   이후 거래만 반영한 실제 잔고를 돌려줍니다(수입은 +, 지출은 -). 이쪽은 계좌
-   잔고 성격이라 다음 달로 넘어가도 값이 그대로 이어집니다. */
+   보여주고(달이 바뀌면 0원부터 다시 누적), 체크카드(하나/농협)와 복지포인트는
+   각자의 기준일(balanceAnchorFor) 이후 거래만 반영한 실제 잔고를 돌려줍니다
+   (수입은 +, 지출은 -). 이쪽은 잔고 성격이라 다음 달로 넘어가도 값이 그대로
+   이어지고, 복지포인트만 매월 1일 충전분이 추가로 더해집니다. */
 function buildCardStatusLines(ym){
   const all = DB.list();
   const cutoffExclusive = shiftYm(ym,1) + '-01'; // 보고 있는 달 말일까지만 포함(다음 달 1일 미만)
   // 이름 4글자 + 항목 2글자 + 항목 2글자로 세 줄 길이를 맞춰서 나란히 봤을 때 정돈되어 보이게 함.
-  const FULL_NAME = { "현대카드[보라]":"현대카드", "하나[보라]":"하나은행", "농협[관]":"농협은행" };
+  const FULL_NAME = { "현대카드[보라]":"현대카드", "하나[보라]":"하나은행", "농협[관]":"농협은행", "복지포인트[관]":"복지포인트" };
 
   return PAYMENT_METHODS.map(p=>{
     const meta = PAYMENT_META[p];
@@ -1286,15 +1334,19 @@ function buildCardStatusLines(ym){
       return { name, value: won(totalSpent), dotColor: SCOPE_COLOR[meta.person], valueColor:'var(--expense)', payment:p, kind:'card-history' };
     }
 
+    // 체크카드(통장 잔고)와 복지포인트(포인트 잔액)는 계산 방식이 같습니다.
+    // 복지포인트만 매월 1일 충전이 더해지는 점이 다릅니다.
+    const anchor = balanceAnchorFor(p);
     const netChange = all
-      .filter(t=>t.payment===p && t.date >= CARD_BALANCE_ANCHOR && t.date < cutoffExclusive)
+      .filter(t=>t.payment===p && t.date >= anchor && t.date < cutoffExclusive)
       .reduce((s,t)=>{
         if(t.type==='지출' || t.type==='카드대금' || isTransferOut(t)) return s - Number(t.amount||0);
         if(t.type==='수입' || isTransferIn(t)) return s + Number(t.amount||0);
         return s;
       }, 0);
-    const billTotal = creditCardBillEvents(p, CARD_BALANCE_ANCHOR, cutoffExclusive).reduce((s,e)=>s+e.amount, 0);
-    const balance = (CARD_STARTING_BALANCE[p]||0) + netChange - billTotal;
+    const billTotal = creditCardBillEvents(p, anchor, cutoffExclusive).reduce((s,e)=>s+e.amount, 0);
+    const grantTotal = pointGrantEvents(p, anchor, cutoffExclusive).reduce((s,e)=>s+e.amount, 0);
+    const balance = startingBalanceFor(p) + netChange + grantTotal - billTotal;
     return { name, value: won(balance), dotColor: SCOPE_COLOR[meta.person], valueColor: balance>=0?'var(--income)':'var(--expense)', payment:p, kind:'card-balance' };
   });
 }
@@ -3494,7 +3546,8 @@ function openCardBalanceModal(ym, payment){
   const all = DB.list();
   const thisMonthStart = ym + '-01';
   const nextMonthStart = shiftYm(ym,1) + '-01';
-  const monthLowerBound = CARD_BALANCE_ANCHOR > thisMonthStart ? CARD_BALANCE_ANCHOR : thisMonthStart;
+  const anchor = balanceAnchorFor(payment);
+  const monthLowerBound = anchor > thisMonthStart ? anchor : thisMonthStart;
 
   const netChange = txs => txs.reduce((s,t)=>{
     if(t.type==='지출' || t.type==='카드대금' || isTransferOut(t)) return s - Number(t.amount||0);
@@ -3502,9 +3555,10 @@ function openCardBalanceModal(ym, payment){
     return s;
   }, 0);
 
-  const beforeTx = all.filter(t=>t.payment===payment && t.date >= CARD_BALANCE_ANCHOR && t.date < monthLowerBound);
-  const beforeBillTotal = creditCardBillEvents(payment, CARD_BALANCE_ANCHOR, monthLowerBound).reduce((s,e)=>s+e.amount, 0);
-  const prevBalance = (CARD_STARTING_BALANCE[payment]||0) + netChange(beforeTx) - beforeBillTotal;
+  const beforeTx = all.filter(t=>t.payment===payment && t.date >= anchor && t.date < monthLowerBound);
+  const beforeBillTotal = creditCardBillEvents(payment, anchor, monthLowerBound).reduce((s,e)=>s+e.amount, 0);
+  const beforeGrantTotal = pointGrantEvents(payment, anchor, monthLowerBound).reduce((s,e)=>s+e.amount, 0);
+  const prevBalance = startingBalanceFor(payment) + netChange(beforeTx) + beforeGrantTotal - beforeBillTotal;
 
   const monthItems = all
     .filter(t=>t.payment===payment && t.date >= monthLowerBound && t.date < nextMonthStart)
@@ -3518,7 +3572,9 @@ function openCardBalanceModal(ym, payment){
     });
   const monthBillEvents = creditCardBillEvents(payment, monthLowerBound, nextMonthStart);
   const monthBillTotal = monthBillEvents.reduce((s,e)=>s+e.amount, 0);
-  const nowBalance = prevBalance + netChange(monthItems) - monthBillTotal;
+  const monthGrantEvents = pointGrantEvents(payment, monthLowerBound, nextMonthStart);
+  const monthGrantTotal = monthGrantEvents.reduce((s,e)=>s+e.amount, 0);
+  const nowBalance = prevBalance + netChange(monthItems) + monthGrantTotal - monthBillTotal;
 
   const entries = [
     ...monthItems.map(t=>{
@@ -3538,13 +3594,20 @@ function openCardBalanceModal(ym, payment){
         <span class="a amt expense">-${e.amount.toLocaleString('ko-KR')}원</span>
       </li>
     `})),
+    ...monthGrantEvents.map(e => ({ date:e.date, node: `
+      <li>
+        <span class="badge fixed-badge">${e.date.slice(5)}</span>
+        <span class="n">${e.label}</span>
+        <span class="a amt income">+${e.amount.toLocaleString('ko-KR')}원</span>
+      </li>
+    `})),
   ].sort((a,b)=> a.date < b.date ? 1 : -1);
 
   const listHtml = entries.length ? `<ul class="modal-tx-list">${entries.map(en=>en.node).join('')}</ul>` : `<div style="color:var(--muted);font-size:13px;">이번 달 반영된 거래가 없어요.</div>`;
 
   openModal(`
-    <h3 class="display">${name} 통장 잔고</h3>
-    <div class="modal-sub">${mm}월 시작 잔고 ${won(prevBalance)}</div>
+    <h3 class="display">${name} ${isPointPayment(payment) ? '잔액' : '통장 잔고'}</h3>
+    <div class="modal-sub">${mm}월 시작 ${isPointPayment(payment) ? '잔액' : '잔고'} ${won(prevBalance)}</div>
     ${listHtml}
     <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;">
       <span style="font-weight:700;">현재 잔고</span>

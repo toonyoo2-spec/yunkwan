@@ -42,3 +42,30 @@ create policy stock_reports_update_own on public.stock_reports
 drop policy if exists stock_reports_delete_own on public.stock_reports;
 create policy stock_reports_delete_own on public.stock_reports
   for delete using (auth.uid() = owner_id);
+
+-- 분석 요약 1행. 과거 채점·보유기간 비교·강도 보정·우연 배제 판정을 담습니다.
+-- 여기에도 시세는 들어가지 않습니다. publish.sanitize_research의 화이트리스트를
+-- 통과한 비율(%)과 판정 문구만 올라옵니다.
+create table if not exists public.stock_research (
+  owner_id    uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  payload     jsonb not null,
+  updated_at  timestamptz not null default now()
+);
+
+alter table public.stock_research enable row level security;
+
+drop policy if exists stock_research_select_own on public.stock_research;
+create policy stock_research_select_own on public.stock_research
+  for select using (auth.uid() = owner_id);
+
+drop policy if exists stock_research_insert_own on public.stock_research;
+create policy stock_research_insert_own on public.stock_research
+  for insert with check (auth.uid() = owner_id);
+
+drop policy if exists stock_research_update_own on public.stock_research;
+create policy stock_research_update_own on public.stock_research
+  for update using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+
+drop policy if exists stock_research_delete_own on public.stock_research;
+create policy stock_research_delete_own on public.stock_research
+  for delete using (auth.uid() = owner_id);

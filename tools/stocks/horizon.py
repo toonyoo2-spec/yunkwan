@@ -24,7 +24,7 @@ import history
 from features import atr_pct, bars_before, daily_change_pct, number, volume_surge
 from robustness import assess, summarize
 from signals import net_return_pct, stop_distance_pct
-from store import STATE, read_json
+from store import STATE, read_json, write_json
 
 HORIZONS = (1, 3, 5, 10, 20)        # 보유 거래일
 TARGET_MULTIPLE = 2.0               # 목표는 손절 폭의 몇 배로 둘지 (손익비 2:1)
@@ -150,6 +150,21 @@ def run(symbols=None, horizons=HORIZONS):
         hold, (verdict, mean_net) = best
         print(f'\n거래당 기대값이 가장 높은 구간: {hold}일 보유 ({mean_net:+.2f}%/거래)')
         print('다만 기대값이 높아도 우연 판정을 통과하지 못했다면 근거가 되지 못합니다.')
+    # 요약 파일로도 남겨 사이트에 올릴 수 있게 합니다.
+    saved = []
+    for hold, (verdict, mean_net) in summary.items():
+        risk = verdict['risk']
+        saved.append({
+            'hold_days': hold, 'trades': verdict['total'],
+            'hit_rate_pct': (verdict['hit_rate'] or 0) * 100,
+            'mean_net_pct': mean_net,
+            'total_return_pct': risk['total_return_pct'],
+            'max_drawdown_pct': risk['max_drawdown_pct'],
+            'longest_losing_streak': risk['longest_losing_streak'],
+            'verdict': verdict['chance']['reason'],
+        })
+    write_json(STATE / 'horizon.json', saved)
+
     print('\n이 비교는 일봉 기준입니다. 장중 진입 타이밍은 반영되지 않았고,')
     print('하루 안에 목표·손절을 모두 건드린 경우는 손절로 처리했습니다.')
 
