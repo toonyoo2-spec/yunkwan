@@ -82,7 +82,7 @@ def simulate_hold(candles, entry_index, hold_days, stop_pct, target_pct):
     return {'exit_price': close, 'result': 'timeout', 'days': hold_days} if close else None
 
 
-def run(symbols=None, horizons=HORIZONS):
+def run(symbols=None, horizons=HORIZONS, ratio=TARGET_MULTIPLE):
     index_candles = (read_json(STATE / 'daily' / '_KOSPI.json', {}) or {}).get('candles', [])
     if not index_candles:
         print('코스피 일봉이 없습니다. `daily_runner.py prepare`를 한 번 실행하세요.')
@@ -104,7 +104,7 @@ def run(symbols=None, horizons=HORIZONS):
         for entry_index in signal_dates(candles, index_candles):
             signal_count += 1
             stop_pct = stop_distance_pct(atr_pct(candles[:entry_index]))
-            target_pct = stop_pct * TARGET_MULTIPLE
+            target_pct = stop_pct * ratio
             entry_date = candles[entry_index + 1]['timestamp'][:10]
             for hold in horizons:
                 outcome = simulate_hold(candles, entry_index, hold, stop_pct, target_pct)
@@ -123,7 +123,7 @@ def run(symbols=None, horizons=HORIZONS):
     if not signal_count:
         print('신호가 하나도 나오지 않았습니다. 일봉이 더 필요합니다.')
         return
-    print(f'종목 {len(symbols)}개 · 신호 {signal_count}건 · 손익비 {TARGET_MULTIPLE:.0f}:1 고정')
+    print(f'종목 {len(symbols)}개 · 신호 {signal_count}건 · 손익비 {ratio:g}:1 고정')
     print(f'진입은 신호 다음 거래일 시가, 비용은 왕복 수수료·거래세·슬리피지 차감.\n')
     print(f"{'보유':>4}  {'거래':>5}  {'적중률':>7}  {'거래당':>8}  {'누적합':>9}  {'최대낙폭':>9}  {'연속손실':>6}")
     print('(누적합·최대낙폭은 거래당 수익률을 단순 합산한 값입니다. 투입 비중을 반영한')
@@ -172,4 +172,10 @@ def run(symbols=None, horizons=HORIZONS):
 
 
 if __name__ == '__main__':
-    run(horizons=tuple(int(value) for value in sys.argv[1:]) or HORIZONS)
+    # 사용법: horizon.py [손익비] [보유일...]
+    #   손익비를 바꿔가며 비교해야 '보유 기간의 효과'와 '손익비의 효과'가 섞이지 않습니다.
+    args = sys.argv[1:]
+    ratio = float(args[0]) if args and '.' in args[0] else TARGET_MULTIPLE
+    days = [int(v) for v in args[1:] if v.isdigit()] if ratio != TARGET_MULTIPLE else \
+           [int(v) for v in args if v.isdigit()]
+    run(horizons=tuple(days) or HORIZONS, ratio=ratio)

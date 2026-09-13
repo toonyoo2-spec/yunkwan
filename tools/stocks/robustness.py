@@ -51,6 +51,15 @@ def chance_verdict(hits, total, baseline=DEFAULT_BASELINE):
     if total < MIN_SAMPLES_FOR_TEST:
         return {'p_value': None, 'verdict': 'insufficient',
                 'reason': f'표본 {total}건 — {MIN_SAMPLES_FOR_TEST}건 미만이라 판정할 수 없습니다'}
+    observed = hits / total
+    if observed < baseline:
+        # 기준선보다 낮으면 단측검정은 p=1에 가깝게 나옵니다. 그걸 '우연'이라고만
+        # 적으면 '기준선보다 못했다'는 더 중요한 사실이 가려집니다.
+        below = binomial_tail(total - hits, total, 1 - baseline)
+        return {'p_value': 1.0, 'verdict': 'below_baseline',
+                'baseline': baseline,
+                'reason': (f'적중률 {observed * 100:.1f}%로 기준선 {baseline * 100:.0f}%보다 '
+                           f'낮습니다 (반대 방향 p={below * 100:.1f}%)')}
     p_value = binomial_tail(hits, total, baseline)
     if p_value < SIGNIFICANCE:
         reason = (f'우연히 이 정도 나올 확률 {p_value * 100:.1f}% '
