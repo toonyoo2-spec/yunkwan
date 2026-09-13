@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주식 기록</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#3a5a52">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BORAKWAN">
+<link rel="stylesheet" href="./common.css">
+<link rel="stylesheet" href="./stocks.css">
+</head>
+<body>
+<script src="./nav.js?v=7"></script>
+
+<main id="appContent" class="wrap stock-page" style="display:none">
+
+  <section class="hero">
+    <div>
+      <p class="eyebrow">BORAKWAN · INVESTING JOURNAL</p>
+      <h1>주식 기록</h1>
+      <p class="sub">아침 08:30에 예상을 고정하고, 장 마감 후 실제와 비교합니다.</p>
+    </div>
+    <span class="badge">매일 08:30 · 마감 후 평가</span>
+  </section>
+
+  <section class="notice">
+    <strong>이 화면은 투자 추천이 아니라 기록·검증용입니다.</strong>
+    <p>예상 상승률은 과거 정규장 데이터로 만든 초기 추정값입니다. 표본이 부족하면 숫자를 만들지 않고 보류합니다. 검증되지 않은 값이므로 매매 판단의 근거로 쓰지 마세요.</p>
+  </section>
+
+  <section class="toolbar">
+    <a class="import-button" href="http://127.0.0.1:8766/" target="_blank" rel="noopener">맥북 자동 기록 열기</a>
+    <label class="import-button" for="importFile">수집 기록 불러오기</label>
+    <input id="importFile" type="file" accept=".json,application/json" multiple>
+    <button id="exportButton" disabled>기록 내보내기</button>
+    <span>토스 시세는 약관상 본인 매매 목적으로만 쓸 수 있어, 맥북 안에만 저장하고 서버로 올리지 않습니다. 자동 기록은 수집을 돌리는 맥북에서 열립니다.</span>
+  </section>
+
+  <p id="message" role="status" aria-live="polite"></p>
+
+  <section class="summary">
+    <div><span>검토 후보</span><strong id="candidateCount">—</strong></div>
+    <div><span>예상 상승률 산출</span><strong id="forecastCount">—</strong></div>
+    <div><span>평균 예측 오차</span><strong id="mae">—</strong></div>
+  </section>
+
+  <section class="records">
+    <div class="date-nav">
+      <button id="prev" aria-label="이전 기록" disabled>‹</button>
+      <label class="sr-only" for="recordSelect">수집 시각별 기록</label>
+      <select id="recordSelect" disabled><option>수집 기록 없음</option></select>
+      <button id="next" aria-label="다음 기록" disabled>›</button>
+    </div>
+
+    <p id="timestamps" class="sub"></p>
+    <p id="freshness" class="freshness"></p>
+
+    <label class="analysis-toggle">
+      <input type="checkbox" id="showAnalysis"> 마감 결과 보기 · 예상과 실제 비교
+    </label>
+    <div id="analysisSummary" hidden></div>
+    <p id="methodNote" class="sub"></p>
+
+    <div id="stockList" class="stock-list"></div>
+
+    <div id="empty" class="empty">
+      <span aria-hidden="true">↗</span>
+      <h2>첫 기록을 기다리고 있어요</h2>
+      <p>맥북에서 자동 수집을 한 번 돌리면 기록이 쌓이기 시작합니다.<br>같은 맥북에서는 ‘맥북 자동 기록 열기’로 바로 볼 수 있어요.</p>
+      <p>예시 종목이나 가상의 수익은 표시하지 않습니다.</p>
+    </div>
+  </section>
+
+  <details class="guide">
+    <summary>운영 일정과 설치 방법</summary>
+    <p><strong>하루 일정 (한국시간)</strong></p>
+    <ol>
+      <li>08:00 — 후보 종목과 과거 정규장 데이터를 준비합니다.</li>
+      <li>08:30 — 그날의 예상 상승률을 고정해 저장합니다. 이 시간을 놓치면 뒤늦은 예측을 만들지 않고 그날은 건너뜁니다.</li>
+      <li>15:40 / 16:10 — 정규장 종가를 확인해 예상과 실제를 비교합니다. 종가가 아직 확인되지 않으면 임의 가격으로 채우지 않고 대기로 남겨둡니다.</li>
+    </ol>
+    <p>휴장일은 토스 공식 시장 캘린더를 따라 자동으로 건너뜁니다. 맥북이 꺼져 있거나 인터넷이 끊겨 있으면 그날 기록은 비어 있게 됩니다.</p>
+
+    <p><strong>계산 기준</strong></p>
+    <p>실제 상승률 = (정규장 종가 ÷ 정규장 시가 − 1) × 100. 오차 = 실제 − 예상(%p). 방향 적중은 부호가 같은지만 봅니다. 계좌 수익률이 아니며 수수료·세금·체결 슬리피지는 반영되어 있지 않습니다.</p>
+
+    <p><strong>맥북 설치</strong></p>
+    <ol>
+      <li>저장소의 <code>tools/stocks/설치.command</code>를 더블클릭합니다.</li>
+      <li>토스 Client ID와 Secret을 입력합니다. 이 화면이나 채팅에는 절대 입력하지 마세요.</li>
+      <li>자동 실행 일정이 등록되고, 다음 거래일 아침부터 기록이 쌓입니다.</li>
+    </ol>
+    <p>토스 Open API 이용약관 제5조 ③에 따라 시세 정보는 본인 매매 목적으로만 이용하고 제3자에게 제공·배포하지 않습니다. 그래서 수집한 시세와 분석 결과는 맥북 안에만 저장하며, 이 사이트 서버에는 올리지 않습니다.</p>
+  </details>
+
+</main>
+
+<script src="./common.js"></script>
+<script src="./stocks-data.js"></script>
+<script src="./stocks.js"></script>
+<script src="./auth-gate.js?v=2"></script>
+</body>
+</html>

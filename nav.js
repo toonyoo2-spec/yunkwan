@@ -27,7 +27,7 @@
     { href: './review.html', icon: '📋', label: '블로그' },
     { href: './docs.html',   icon: '📁', label: '보관함' },
     { href: './routine.html', icon: '✅', label: '루틴' },
-    { href: './charging.html', icon: '⚡', label: '충전소' },
+    { href: './stocks.html', icon: '📈', label: '주식' },
   ];
 
   const currentFile = (location.pathname.split('/').pop() || 'index.html');

@@ -1,0 +1,7 @@
+.DS_Store
+
+# 토스 시세는 약관상 본인 매매 목적 전용 — 저장소에 절대 올리지 않습니다.
+tools/stocks/market_runs/
+tools/stocks/시장후보.html
+tools/stocks/toss_connection_result.json
+tools/stocks/__pycache__/
