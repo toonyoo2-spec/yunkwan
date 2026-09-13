@@ -23,35 +23,23 @@
     <div>
       <p class="eyebrow">BORAKWAN · INVESTING JOURNAL</p>
       <h1>주식 기록</h1>
-      <p class="sub">08:30에 계획을 고정하고, 장 마감 후 그대로 재현해 채점합니다.</p>
+      <p class="sub">매일 08:30 추천 · 마감 후 결과 확인</p>
     </div>
     <span class="badge">매일 08:30 · 마감 후 채점</span>
   </section>
 
   <section class="notice" id="ownerNotice" hidden>
-    <strong>이 기록은 수집 계정에서만 열립니다.</strong>
-    <p>토스 Open API 이용약관 제5조 ③에 따라 시세 정보는 본인 매매 목적으로만 이용할 수 있어, 다른 계정에는 내려주지 않습니다. 화면에서 가린 것이 아니라 서버가 애초에 보내지 않습니다.</p>
+    <strong>이 계정에서는 볼 수 없어요.</strong>
+    <p>수집 계정에서만 열리는 기록입니다.</p>
   </section>
 
   <div id="ownerGated">
 
   <section class="notice">
-    <strong>추천이 0건인 날이 정상입니다.</strong>
-    <p>적중률 70% 관문(Wilson 95% 하한)을 통과한 셋업만 추천에 올립니다. 통과한 셋업이 없으면 숫자를 만들지 않고 그날은 비웁니다. 가격은 이 화면에 올라오지 않습니다 — 비율(%)과 판정만 다룹니다.</p>
+    <p>조건에 안 맞으면 추천이 0건인 날도 있어요. 억지로 채우지 않습니다. <a href="#" id="openGuide">어떻게 동작하나 →</a></p>
   </section>
 
   <p id="message" role="status" aria-live="polite"></p>
-
-  <section class="summary" id="summary" hidden>
-    <div><span>이 날 추천</span><strong id="candidateCount">—</strong></div>
-    <div><span>목표 적중률</span><strong id="targetRate">—</strong></div>
-    <div><span>이 날 최고 적중률</span><strong id="dayHitRate">—</strong></div>
-  </section>
-
-  <section class="regime-box" id="regimeSection" hidden>
-    <h2>새벽 해외시장</h2>
-    <div id="regime"></div>
-  </section>
 
   <section class="records" id="records" hidden>
     <div class="date-nav">
@@ -61,16 +49,14 @@
       <button id="next" aria-label="다음 기록" disabled>›</button>
     </div>
 
-    <p id="timestamps" class="sub"></p>
+    <div id="regimeSection" class="regime-pill" hidden><div id="regime"></div></div>
 
     <div id="stockList" class="stock-list"></div>
 
     <details id="heldSection" class="held" hidden>
-      <summary>관찰만 한 후보 — 관문을 통과하지 못한 이유</summary>
+      <summary>관찰만 한 후보 — 왜 빠졌는지</summary>
       <ul id="heldList"></ul>
     </details>
-
-    <p id="methodNote" class="sub method"></p>
   </section>
 
   <section class="positions-box" id="positionsSection">
@@ -99,22 +85,34 @@
         <label>손절 %<input name="stop_pct" type="number" step="0.1" placeholder="1.5"></label>
         <button type="submit">추가</button>
       </form>
-      <p class="sub">매수가는 본인이 적는 본인 거래 기록입니다. 토스 시세가 아니라 저장해도 괜찮습니다.<br>
-      여러 번 나눠 사신 종목은 <strong>평균 매수가와 총 수량</strong>을 넣으세요. 오래 모아온 종목은 <strong>장기 보유</strong>로 두셔야 단타 규칙이 잘못 발동하지 않습니다.</p>
+      <p class="sub">나눠 사셨다면 <strong>평균 매수가·총 수량</strong>으로 적어주세요. 오래 모은 종목은 <strong>장기 보유</strong>로 선택하세요.</p>
     </details>
   </section>
 
-  <section class="research-box" id="researchSection" hidden>
-    <h2>분석 요약</h2>
-    <p class="sub" id="researchMeta"></p>
-    <div id="researchBody"></div>
-  </section>
+  <details class="stats-details">
+    <summary>적중 데이터 더 보기 — 매일 자동으로 다음 추천에 반영돼요</summary>
 
-  <section class="scoreboard-box" id="scoreboardSection" hidden>
-    <h2>셋업별 누적 적중률</h2>
-    <p class="sub">적중 = 수수료·거래세·슬리피지를 뺀 뒤에도 수익이 남은 거래. 하한(95%)은 표본이 적을수록 낮아지므로, 운 좋은 소수 표본이 관문을 통과하지 못합니다.</p>
-    <div id="scoreboard"></div>
-  </section>
+    <p class="sub" id="timestamps"></p>
+
+    <section class="summary" id="summary" hidden>
+      <div><span>이 날 추천</span><strong id="candidateCount">—</strong></div>
+      <div><span>기준 적중률</span><strong id="targetRate">—</strong></div>
+      <div><span>이 날 최고</span><strong id="dayHitRate">—</strong></div>
+    </section>
+
+    <p id="methodNote" class="sub"></p>
+
+    <section class="research-box" id="researchSection" hidden>
+      <h3>분석 요약</h3>
+      <p class="sub" id="researchMeta"></p>
+      <div class="table-scroll" id="researchBody"></div>
+    </section>
+
+    <section class="scoreboard-box" id="scoreboardSection" hidden>
+      <h3>셋업별 누적 적중률</h3>
+      <div class="table-scroll" id="scoreboard"></div>
+    </section>
+  </details>
 
   <div id="empty" class="empty">
     <span aria-hidden="true">↗</span>
@@ -126,31 +124,27 @@
   <details class="guide">
     <summary>어떻게 동작하나</summary>
 
-    <p><strong>하루 일정 (한국시간)</strong></p>
-    <ol>
-      <li>08:00 — 거래대금 상위 종목, 수급·공매도·프로그램매매, 공시·뉴스, 새벽 해외시장을 모읍니다.</li>
-      <li>08:30 — 그날의 계획을 고정합니다. 이 시간을 놓치면 소급해서 만들지 않고 그날은 건너뜁니다.</li>
-      <li>장중 5분마다 — 계획한 진입 조건이 실제로 나왔는지 감시합니다.</li>
-      <li>15:40 / 16:10 — 분봉을 축적하고, 고정했던 계획을 그대로 재현해 채점합니다.</li>
-    </ol>
+    <p><strong>하루 일정</strong></p>
+    <ul>
+      <li>08:00 데이터 수집 → 08:30 그날 추천 확정</li>
+      <li>장중 5분마다 진입 조건 확인</li>
+      <li>15:40 결과 채점</li>
+    </ul>
 
-    <p><strong>무엇을 추천이라고 부르는가</strong></p>
-    <p>‘예상 상승률’이 아니라 실행 가능한 계획입니다 — 진입 조건, 손절 폭, 목표, 유효 시간. 시가 대비 종가 수익률은 실제로 그렇게 매매할 수 없어서 검증 대상이 되지 못합니다.</p>
+    <p><strong>추천이란</strong></p>
+    <p>"오를 것 같다"가 아니라 실행 방법입니다 — 진입 조건 · 손절 · 목표가 · 유효시간까지 미리 정해둡니다.</p>
 
     <p><strong>채점 방식</strong></p>
-    <p>그날 1분봉에 계획을 그대로 얹어 재현합니다. 한 봉 안에서 목표가와 손절가를 모두 건드렸으면 손절이 먼저였다고 봅니다 — 순서를 알 수 없는데 유리한 쪽을 가정하면 검증이 거짓말이 되기 때문입니다. 손익은 수수료·거래세·슬리피지를 뺀 값입니다.</p>
+    <p>같은 날 실제 분봉으로 재현해서 확인합니다. 목표·손절을 동시에 건드린 애매한 경우는 손절로 처리합니다(더 엄격한 쪽). 수수료·세금 다 뺀 값이에요.</p>
 
-    <p><strong>새벽 해외시장</strong></p>
-    <p>미국 상장 ETF(EWY 한국, SOXX 반도체, QQQ·SPY, EWJ 일본, FXI 중국)를 씁니다. 새벽 6시에 확정되어 08:30 시점에 쓸 수 있는 가장 신선한 정보입니다. 다만 ETF는 원지수와 다릅니다 — 환율 효과와 미국 거래시간 재평가가 섞여 있습니다.</p>
+    <p><strong>정규장에서만 매수</strong></p>
+    <p>장 시작 전(프리마켓)은 거래가 적어 위험해서 제외합니다.</p>
 
-    <p><strong>진입은 정규장에서만</strong></p>
-    <p>프리마켓(NXT 08:00~)은 호가가 얇아 스프레드가 넓고, 검증할 과거 표본도 없습니다. 매일 스프레드를 재서 기록만 쌓고 있으며, 그 기록이 관문을 통과하기 전까지 추천에 넣지 않습니다.</p>
-
-    <p><strong>데이터가 어디에 있나</strong></p>
-    <p>토스 Open API 이용약관 제5조 ③에 따라 시세 정보는 본인 매매 목적으로만 이용하고 제3자에게 제공·배포하지 않습니다. 가격·거래량·호가·분봉은 맥북 안에만 저장하며, 이 사이트에는 우리가 계산한 비율(%)과 판정만 올라옵니다. 기준가가 없으면 %로는 시세를 되돌릴 수 없습니다.</p>
+    <p><strong>가격 정보는 어디에</strong></p>
+    <p>약관상 시세는 맥북에만 저장하고, 사이트에는 비율(%)과 판정 결과만 올립니다.</p>
 
     <p><strong>맥북 설치</strong></p>
-    <p>저장소의 <code>tools/stocks/설치.command</code>를 더블클릭하세요. 토스 Client ID와 Secret은 터미널에만 입력합니다 — 이 화면이나 채팅에는 절대 입력하지 마세요.</p>
+    <p><code>tools/stocks/설치.command</code> 더블클릭 → 터미널에서 토스 키 입력.</p>
   </details>
 
   </div>

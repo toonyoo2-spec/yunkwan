@@ -22,11 +22,9 @@ button:disabled{opacity:.4;cursor:default}
 .summary span{display:block;color:var(--sub);font-size:12px}
 .summary strong{display:block;margin-top:12px;font-size:24px}
 
-.regime-box{background:white;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:22px}
-.regime-box h2{font-size:14px;margin:0 0 10px;color:var(--sub);font-weight:700}
-.regime-box strong{font-size:15px}
-.regime-box p{margin:6px 0 0;font-size:13.5px;color:var(--sub);line-height:1.6}
-#regime.risk-off strong{color:#b3452f}
+.regime-pill{margin:14px 0}
+.regime-pill .pill{display:inline-block;font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px;background:#e6eee9;color:var(--accent)}
+.regime-pill.risk-off .pill{background:#f7e3de;color:#b3452f}
 
 .date-nav{display:flex;gap:10px}
 .date-nav select{flex:1;min-width:0}
@@ -40,9 +38,7 @@ button:disabled{opacity:.4;cursor:default}
 .plan{text-align:right;white-space:nowrap}
 .plan .target{font-weight:700;color:var(--accent);font-size:15px}
 .plan .stop{font-size:13px;color:#b3452f;margin-top:4px}
-.entry-rule{font-size:13px;line-height:1.6;margin:14px 0 0}
-.reason{font-size:12px;line-height:1.6;color:var(--sub);padding-top:12px;margin:12px 0 0;border-top:1px solid var(--line)}
-.gate{font-size:12px;line-height:1.6;color:var(--accent);margin:8px 0 0}
+.card-hint{font-size:11.5px;color:var(--sub);margin:10px 0 0;text-align:right}
 
 .assessment{background:#f4f5f1;border-radius:8px;padding:12px;font-size:13px;line-height:1.7;margin-top:14px}
 .assessment p{margin:0}
@@ -64,7 +60,7 @@ button:disabled{opacity:.4;cursor:default}
 .method{font-size:12px;margin-top:16px}
 
 .scoreboard-box{background:white;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:24px}
-.scoreboard-box h2{font-size:16px;margin:0 0 6px}
+.scoreboard-box h3,.research-box h3{font-size:14px;margin:0 0 6px;color:var(--ink)}
 .scoreboard-box .sub{font-size:12px;margin:0 0 14px}
 .score-table{width:100%;border-collapse:collapse;font-size:13px}
 .score-table th{text-align:right;color:var(--sub);font-size:11.5px;padding:6px 8px;border-bottom:1px solid var(--line)}
@@ -109,9 +105,8 @@ button:disabled{opacity:.4;cursor:default}
 .stock-card.tier-top{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 .stock-card.tier-low{opacity:.78}
 
-.strength{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
-.strength-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.strength-head strong{font-size:13.5px}
+.strength{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.strength strong{font-size:13.5px}
 .strength .tier{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:#eef0ec;color:var(--sub)}
 .strength.top .tier{background:var(--accent);color:#fff}
 .strength.mid .tier{background:#e6eee9;color:var(--accent)}
@@ -121,19 +116,9 @@ button:disabled{opacity:.4;cursor:default}
 .strength-bar span.on{background:var(--accent)}
 .strength.low .strength-bar span.on{background:#b9beb6}
 
-.strength-why{margin-top:10px}
-.strength-why summary{cursor:pointer;font-size:12px;color:var(--sub)}
-.strength-why ul{list-style:none;padding:0;margin:10px 0 0}
-.strength-why li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px}
-.strength-why li:last-child{border-bottom:none}
-.why-label{font-weight:600;white-space:nowrap}
-.why-detail{color:var(--sub);overflow-wrap:anywhere}
-.why-points{font-variant-numeric:tabular-nums;color:var(--accent);font-weight:700;white-space:nowrap}
-.strength-why li.minus .why-points{color:#b3452f}
-
 /* 분석 요약 */
 .research-box{background:white;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:24px}
-.research-box h2{font-size:16px;margin:0 0 6px}
+
 .research-box>.sub{margin:0 0 16px}
 .research-h{font-size:13px;margin:20px 0 8px;color:var(--sub);font-weight:700}
 .research-h:first-child{margin-top:0}
@@ -205,3 +190,16 @@ button:disabled{opacity:.4;cursor:default}
   .report-head{padding:16px 16px 12px}
   .report-table th{width:46%}
 }
+
+/* 모바일 간결화 */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.table-scroll .score-table{min-width:480px}
+.method-detail{margin-top:14px}
+.method-detail summary{cursor:pointer;font-size:12px;color:var(--sub)}
+.method-detail .sub{margin-top:8px}
+
+/* 통계 상세 접기 */
+.stats-details{border-top:1px solid var(--line);padding-top:16px;margin-top:8px}
+.stats-details>summary{cursor:pointer;font-size:13px;color:var(--sub);font-weight:600;padding:4px 0}
+.stats-details .research-box,.stats-details .scoreboard-box{box-shadow:none;border:none;padding:16px 0 0;margin-bottom:0}
+.stats-details #timestamps{margin-top:10px}

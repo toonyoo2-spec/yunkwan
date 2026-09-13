@@ -64,19 +64,21 @@
     return node;
   }
 
+  // 새벽 해외시장 판정을 아이콘 한 줄로. 이유는 title(길게 누르면/호버) 로만.
   function renderRegime(forecast) {
+    const wrap = $('regimeSection');
     const box = $('regime');
     box.replaceChildren();
     if (!forecast.regime) {
-      box.append(element('p', null, '새벽 해외시장 정보를 받지 못했습니다.'));
+      wrap.hidden = true;
       return;
     }
+    wrap.hidden = false;
     const allowed = forecast.regime.allowLong;
-    box.append(
-      element('strong', null, allowed ? '오늘은 신호를 낼 수 있는 환경입니다' : '오늘은 신호를 만들지 않습니다'),
-      element('p', null, forecast.regime.reason || '')
-    );
-    box.classList.toggle('risk-off', !allowed);
+    const pill = element('span', 'pill', allowed ? '🟢 오늘 매수 가능' : '🔴 오늘 신호 보류');
+    pill.title = forecast.regime.reason || '';
+    box.append(pill);
+    wrap.classList.toggle('risk-off', !allowed);
   }
 
   function recommendationCard(row, assessment) {
@@ -96,16 +98,16 @@
 
     if (row.strength) card.append(strengthBlock(row.strength));
 
-    if (row.entryRule) card.append(element('p', 'entry-rule', row.entryRule));
-    if (row.reason) card.append(element('p', 'reason', row.reason));
-    if (row.gate) card.append(element('p', 'gate', row.gate));
+    // 근거는 문단으로 늘어놓지 않고 카드를 눌러야 보이는 상세 리포트로 뺍니다.
+    const hint = element('p', 'card-hint', '탭해서 근거 보기 →');
+    card.append(hint);
 
     const outcome = (assessment?.simulations || []).find(
       (s) => s.symbol === row.symbol && s.setup === row.setup
     );
     if (outcome) card.append(outcomeBlock(outcome, row.targetPct));
 
-    const open = element('button', 'report-open', '상세 리포트 보기');
+    const open = element('button', 'report-open', '근거 보기');
     open.addEventListener('click', () => openReport(row, outcome));
     card.append(open);
     card.addEventListener('click', (event) => {
@@ -269,40 +271,17 @@
     else dialog.setAttribute('open', '');
   }
 
+  // 카드에는 강도 막대만 짧게 보여줍니다. 항목별 점수 내역은 '근거 보기'를
+  // 눌렀을 때 열리는 리포트에서만 보여줍니다(중복 방지 + 카드 텍스트 최소화).
   function strengthBlock(rating) {
     const box = element('div', 'strength');
+    const tier = tierOf(rating.level);
+    box.classList.add(tier.key);
     const bar = element('div', 'strength-bar');
     for (let step = 1; step <= 10; step += 1) {
       bar.append(element('span', step <= rating.level ? 'on' : 'off'));
     }
-    const tier = tierOf(rating.level);
-    box.classList.add(tier.key);
-    const head = element('div', 'strength-head');
-    head.append(
-      element('span', 'tier', tier.label),
-      element('strong', null, `강도 ${rating.level} / 10`),
-      bar
-    );
-    box.append(head);
-
-    const details = element('details', 'strength-why');
-    details.append(element('summary', null, '이 강도가 나온 근거'));
-    const table = element('ul');
-    rating.components
-      .slice()
-      .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
-      .forEach((part) => {
-        const item = element('li', (part.points ?? 0) < 0 ? 'minus' : null);
-        item.append(
-          element('span', 'why-label', part.label),
-          element('span', 'why-detail', part.detail || ''),
-          element('span', 'why-points', part.points == null ? '' : `${part.points > 0 ? '+' : ''}${part.points}`)
-        );
-        table.append(item);
-      });
-    details.append(table);
-    if (rating.note) details.append(element('p', 'sub', rating.note));
-    box.append(details);
+    box.append(element('span', 'tier', tier.label), element('strong', null, `${rating.level}/10`), bar);
     return box;
   }
 
@@ -518,19 +497,9 @@
             element('td', null, plain(row.maxDrawdownPct))
           );
           table.append(tr);
-          const why = element('tr', 'why-row');
-          const cell = element('td', null, [row.chanceReason, row.concentrationReason]
-            .filter(Boolean).join(' · '));
-          cell.colSpan = 6;
-          why.append(cell);
-          table.append(why);
         });
       body.append(table);
-      const tested = setups[0][1].testedCount;
-      if (tested) {
-        body.append(element('p', 'sub',
-          `${tested}개 조합을 동시에 검정했습니다. 보정 없이 보면 전부 무의미해도 그중 하나는 우연히 통과한 것처럼 보입니다.`));
-      }
+      body.append(element('p', 'sub', '통과 = 우연이 아니라는 근거가 확인된 조합이에요.'));
     }
 
     // 강도가 실제로 작동하는지
@@ -564,8 +533,7 @@
         table.append(tr);
       });
       body.append(table);
-      body.append(element('p', 'sub',
-        `거래당 기대값이 가장 높은 구간: ${best.holdDays}일 보유. 기대값이 높아도 우연 판정을 통과하지 못하면 근거가 되지 못합니다.`));
+      body.append(element('p', 'sub', `가장 효율적이었던 구간: ${best.holdDays}일 보유`));
     }
 
     // 시장 레짐
@@ -739,6 +707,18 @@
     await load();
     setInterval(load, REFRESH_MS);
   });
+
+  const guideLink = document.getElementById('openGuide');
+  if (guideLink) {
+    guideLink.addEventListener('click', (event) => {
+      event.preventDefault();
+      const guide = document.querySelector('.guide');
+      if (guide) {
+        guide.open = true;
+        guide.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
 
   $('reportClose').addEventListener('click', () => {
     const dialog = $('reportDialog');
