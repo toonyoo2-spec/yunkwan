@@ -16,9 +16,13 @@
 
 키가 없으면 이 모듈은 조용히 비활성화되고 나머지 파이프라인은 그대로 돌아갑니다.
 """
+import base64
+import hashlib
+import hmac
 import io
 import json
 import re
+import time
 import zipfile
 from datetime import datetime, timedelta
 from urllib.error import HTTPError, URLError
@@ -38,7 +42,12 @@ NAVER_DISPLAY = 20
 
 DART_LIST = 'https://opendart.fss.or.kr/api/list.json'
 DART_CORP = 'https://opendart.fss.or.kr/api/corpCode.xml'
-NAVER_NEWS = 'https://openapi.naver.com/v1/search/news.json'
+
+# 네이버 뉴스 검색 API는 개발자센터에서 NAVER API HUB로 이전되면서 주소와 인증이 바뀌었습니다.
+# 계정마다 발급 형태가 달라(앱 인증키 vs IAM 키) 세 방식을 순서대로 시도합니다.
+NAVER_HUB_HOST = 'https://naverapihub.apigw.ntruss.com'
+NAVER_HUB_PATH = '/search/v1/news'
+NAVER_LEGACY_URL = 'https://openapi.naver.com/v1/search/news.json'
 
 # 단타 관점에서 방향이 분명한 공시만 분류합니다. 애매한 것은 'other'로 둡니다.
 POSITIVE_PATTERNS = (
@@ -63,6 +72,12 @@ def load_keys():
 
 def enabled(source):
     return bool(load_keys().get(source))
+
+
+def remember_scheme(label):
+    """성공한 네이버 인증 방식을 기억해 다음부터 먼저 시도합니다."""
+    keys = load_keys()
+    write_json(KEYS, {**keys, 'naver_scheme': label})
 
 
 def fetch_json(url, headers=None):
@@ -160,15 +175,62 @@ def strip_tags(text):
     return re.sub(r'<[^>]+>', '', text or '').strip()
 
 
-def news(query, cutoff=None):
-    """최근 뉴스. cutoff 이후에 게시된 기사는 버립니다 (미래 정보 차단)."""
+def ncp_signature(method, uri, timestamp, access_key, secret_key):
+    """NCP API Gateway의 HMAC 서명(v2).
+
+    StringToSign = "{METHOD} {URI}\\n{timestamp}\\n{accessKey}" 를 HmacSHA256으로
+    서명한 뒤 Base64로 인코딩합니다. 헤더에 넣는 타임스탬프와 서명에 쓴 값이
+    반드시 같아야 합니다.
+    """
+    message = f'{method} {uri}\n{timestamp}\n{access_key}'
+    digest = hmac.new(secret_key.encode(), message.encode(), hashlib.sha256).digest()
+    return base64.b64encode(digest).decode()
+
+
+def naver_attempts(query):
+    """계정 형태를 모르므로 시도할 (설명, URL, 헤더) 조합을 순서대로 만듭니다."""
     keys = load_keys()
-    client_id, client_secret = keys.get('naver_id'), keys.get('naver_secret')
-    if not (client_id and client_secret):
+    key_id, secret = keys.get('naver_id'), keys.get('naver_secret')
+    if not (key_id and secret):
         return []
-    url = f'{NAVER_NEWS}?{urlencode({"query": query, "display": NAVER_DISPLAY, "sort": "date"})}'
-    payload = fetch_json(url, headers={'X-Naver-Client-Id': client_id,
-                                       'X-Naver-Client-Secret': client_secret})
+    params = urlencode({'query': query, 'display': NAVER_DISPLAY, 'sort': 'date'})
+    hub_uri = f'{NAVER_HUB_PATH}?{params}'
+    timestamp = str(int(time.time() * 1000))
+    return [
+        ('API HUB · 앱 인증키', f'{NAVER_HUB_HOST}{hub_uri}',
+         {'X-NCP-APIGW-API-KEY-ID': key_id, 'X-NCP-APIGW-API-KEY': secret}),
+        ('API HUB · IAM 서명', f'{NAVER_HUB_HOST}{hub_uri}',
+         {'x-ncp-iam-access-key': key_id,
+          'x-ncp-apigw-timestamp': timestamp,
+          'x-ncp-apigw-signature-v2': ncp_signature('GET', hub_uri, timestamp, key_id, secret)}),
+        ('개발자센터 · 구버전', f'{NAVER_LEGACY_URL}?{params}',
+         {'X-Naver-Client-Id': key_id, 'X-Naver-Client-Secret': secret}),
+    ]
+
+
+def news(query, cutoff=None, verbose=False):
+    """최근 뉴스. cutoff 이후에 게시된 기사는 버립니다 (미래 정보 차단).
+
+    인증 방식이 계정마다 달라, 성공하는 조합을 찾으면 그 방식을 기억해 다음부터 먼저 씁니다.
+    """
+    attempts = naver_attempts(query)
+    if not attempts:
+        return []
+    preferred = load_keys().get('naver_scheme')
+    if preferred:
+        attempts.sort(key=lambda row: row[0] != preferred)
+    payload = None
+    for label, url, headers in attempts:
+        payload = fetch_json(url, headers=headers)
+        if payload and payload.get('items') is not None:
+            if verbose:
+                print(f'  네이버 인증 방식: {label} — 성공')
+            if preferred != label:
+                remember_scheme(label)
+            break
+        if verbose:
+            print(f'  네이버 인증 방식: {label} — 실패')
+        payload = None
     if not payload:
         return []
     rows = []
@@ -230,17 +292,52 @@ def setup():
         raise RuntimeError('터미널에서 직접 실행하세요.')
     print('공시·뉴스 수집용 키를 저장합니다. 없으면 그냥 Enter로 건너뛰세요.')
     print('  OpenDART 무료 발급: https://opendart.fss.or.kr/  (인증키 신청)')
-    print('  네이버 검색 API 무료 발급: https://developers.naver.com/apps/')
+    print('  네이버 뉴스 검색은 NAVER API HUB로 이전됐습니다.')
+    print('    - 앱 인증키를 쓰는 계정이면 Client ID / Client Secret')
+    print('    - IAM 키를 쓰는 계정이면 Access Key ID / Secret Key (ncp_iam_...)')
+    print('  어느 쪽이든 그대로 넣으시면 됩니다. 맞는 호출 방식은 알아서 찾습니다.')
     current = load_keys()
     values = {
         'dart': getpass.getpass('OpenDART 인증키 (입력 숨김): ').strip() or current.get('dart'),
-        'naver_id': input('네이버 Client ID: ').strip() or current.get('naver_id'),
-        'naver_secret': getpass.getpass('네이버 Client Secret (입력 숨김): ').strip()
+        'naver_id': input('네이버 Client ID 또는 Access Key ID: ').strip() or current.get('naver_id'),
+        'naver_secret': getpass.getpass('네이버 Client Secret 또는 Secret Key (입력 숨김): ').strip()
         or current.get('naver_secret'),
     }
     write_json(KEYS, {key: value for key, value in values.items() if value})
     print('저장 완료. 저장소나 화면 어디에도 올라가지 않습니다.')
+    if values.get('naver_id') and values.get('naver_secret'):
+        verify_naver()
+    if values.get('dart'):
+        verify_dart()
+
+
+def verify_naver():
+    """저장한 키로 실제 호출을 해봅니다. 어느 인증 방식이 맞는지 여기서 판별됩니다."""
+    print('\n네이버 뉴스 검색을 확인합니다...')
+    rows = news('삼성전자', verbose=True)
+    if rows:
+        print(f'성공 — 기사 {len(rows)}건을 받았습니다.')
+    else:
+        print('실패 — 세 가지 인증 방식 모두 응답이 없었습니다.')
+        print('NAVER API HUB에서 뉴스 API가 해당 애플리케이션에 등록돼 있는지,')
+        print('마이페이지 인증키 관리에서 키가 "사용 중" 상태인지 확인하세요.')
+
+
+def verify_dart():
+    print('\nOpenDART를 확인합니다...')
+    mapping = refresh_corp_codes(load_keys()['dart'])
+    if mapping:
+        print(f'성공 — 종목 매핑 {len(mapping):,}건을 받았습니다.')
+    else:
+        print('실패 — 인증키를 확인하세요. 발급 직후에는 반영까지 시간이 걸릴 수 있습니다.')
 
 
 if __name__ == '__main__':
-    setup()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == 'verify':
+        if enabled('naver_id'):
+            verify_naver()
+        if enabled('dart'):
+            verify_dart()
+    else:
+        setup()

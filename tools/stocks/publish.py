@@ -26,6 +26,11 @@ SITE_CONFIG = STATE / 'site.json'
 TABLE = 'stock_reports'
 TIMEOUT_SEC = 20
 
+# 사이트가 브라우저에 그대로 노출하는 값입니다(supabase-config.js). 비밀이 아니므로
+# 기본값으로 넣어두고, 설치할 때 Enter만 눌러 넘어갈 수 있게 합니다.
+DEFAULT_URL = 'https://kblwddlquwlvumhwkirl.supabase.co'
+DEFAULT_ANON_KEY = 'sb_publishable_X6OqS-mM1igLrGcc7g4CzQ_fbVXpblY'
+
 # --- 화이트리스트: 여기 없는 필드는 올라가지 않습니다 ---
 
 RECOMMENDATION_FIELDS = ('symbol', 'name', 'setup', 'entry_rule', 'stop_pct',
@@ -177,9 +182,9 @@ def setup():
     if not sys.stdin.isatty():
         raise RuntimeError('터미널에서 직접 실행하세요.')
     print('사이트(yunkwan.cloud) 업로드 설정입니다. 토스 키가 아니라 사이트 로그인 정보입니다.')
-    url = input('Supabase URL [https://kblwddlquwlvumhwkirl.supabase.co]: ').strip() \
-        or 'https://kblwddlquwlvumhwkirl.supabase.co'
-    anon = input('Supabase anon key: ').strip()
+    print('URL과 anon key는 Enter만 누르면 기본값이 들어갑니다 (사이트에 공개된 값이라 비밀이 아닙니다).')
+    url = input(f'Supabase URL [{DEFAULT_URL}]: ').strip() or DEFAULT_URL
+    anon = input(f'Supabase anon key [{DEFAULT_ANON_KEY}]: ').strip() or DEFAULT_ANON_KEY
     login = input('사이트 아이디: ').strip()
     password = getpass.getpass('사이트 비밀번호 (입력 숨김): ').strip()
     if not all((anon, login, password)):
