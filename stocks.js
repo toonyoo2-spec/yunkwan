@@ -1,5 +1,13 @@
 (function(){
   'use strict';
+  // 이 사이트는 여러 계정이 함께 쓰지만, 토스 시세는 약관 제5조 ③에 따라
+  // "개인투자자 본인의 매매 목적"으로만 쓸 수 있습니다.
+  // 기록은 애초에 계정별로 분리된 저장소에만 들어 있어 다른 계정으로는 불러와지지
+  // 않지만, 수집 계정이 아니면 화면 자체를 안내로 바꿔 혼동을 없앱니다.
+  // 비워두면 계정 구분 없이 각자 자기 기록만 보게 됩니다. 예: ['yk']
+  const OWNER_LOGIN_IDS=[];
+  const loginId=session=>String(session.user.email||'').split('@')[0].toLowerCase();
+  const isOwner=session=>!OWNER_LOGIN_IDS.length||window.STOCK_LOCAL_MODE||OWNER_LOGIN_IDS.includes(loginId(session));
   const $=id=>document.getElementById(id);
   const fmt=n=>Number(n).toLocaleString('ko-KR',{maximumFractionDigits:2});
   const date=s=>new Date(s).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
@@ -41,6 +49,7 @@
   window.addEventListener('authReady',async()=>{
     const {data:{session}}=window.STOCK_LOCAL_MODE?{data:{session:{user:{id:'local-mac'}}}}:await window.sb.auth.getSession();
     if(!session)return;
+    if(!isOwner(session)){$('ownerNotice').hidden=false;$('ownerGated').hidden=true;return;}
     const key='borakwan-stock-records-v1:'+session.user.id;
     if(storageKey===key)return;
     storageKey=key;records=[];index=0;

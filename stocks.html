@@ -33,6 +33,13 @@
     <p>예상 상승률은 과거 정규장 데이터로 만든 초기 추정값입니다. 표본이 부족하면 숫자를 만들지 않고 보류합니다. 검증되지 않은 값이므로 매매 판단의 근거로 쓰지 마세요.</p>
   </section>
 
+  <section class="notice" id="ownerNotice" hidden>
+    <strong>이 기록은 수집 계정에서만 열립니다.</strong>
+    <p>토스 Open API 이용약관 제5조 ③에 따라 시세 정보는 본인 매매 목적으로만 이용할 수 있어, 다른 계정으로는 시세와 분석 결과를 표시하지 않습니다. 화면에 가려둔 게 아니라 애초에 불러오지 않습니다.</p>
+  </section>
+
+  <div id="ownerGated">
+
   <section class="toolbar">
     <a class="import-button" href="http://127.0.0.1:8766/" target="_blank" rel="noopener">맥북 자동 기록 열기</a>
     <label class="import-button" for="importFile">수집 기록 불러오기</label>
@@ -70,11 +77,13 @@
 
     <div id="empty" class="empty">
       <span aria-hidden="true">↗</span>
-      <h2>첫 기록을 기다리고 있어요</h2>
-      <p>맥북에서 자동 수집을 한 번 돌리면 기록이 쌓이기 시작합니다.<br>같은 맥북에서는 ‘맥북 자동 기록 열기’로 바로 볼 수 있어요.</p>
+      <h2>이 계정에 저장된 기록이 없어요</h2>
+      <p>기록은 계정별·기기별로 따로 보관됩니다. 수집을 돌리는 맥북에서는 ‘맥북 자동 기록 열기’로 바로 볼 수 있어요.<br>다른 기기에서 보려면 맥북에서 내보낸 JSON을 불러오세요.</p>
       <p>예시 종목이나 가상의 수익은 표시하지 않습니다.</p>
     </div>
   </section>
+
+  </div>
 
   <details class="guide">
     <summary>운영 일정과 설치 방법</summary>
