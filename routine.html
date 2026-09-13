@@ -78,11 +78,13 @@
     padding:3px 10px;
   }
 
-  /* ---- 최근 날짜 요약 ---- */
+  /* ---- 최근 날짜 요약 ----
+     칸을 균등하게 나눠 가로를 꽉 채웁니다. 칸 개수(--cols)는 JS의
+     HISTORY_DAYS를 그대로 넘겨받아 두 값이 어긋나지 않게 합니다. */
   .history{
-    display:flex;
+    display:grid;
+    grid-template-columns:repeat(var(--cols, 14), 1fr);
     gap:6px;
-    flex-wrap:wrap;
     margin-bottom:22px;
   }
   .history-day{
@@ -90,7 +92,7 @@
     background:#fff;
     border-radius:8px;
     padding:6px 0;
-    width:46px;
+    min-width:0;          /* 그리드 칸이 내용 때문에 안 줄어드는 것 방지 */
     text-align:center;
     cursor:pointer;
     font-family:inherit;
@@ -252,7 +254,9 @@
     .routine-grid{ grid-template-columns:1fr; gap:14px; }
     .memo-panel textarea{ min-height:150px; }
     .owner-toggle{ max-width:100%; }
-    .history-day{ flex:1; min-width:40px; width:auto; }
+    /* 14칸을 한 줄에 넣으면 좁아서 안 읽히므로 7칸씩 두 줄로 접습니다. */
+    .history{ grid-template-columns:repeat(7, 1fr); }
+    .history-day .hd-date{ font-size:10.5px; }
   }
 </style>
 </head>
@@ -406,6 +410,9 @@ function renderHistory(){
 
   const days = [];
   for(let i = HISTORY_DAYS - 1; i >= 0; i--) days.push(shiftDays(TODAY, -i));
+
+  // 칸 개수를 CSS에 넘겨 가로를 균등하게 꽉 채웁니다. (모바일에선 media query가 7칸으로 덮어씀)
+  el.style.setProperty('--cols', days.length);
 
   el.innerHTML = days.map(key => {
     const done = state.history[key] || 0;
