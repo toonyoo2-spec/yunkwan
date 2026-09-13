@@ -73,6 +73,30 @@
     <p id="methodNote" class="sub method"></p>
   </section>
 
+  <section class="positions-box" id="positionsSection">
+    <h2>내 보유 종목</h2>
+    <p class="sub" id="goalLine"></p>
+    <div id="positionList"></div>
+
+    <details class="add-position">
+      <summary>매수 기록 추가</summary>
+      <form id="positionForm" class="position-form">
+        <label>종목코드<input name="symbol" inputmode="numeric" pattern="[A-Za-z0-9]{6}" placeholder="005930" required></label>
+        <label>종목명<input name="name" placeholder="삼성전자"></label>
+        <label>시장
+          <select name="market"><option value="KOSPI">코스피</option><option value="KOSDAQ">코스닥</option></select>
+        </label>
+        <label>매수일<input name="entry_date" type="date" required></label>
+        <label>매수가<input name="entry_price" type="number" step="1" min="1" placeholder="70000" required></label>
+        <label>수량<input name="quantity" type="number" step="1" min="1" value="1" required></label>
+        <label>목표 %<input name="target_pct" type="number" step="0.1" placeholder="3"></label>
+        <label>손절 %<input name="stop_pct" type="number" step="0.1" placeholder="1.5"></label>
+        <button type="submit">추가</button>
+      </form>
+      <p class="sub">매수가는 본인이 적는 본인 거래 기록입니다. 토스 시세가 아니라 저장해도 괜찮습니다.</p>
+    </details>
+  </section>
+
   <section class="research-box" id="researchSection" hidden>
     <h2>분석 요약</h2>
     <p class="sub" id="researchMeta"></p>

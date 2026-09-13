@@ -54,6 +54,7 @@
 
   let records = [];
   let research = null;
+  let positions = [];
   let index = 0;
 
   function element(tag, className, textContent) {
@@ -198,6 +199,122 @@
         table.append(tr);
       });
     wrap.append(table);
+  }
+
+  const VERDICT_LABEL = { hold: '보유', sell: '매도', switch: '교체' };
+
+  async function loadPositions() {
+    if (window.STOCK_LOCAL_MODE) return [];
+    const { data, error } = await window.sb
+      .from('stock_positions')
+      .select('id,symbol,name,market,entry_date,entry_price,quantity,target_pct,stop_pct,verdict')
+      .eq('status', 'open')
+      .order('entry_date', { ascending: true });
+    if (error) return [];
+    return data || [];
+  }
+
+  function renderPositions() {
+    const list = $('positionList');
+    list.replaceChildren();
+    const goal = records[0]?.forecast?.goal;
+    if (goal) {
+      const line = $('goalLine');
+      line.className = `sub ${goal.achieved ? 'goal-hit' : 'goal-miss'}`;
+      line.textContent = goal.shortfall_note || '';
+    }
+    if (!positions.length) {
+      list.append(element('p', 'sub',
+        '기록된 보유 종목이 없습니다. 실제로 매수하셨다면 아래에 적어두세요. 다음 날 아침 08:30에 계속 들고 갈지 판정해 드립니다.'));
+      return;
+    }
+    positions.forEach((row) => {
+      const verdict = row.verdict || {};
+      const card = element('article', 'position');
+      const top = element('div', 'position-top');
+      const left = element('div');
+      left.append(
+        element('h3', null, row.name || row.symbol),
+        element('small', null,
+          `${row.symbol} · ${row.market || ''} · ${row.entry_date} 매수 · ${row.quantity}주`)
+      );
+      const pnl = verdict.net_pnl_pct;
+      const right = element('div', `pnl ${pnl > 0 ? 'up' : pnl < 0 ? 'down' : ''}`,
+        pnl == null ? '—' : pct(pnl));
+      top.append(left, right);
+      card.append(top);
+
+      if (verdict.verdict) {
+        card.append(element('span', `verdict ${verdict.verdict}`,
+          VERDICT_LABEL[verdict.verdict] || verdict.verdict));
+      }
+      if (verdict.reason) card.append(element('p', 'why', verdict.reason));
+      if (verdict.held_days != null) {
+        card.append(element('p', 'why', `보유 ${verdict.held_days}거래일` +
+          (row.target_pct ? ` · 목표 ${row.target_pct}%` : '') +
+          (row.stop_pct ? ` · 손절 ${row.stop_pct}%` : '')));
+      }
+
+      const close = element('button', 'close-btn', '매도 완료로 기록');
+      close.addEventListener('click', () => closePosition(row));
+      card.append(close);
+      list.append(card);
+    });
+  }
+
+  async function closePosition(row) {
+    const raw = window.prompt(`${row.name || row.symbol} 매도가를 입력하세요 (원)`);
+    if (raw == null) return;
+    const price = Number(raw);
+    if (!Number.isFinite(price) || price <= 0) {
+      setMessage('매도가가 올바르지 않습니다.');
+      return;
+    }
+    const { error } = await window.sb
+      .from('stock_positions')
+      .update({ status: 'closed', exit_price: price,
+                exit_date: new Date().toISOString().slice(0, 10),
+                updated_at: new Date().toISOString() })
+      .eq('id', row.id);
+    setMessage(error ? '기록에 실패했습니다.' : '매도로 기록했습니다.');
+    if (!error) {
+      positions = await loadPositions();
+      renderPositions();
+    }
+  }
+
+  function bindPositionForm() {
+    const form = $('positionForm');
+    if (!form) return;
+    form.elements.entry_date.value = new Date().toISOString().slice(0, 10);
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      const payload = {
+        symbol: String(data.symbol).trim(),
+        name: String(data.name || '').trim() || null,
+        market: data.market,
+        entry_date: data.entry_date,
+        entry_price: Number(data.entry_price),
+        quantity: Number(data.quantity),
+        target_pct: data.target_pct ? Number(data.target_pct) : null,
+        stop_pct: data.stop_pct ? Number(data.stop_pct) : null,
+      };
+      if (!/^[A-Za-z0-9]{6}$/.test(payload.symbol)) {
+        setMessage('종목코드는 6자리입니다.');
+        return;
+      }
+      const { error } = await window.sb.from('stock_positions').insert(payload);
+      if (error) {
+        setMessage('저장에 실패했습니다. 다시 시도해주세요.');
+        return;
+      }
+      form.reset();
+      form.elements.entry_date.value = new Date().toISOString().slice(0, 10);
+      setMessage('매수 기록을 저장했습니다. 다음 아침 08:30에 판정이 붙습니다.');
+      positions = await loadPositions();
+      renderPositions();
+    });
   }
 
   function renderResearch() {
@@ -421,9 +538,11 @@
       const raw = window.STOCK_LOCAL_MODE ? await loadLocal() : await loadSite();
       records = window.StockData.normalizeAll(raw);
       research = await loadResearch();
+      positions = await loadPositions();
       index = Math.min(index, Math.max(0, records.length - 1));
       render();
       renderResearch();
+      renderPositions();
       setMessage(
         records.length
           ? ''
@@ -437,6 +556,10 @@
   }
 
   window.addEventListener('authReady', async () => {
+    if (window.STOCK_LOCAL_MODE) {
+      const section = $('positionsSection');
+      if (section) section.hidden = true;
+    }
     if (!window.STOCK_LOCAL_MODE) {
       const {
         data: { session },
@@ -448,6 +571,7 @@
         return;
       }
     }
+    bindPositionForm();
     await load();
     setInterval(load, REFRESH_MS);
   });

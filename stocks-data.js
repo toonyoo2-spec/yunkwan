@@ -146,6 +146,7 @@
             reason: optionalText(value.regime.reason, 300),
           }
         : null,
+      goal: value.goal || null,
       recommendations: list(value.recommendations).map(recommendation),
       held: list(value.held).map(heldRow),
       scoreboard: Object.fromEntries(

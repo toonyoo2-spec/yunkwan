@@ -69,3 +69,47 @@ create policy stock_research_update_own on public.stock_research
 drop policy if exists stock_research_delete_own on public.stock_research;
 create policy stock_research_delete_own on public.stock_research
   for delete using (auth.uid() = owner_id);
+
+-- 실제 보유 종목. 사용자가 직접 입력한 본인의 체결 기록입니다.
+-- 토스가 제공한 시세가 아니라 본인이 적은 본인 거래이므로 여기에 담깁니다.
+-- 현재가·호가 같은 토스 시세는 여전히 맥북 밖으로 나가지 않습니다.
+create table if not exists public.stock_positions (
+  id            bigint generated always as identity primary key,
+  owner_id      uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  symbol        text not null check (symbol ~ '^[A-Za-z0-9]{6}$'),
+  name          text,
+  market        text,
+  entry_date    date not null,
+  entry_price   numeric not null check (entry_price > 0),
+  quantity      integer not null default 1 check (quantity > 0),
+  target_pct    numeric,
+  stop_pct      numeric,
+  status        text not null default 'open' check (status in ('open', 'closed')),
+  exit_date     date,
+  exit_price    numeric check (exit_price is null or exit_price > 0),
+  note          text,
+  verdict       jsonb,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create index if not exists stock_positions_owner_status_idx
+  on public.stock_positions (owner_id, status, entry_date desc);
+
+alter table public.stock_positions enable row level security;
+
+drop policy if exists stock_positions_select_own on public.stock_positions;
+create policy stock_positions_select_own on public.stock_positions
+  for select using (auth.uid() = owner_id);
+
+drop policy if exists stock_positions_insert_own on public.stock_positions;
+create policy stock_positions_insert_own on public.stock_positions
+  for insert with check (auth.uid() = owner_id);
+
+drop policy if exists stock_positions_update_own on public.stock_positions;
+create policy stock_positions_update_own on public.stock_positions
+  for update using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+
+drop policy if exists stock_positions_delete_own on public.stock_positions;
+create policy stock_positions_delete_own on public.stock_positions
+  for delete using (auth.uid() = owner_id);

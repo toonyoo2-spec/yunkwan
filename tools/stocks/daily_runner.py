@@ -25,8 +25,10 @@ from datetime import datetime, timedelta
 import confidence
 import evaluate
 import global_context
+import goal
 import history
 import news
+import positions
 import publish
 import signals
 import strength
@@ -236,6 +238,20 @@ def morning(client):
             '관문, Wilson 95% 하한)이 가장 큰 비중으로 들어갑니다. 적중은 수수료·거래세·슬리피지를 '
             '뺀 뒤에도 수익이 남은 거래를 뜻합니다. 조건이 나쁜 날은 강도가 낮은 종목이 나갑니다.'),
     }
+    # 보유 종목 판정 — 오늘 후보와 비교해 계속 들고 갈지 결정합니다.
+    try:
+        forecast['positions'] = positions.run(client, prepared['candidates'])
+    except (RuntimeError, ValueError) as exc:
+        print('보유 종목 판정 건너뜀:', exc)
+        forecast['positions'] = []
+
+    # 하루 목표(3%) 현황을 함께 실어 사이트에서 바로 보이게 합니다.
+    goal_state = read_json(goal.GOAL_FILE, {}) or {}
+    today_row = next((row for row in goal_state.get('days', [])
+                      if row.get('date') == date), None)
+    forecast['goal'] = {**(today_row or {}), 'summary': goal_state.get('summary'),
+                        'target_pct': goal.DAILY_TARGET_PCT}
+
     write_json(forecast_path(date), forecast)
     levels = [row['strength']['level'] for row in recommendations]
     print(f'아침 고정 완료: {date} — 추천 {len(recommendations)}건 / 관찰 {len(held)}건')

@@ -25,6 +25,7 @@ from tossapi import now
 SITE_CONFIG = STATE / 'site.json'
 TABLE = 'stock_reports'
 RESEARCH_TABLE = 'stock_research'
+POSITIONS_TABLE = 'stock_positions'
 TIMEOUT_SEC = 20
 
 # 사이트가 브라우저에 그대로 노출하는 값입니다(supabase-config.js). 비밀이 아니므로
@@ -83,6 +84,21 @@ def sanitize_strength(rating):
     return picked
 
 
+GOAL_FIELDS = ('date', 'target_pct', 'account_return_pct', 'exposure_pct',
+               'position_count', 'achieved', 'shortfall_note')
+GOAL_SUMMARY_FIELDS = ('days', 'achieved_days', 'achievement_rate_pct',
+                       'actual_multiple', 'target_multiple', 'mean_daily_pct', 'note')
+
+
+def sanitize_goal(state):
+    """하루 목표 현황. 계좌 금액은 올리지 않고 비율과 건수만 올립니다."""
+    if not isinstance(state, dict):
+        return None
+    picked = pick(state, GOAL_FIELDS)
+    picked['summary'] = pick(state.get('summary') or {}, GOAL_SUMMARY_FIELDS)
+    return picked
+
+
 def sanitize_forecast(forecast):
     """08:30 고정본에서 업로드 가능한 부분만 뽑습니다."""
     return {
@@ -92,6 +108,7 @@ def sanitize_forecast(forecast):
         'target_hit_rate': forecast.get('target_hit_rate'),
         'method_note': forecast.get('method_note'),
         'regime': pick(forecast.get('regime', {}), REGIME_FIELDS),
+        'goal': sanitize_goal(forecast.get('goal')),
         'recommendations': [{**pick(row, RECOMMENDATION_FIELDS),
                              'strength': sanitize_strength(row.get('strength'))}
                             for row in forecast.get('recommendations', [])],
@@ -210,6 +227,68 @@ def publish_research(summary):
         'Prefer': 'resolution=merge-duplicates,return=minimal',
     })
     print('분석 요약 업로드 완료 — 비율과 판정만 올렸습니다.')
+
+
+# 보유 종목 판정에서 사이트로 올려도 되는 필드.
+# 손익률(%)과 판정만 올립니다. 현재가는 올리지 않습니다.
+VERDICT_FIELDS = ('verdict', 'trigger', 'reason', 'held_days', 'net_pnl_pct',
+                  'current_strength', 'switch_to', 'best_alternative', 'decided_at')
+
+
+def get_json(url, config, token):
+    request = Request(url, headers={'apikey': config['anon_key'],
+                                    'Authorization': f'Bearer {token}',
+                                    'Accept': 'application/json'})
+    try:
+        with urlopen(request, timeout=TIMEOUT_SEC) as response:
+            return json.loads(response.read().decode() or '[]')
+    except HTTPError as exc:
+        raise RuntimeError(f'조회 실패 (HTTP {exc.code}).') from None
+    except (URLError, TimeoutError):
+        raise RuntimeError('조회 실패: 네트워크를 확인하세요.') from None
+
+
+def patch_json(url, payload, config, token):
+    body = json.dumps(payload).encode()
+    request = Request(url, data=body, method='PATCH', headers={
+        'apikey': config['anon_key'],
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+    })
+    try:
+        with urlopen(request, timeout=TIMEOUT_SEC) as response:
+            response.read()
+    except HTTPError as exc:
+        raise RuntimeError(f'수정 실패 (HTTP {exc.code}).') from None
+    except (URLError, TimeoutError):
+        raise RuntimeError('수정 실패: 네트워크를 확인하세요.') from None
+
+
+def fetch_open_positions():
+    """사이트에 기록된 보유 중인 종목을 읽습니다."""
+    config = load_site_config()
+    token = sign_in(config)
+    url = (f"{config['url']}/rest/v1/{POSITIONS_TABLE}"
+           "?status=eq.open&select=id,symbol,name,market,entry_date,entry_price,"
+           "quantity,target_pct,stop_pct&order=entry_date.asc")
+    return get_json(url, config, token)
+
+
+def push_position_verdicts(verdicts):
+    """판정 결과를 각 보유 종목 행에 써 넣습니다."""
+    if not verdicts:
+        return
+    config = load_site_config()
+    token = sign_in(config)
+    for row in verdicts:
+        if not row.get('id'):
+            continue
+        payload = {'verdict': pick(row, VERDICT_FIELDS), 'updated_at': now().isoformat()}
+        assert_no_prices(payload)
+        url = f"{config['url']}/rest/v1/{POSITIONS_TABLE}?id=eq.{int(row['id'])}"
+        patch_json(url, payload, config, token)
+    print(f'보유 종목 판정 {len(verdicts)}건 업로드 완료.')
 
 
 def publish(date):
