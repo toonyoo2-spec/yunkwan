@@ -26,7 +26,7 @@
     { href: './ledger.html', icon: '💰', label: '가계부' },
     { href: './review.html', icon: '📋', label: '블로그' },
     { href: './docs.html',   icon: '📁', label: '보관함' },
-    { href: './report.html', icon: '🗞️', label: '리포트' },
+    { href: './routine.html', icon: '✅', label: '루틴' },
     { href: './charging.html', icon: '⚡', label: '충전소' },
   ];
 

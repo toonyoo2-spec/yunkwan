@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>루틴 · 포트폴리오</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#3a5a52">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BORAKWAN">
+<link rel="stylesheet" href="./common.css">
+<link rel="stylesheet" href="./panel-common.css">
+<style>
+  header{margin-bottom:20px;}
+
+  /* 좌: 체크리스트 / 우: 업무 메모 (모바일에서는 1단으로 접힘) */
+  .routine-grid{
+    display:grid;
+    grid-template-columns:1fr 1.2fr;
+    gap:20px;
+    align-items:start;
+    max-width:1100px;
+  }
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:20px;
+  }
+
+  .today{
+    font-size:13px;
+    color:var(--sub);
+    margin-bottom:14px;
+  }
+
+  /* ---- 체크 항목 ---- */
+  .check-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:11px 13px;
+    border:1px solid var(--line);
+    border-radius:9px;
+    background:#fff;
+    margin-bottom:7px;
+    cursor:pointer;
+    user-select:none;
+    transition:border-color .12s ease, background .12s ease;
+  }
+  .check-item:hover{ border-color:var(--accent); }
+  .check-item.checked{
+    background:var(--conf-bg);
+    border-color:var(--conf-ink);
+  }
+  .check-item.checked .check-label{
+    color:var(--conf-ink);
+    font-weight:600;
+  }
+  .check-item input[type=checkbox]{
+    width:17px;height:17px;
+    accent-color:var(--accent);
+    cursor:pointer;
+    flex-shrink:0;
+    margin:0;
+  }
+  .check-time{
+    font-size:12px;
+    color:var(--sub);
+    width:44px;
+    flex-shrink:0;
+    font-variant-numeric:tabular-nums;
+  }
+  .check-label{ font-size:13.5px; }
+
+  /* ---- 업무 메모 / AI 요약 ---- */
+  textarea{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:13.5px;
+    background:#fff;
+    color:var(--ink);
+    font-family:inherit;
+    resize:vertical;
+    min-height:150px;
+  }
+  textarea:focus{ outline:none; border-color:var(--accent); }
+
+  .ai-btn{
+    margin-top:10px;
+    background:#fff;
+    color:var(--accent);
+    border:1px solid var(--accent);
+    padding:9px 18px;
+    border-radius:7px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .ai-btn:hover{ background:#eef0ec; }
+  .ai-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .summary-box{
+    display:none;
+    margin-top:14px;
+    padding:14px 16px;
+    background:#fafaf8;
+    border:1px solid var(--line);
+    border-radius:9px;
+    font-size:13.5px;
+    line-height:1.65;
+  }
+  /* 줄바꿈 유지는 실제 요약 텍스트에만 겁니다.
+     (박스 전체에 걸면 HTML 들여쓰기 공백까지 그대로 그려져 빈 줄이 생깁니다) */
+  #summaryText{ white-space:pre-wrap; }
+  .summary-box .summary-head{
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--sub);
+    margin-bottom:8px;
+  }
+
+  .save-btn{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:10px 22px;
+    border-radius:7px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .save-btn:hover{ opacity:0.9; }
+  .save-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .save-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .status-msg{
+    font-size:12.5px;
+    color:var(--sub);
+    min-height:17px;
+  }
+  .status-msg.error{ color:#b3452f; }
+
+  @media (max-width:900px){
+    .routine-grid{ grid-template-columns:1fr; gap:0; }
+  }
+</style>
+</head>
+<body>
+<script src="./nav.js?v=7"></script>
+<div class="wrap" id="appContent">
+
+  <header>
+    <h1>✅ 오늘의 루틴</h1>
+    <p>평일 루틴 체크와 업무 메모를 하루 한 줄로 기록합니다</p>
+  </header>
+
+  <div class="routine-grid">
+
+    <div>
+      <div class="panel">
+        <h2>고정 루틴</h2>
+        <div class="today" id="todayLabel"></div>
+        <div id="fixedChecks"></div>
+      </div>
+
+      <div class="panel">
+        <h2>20시 체크리스트</h2>
+        <div id="taskChecks"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>출근해서 한 일</h2>
+      <div class="field">
+        <label for="workMemo">업무 메모</label>
+        <textarea id="workMemo" placeholder="하루 중 생각날 때마다 자유롭게 적어두세요..."></textarea>
+      </div>
+      <button class="ai-btn" id="summarizeBtn">✨ AI로 요약 정리하기</button>
+
+      <div class="summary-box" id="summaryBox">
+        <div class="summary-head">AI 업무일지 요약</div>
+        <div id="summaryText"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="save-row">
+    <button class="save-btn" id="saveBtn">저장하기</button>
+    <span class="status-msg" id="statusMsg"></span>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script src="./common.js"></script>
+<script>
+/* =========================================================
+   루틴 체크 (routine_logs 테이블, 하루 1행)
+   - Supabase 접속 값은 ./supabase-config.js 한 곳에서만 관리합니다.
+   - AI 요약은 Anthropic API를 직접 부르지 않고 Cloudflare Worker를 거칩니다.
+     (API 키가 프론트엔드에 노출되지 않도록 ai-summary-worker.js 참고)
+   ========================================================= */
+
+// 배포한 Worker URL로 교체하세요. (wrangler deploy 후 출력되는 주소)
+const AI_WORKER_URL = "https://ai-summary-worker.kwan-yun.workers.dev";
+
+const FIXED_ITEMS = [
+  { key:"wake_up",        time:"05:45", label:"기상" },
+  { key:"leave_home",     time:"06:00", label:"출근 (집에서 나옴)" },
+  { key:"exercise_start", time:"07:20", label:"운동 시작" },
+  { key:"arrive_work",    time:"08:30", label:"출근 (도착)" },
+  { key:"leave_work",     time:"17:30", label:"퇴근" },
+  { key:"sleep",          time:"23:00", label:"취침" },
+];
+const TASK_ITEMS = [
+  { key:"task_edit", label:"편집" },
+  { key:"task_blog", label:"블로그쓰기" },
+];
+const ALL_ITEMS = [...FIXED_ITEMS, ...TASK_ITEMS];
+
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+  auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
+});
+window.sb = sb; // auth-gate.js가 같은 클라이언트를 재사용하도록 공유
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    sb.auth.startAutoRefresh();
+  } else {
+    sb.auth.stopAutoRefresh();
+  }
+});
+
+// toISOString()은 UTC 기준이라 새벽 시간대에 전날 날짜가 나옵니다.
+// 05:45 기상 체크가 어제 행에 저장되면 안 되므로 로컬 날짜를 직접 만듭니다.
+function todayLocal(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+const todayStr = todayLocal();
+
+// 체크 상태는 항상 새 객체로 갈아끼웁니다. (기존 객체를 직접 고치지 않음)
+function emptyState(){
+  const checks = Object.fromEntries(ALL_ITEMS.map(item => [item.key, false]));
+  return { ...checks, work_memo: "", work_summary: "" };
+}
+let state = emptyState();
+
+function setField(key, value){
+  state = { ...state, [key]: value };
+}
+
+/* ---------- 렌더링 ---------- */
+function renderChecks(items, containerId){
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map(item => `
+    <label class="check-item" data-row="${item.key}">
+      ${item.time ? `<span class="check-time">${item.time}</span>` : ''}
+      <input type="checkbox" data-key="${escapeHtml(item.key)}">
+      <span class="check-label">${escapeHtml(item.label)}</span>
+    </label>
+  `).join('');
+
+  el.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      setField(cb.dataset.key, cb.checked);
+      cb.closest('.check-item').classList.toggle('checked', cb.checked);
+    });
+  });
+}
+
+function syncChecksToDom(){
+  ALL_ITEMS.forEach(item => {
+    const cb = document.querySelector(`input[data-key="${item.key}"]`);
+    if(!cb) return;
+    cb.checked = !!state[item.key];
+    cb.closest('.check-item').classList.toggle('checked', cb.checked);
+  });
+}
+
+function showSummary(text){
+  const box = document.getElementById('summaryBox');
+  if(!text){ box.style.display = 'none'; return; }
+  document.getElementById('summaryText').textContent = text;
+  box.style.display = 'block';
+}
+
+function setStatus(message, isError){
+  const el = document.getElementById('statusMsg');
+  el.textContent = message || "";
+  el.classList.toggle('error', !!isError);
+}
+
+/* ---------- 오늘 기록 불러오기 ---------- */
+async function loadToday(){
+  const { data, error } = await sb
+    .from('routine_logs')
+    .select('*')
+    .eq('log_date', todayStr)
+    .maybeSingle();
+
+  if(error){
+    console.error("루틴 불러오기 실패:", error);
+    setStatus("오늘 기록을 불러오지 못했습니다: " + error.message, true);
+    return;
+  }
+  if(!data) return;
+
+  const checks = Object.fromEntries(ALL_ITEMS.map(item => [item.key, !!data[item.key]]));
+  state = {
+    ...state,
+    ...checks,
+    work_memo: data.work_memo || "",
+    work_summary: data.work_summary || "",
+  };
+
+  syncChecksToDom();
+  document.getElementById('workMemo').value = state.work_memo;
+  showSummary(state.work_summary);
+}
+
+/* ---------- AI 요약 ---------- */
+async function summarize(){
+  const btn = document.getElementById('summarizeBtn');
+  const memo = document.getElementById('workMemo').value.trim();
+
+  if(!memo){
+    setStatus("메모를 먼저 입력해주세요", true);
+    return;
+  }
+
+  btn.disabled = true;
+  setStatus("AI가 정리하는 중...");
+
+  try{
+    const res = await fetch(AI_WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memo }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if(!res.ok || !data.summary){
+      setStatus("요약 실패: " + (data.error || `서버 오류 (${res.status})`), true);
+      return;
+    }
+
+    setField('work_summary', data.summary);
+    showSummary(data.summary);
+    setStatus("요약 완료 — 아직 저장 전이니 저장하기를 눌러주세요");
+  }catch(err){
+    console.error("AI 요약 요청 실패:", err);
+    setStatus("요청 실패: " + err.message, true);
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ---------- 저장 (upsert) ---------- */
+async function save(){
+  const btn = document.getElementById('saveBtn');
+  setField('work_memo', document.getElementById('workMemo').value);
+
+  btn.disabled = true;
+  setStatus("저장 중...");
+
+  const { error } = await sb
+    .from('routine_logs')
+    .upsert({ log_date: todayStr, ...state }, { onConflict: 'log_date' });
+
+  btn.disabled = false;
+
+  if(error){
+    console.error("루틴 저장 실패:", error);
+    setStatus("저장 실패: " + error.message, true);
+    return;
+  }
+  setStatus("저장 완료 ✓");
+}
+
+/* ---------- 초기화 ---------- */
+document.getElementById('todayLabel').textContent = todayStr;
+renderChecks(FIXED_ITEMS, 'fixedChecks');
+renderChecks(TASK_ITEMS, 'taskChecks');
+document.getElementById('summarizeBtn').addEventListener('click', summarize);
+document.getElementById('saveBtn').addEventListener('click', save);
+
+// 인증이 완료된 후에만 데이터를 로드합니다.
+window.addEventListener('authReady', loadToday);
+</script>
+<script src="./auth-gate.js?v=2"></script>
+</body>
+</html>
