@@ -148,12 +148,28 @@ def prepare(client):
 # ---------- 08:30 발행 ----------
 
 def best_target(setup_name, scoreboard):
-    """관문을 통과한 목표 중 가장 높은 것. 통과한 게 없으면 가장 낮은 목표로 시작합니다."""
+    """이 셋업에 쓸 목표를 고릅니다.
+
+    관문을 통과한 목표가 있으면 그중 가장 높은 것을 씁니다.
+    통과한 것이 없으면 '가장 낮은 목표'로 떨어뜨리면 안 됩니다. 목표를 낮추면
+    이겨도 조금 벌고 지면 손절 폭만큼 잃어 손익비가 무너지기 때문입니다.
+    (실제로 목표 1.0% · 손절 2.5%는 손익비 0.4라 본전 적중률이 71%까지 올라갑니다.)
+    그래서 기록이 있으면 거래당 기대값이 가장 높았던 목표를 쓰고, 기록이 전혀
+    없을 때만 사다리 중간값을 씁니다.
+    """
     cleared = [target for target in signals.TARGET_LADDER
                if confidence.gate(f'{setup_name}@{target}%', scoreboard)[0]]
     if cleared:
         return max(cleared), True
-    return signals.TARGET_LADDER[0], False
+
+    scored = [(record.get('expectancy_pct'), target)
+              for target in signals.TARGET_LADDER
+              for record in [scoreboard.get(f'{setup_name}@{target}%')]
+              if record and record.get('expectancy_pct') is not None]
+    if scored:
+        return max(scored)[1], False
+    middle = signals.TARGET_LADDER[len(signals.TARGET_LADDER) // 2]
+    return middle, False
 
 
 def rank_candidates(candidates, scoreboard, regime_status):
@@ -276,7 +292,10 @@ def assess_day(date):
     recommended = {(p['symbol'], p['setup']) for p in forecast.get('recommendations', [])}
     simulations = []
     for plan in forecast.get('recommendations', []) + forecast.get('held', []):
-        if not plan.get('tradeable'):
+        # 조건을 통과하지 못한 계획도 채점합니다. 매일 정원만큼 강도 순으로 내보내는
+        # 구조라 그런 종목도 실제 추천에 들어가는데, 채점에서 빼면 화면에 '결과 대기'로
+        # 영원히 남고 강도가 맞는지 검증할 표본도 모이지 않습니다.
+        if not plan.get('stop_pct'):
             continue
         stored = read_json(history.history_path(plan['symbol'], date), {}) or {}
         result = evaluate.simulate(plan, stored.get('candles', []))

@@ -171,4 +171,6 @@ def gate(setup_name, scoreboard):
     record = scoreboard.get(setup_name)
     if not record:
         return False, f'{setup_name}: 기록 없음 — 관찰만 합니다'
-    return record['status'] == 'passed', f"{setup_name}: {record['reason']}"
+    # 기록이 일부만 들어 있어도 발행 전체가 죽지 않게 방어적으로 읽습니다.
+    reason = record.get('reason', record.get('status', '사유 없음'))
+    return record.get('status') == 'passed', f'{setup_name}: {reason}'

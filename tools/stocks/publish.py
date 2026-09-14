@@ -51,8 +51,13 @@ SCORE_FIELDS = ('hits', 'total', 'hit_rate', 'lower_bound', 'expectancy_pct',
                 'breakeven_hit_rate', 'target', 'status', 'reason')
 REGIME_FIELDS = ('status', 'allow_long', 'reason')
 
-# 원 단위 값이 들어 있는 키. 방어적으로 한 번 더 확인합니다.
-PRICE_LIKE = ('price', 'close', 'open', 'high', 'low', 'volume', 'amount', 'net', 'rate_krw')
+# 원 단위 값이 들어 있을 수 있는 키 이름 조각. 방어적으로 한 번 더 확인합니다.
+# 부분 문자열이 아니라 '_'로 쪼갠 낱말 단위로 비교합니다. 부분 문자열로 보면
+# allow_long 의 'low', opening_range 의 'open' 같은 멀쩡한 키가 걸립니다.
+PRICE_WORDS = frozenset(('price', 'close', 'open', 'high', 'low',
+                         'volume', 'amount', 'net', 'krw'))
+# 이름에 가격 낱말이 있어도 비율·개수라서 올려도 되는 키.
+PRICE_SAFE_SUFFIXES = ('_pct', '_rate', '_ratio', '_count', '_days', '_level')
 
 
 def pick(source, fields):
@@ -62,16 +67,28 @@ def pick(source, fields):
     return {key: source[key] for key in fields if source.get(key) is not None}
 
 
+def looks_like_price(key, value):
+    """이 키·값이 원 단위 가격일 가능성이 있는지.
+
+    참/거짓은 가격이 아닙니다. 파이썬에서 bool은 int의 하위형이라 따로 걸러내지
+    않으면 allow_long=True 같은 판정값이 '가격'으로 잡힙니다(실제로 그래서 하루치
+    업로드가 통째로 막혔습니다).
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    lowered = key.lower()
+    if lowered.endswith(PRICE_SAFE_SUFFIXES):
+        return False
+    return bool(set(lowered.split('_')) & PRICE_WORDS)
+
+
 def assert_no_prices(payload):
-    """업로드 직전 마지막 점검. 원 단위로 보이는 큰 정수가 남아 있으면 중단합니다."""
+    """업로드 직전 마지막 점검. 원 단위 가격으로 보이는 값이 남아 있으면 중단합니다."""
     def walk(node, path=''):
         if isinstance(node, dict):
             for key, value in node.items():
-                lowered = key.lower()
-                if any(token in lowered for token in PRICE_LIKE) and isinstance(value, (int, float)):
-                    # 비율 필드(%)는 허용합니다. 그 외 숫자는 가격일 수 있으므로 막습니다.
-                    if not lowered.endswith('_pct') and not lowered.endswith('rate'):
-                        raise ValueError(f'가격으로 의심되는 값이 남아 있습니다: {path}{key}')
+                if looks_like_price(key, value):
+                    raise ValueError(f'가격으로 의심되는 값이 남아 있습니다: {path}{key}')
                 walk(value, f'{path}{key}.')
         elif isinstance(node, list):
             for item in node:
@@ -179,7 +196,15 @@ def post_json(url, payload, headers):
             body = response.read().decode()
             return json.loads(body) if body.strip() else {}
     except HTTPError as exc:
-        raise RuntimeError(f'업로드 실패 (HTTP {exc.code}). 사이트 설정과 테이블 권한을 확인하세요.') from None
+        # 응답 본문을 버리면 무엇이 틀렸는지 알 수 없습니다. 실제로 이걸 버려서
+        # '고유 제약 불일치'를 '권한 문제'로 오해하고 한참 헤맸습니다.
+        detail = ''
+        try:
+            detail = json.loads(exc.read().decode()).get('message', '')
+        except Exception:
+            pass
+        raise RuntimeError(
+            f'업로드 실패 (HTTP {exc.code}){": " + detail if detail else ""}') from None
     except (URLError, TimeoutError):
         raise RuntimeError('업로드 실패: 네트워크를 확인하세요.') from None
 
@@ -196,7 +221,9 @@ def sign_in(config):
 
 
 def upsert(config, token, row):
-    url = f"{config['url']}/rest/v1/{TABLE}?on_conflict=trade_date"
+    # 고유 제약이 (owner_id, trade_date) 조합이라 둘 다 지정해야 합니다.
+    # trade_date 하나만 쓰면 Postgres가 맞는 제약을 못 찾아 400으로 거절합니다.
+    url = f"{config['url']}/rest/v1/{TABLE}?on_conflict=owner_id,trade_date"
     post_json(url, row, {
         'apikey': config['anon_key'],
         'Authorization': f'Bearer {token}',
