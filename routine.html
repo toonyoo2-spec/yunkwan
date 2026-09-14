@@ -194,6 +194,20 @@
     font-variant-numeric:tabular-nums;
   }
   .check-label{ font-size:13.5px; }
+  /* 폰(MacroDroid)이 자동으로 남긴 "실제로 한 시각".
+     목표 시각보다 늦어도 감점이 아니라, 요즘 몇 시로 밀리는지 보는 자료입니다. */
+  .check-actual{
+    margin-left:auto;
+    flex-shrink:0;
+    font-size:11.5px;
+    color:var(--sub);
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:1px 8px;
+    font-variant-numeric:tabular-nums;
+  }
+  .check-item.checked .check-actual{ color:var(--conf-ink); border-color:var(--conf-ink); }
 
   /* ---- 업무 메모 / AI 요약 ---- */
   textarea{
@@ -396,6 +410,7 @@ let state = {
   owner: "관",
   date: TODAY,
   checks: {},        // { [itemKey]: boolean }
+  check_times: {},   // { [itemKey]: "HH:MM" } — 폰에서 자동 기록된 실제 시각(읽기 전용)
   work_memo: "",
   work_summary: "",
   history: {},       // { [dateKey]: 체크 개수 }
@@ -461,6 +476,9 @@ function renderBody(){
           ${item.time ? `<span class="check-time">${escapeHtml(item.time)}</span>` : ''}
           <input type="checkbox" data-key="${escapeHtml(item.key)}"${state.checks[item.key] ? ' checked' : ''}>
           <span class="check-label">${escapeHtml(item.label)}</span>
+          ${state.check_times[item.key]
+            ? `<span class="check-actual" title="폰에서 자동으로 기록된 실제 시각">${escapeHtml(state.check_times[item.key])}</span>`
+            : ''}
         </label>
       `).join('')}
     </div>
@@ -564,14 +582,14 @@ function renderAll(){
 async function loadDay(){
   // 주말에는 저장되는 기록이 없으므로 조회도 건너뜁니다.
   if(isWeekend(state.date)){
-    setState({ checks: {}, work_memo: "", work_summary: "" });
+    setState({ checks: {}, check_times: {}, work_memo: "", work_summary: "" });
     renderBody();
     return;
   }
 
   const { data, error } = await sb
     .from('routine_logs')
-    .select('checks, work_memo, work_summary')
+    .select('checks, check_times, work_memo, work_summary')
     .eq('log_date', state.date)
     .eq('owner', state.owner)
     .maybeSingle();
@@ -584,6 +602,7 @@ async function loadDay(){
 
   setState({
     checks: (data && data.checks) || {},
+    check_times: (data && data.check_times) || {},
     work_memo: (data && data.work_memo) || "",
     work_summary: (data && data.work_summary) || "",
   });
@@ -637,7 +656,7 @@ function goToDate(dateKey){
   // 불러오기는 비동기라, 먼저 화면을 새 날짜 기준으로 비워둡니다.
   // 안 그러면 응답이 올 때까지 이전 날짜의 체크 상태가 그대로 보이고
   // (주말↔평일 전환도 늦게 반영), 그 사이에 저장하면 엉뚱한 날짜에 덮어씁니다.
-  setState({ date: dateKey, checks: {}, work_memo: "", work_summary: "" });
+  setState({ date: dateKey, checks: {}, check_times: {}, work_memo: "", work_summary: "" });
   setStatus("");
   renderDateNav();
   renderBody();
@@ -646,7 +665,7 @@ function goToDate(dateKey){
 
 function goToOwner(owner){
   if(owner === state.owner) return;
-  setState({ owner, checks: {}, work_memo: "", work_summary: "", history: {}, itemStats: {} });
+  setState({ owner, checks: {}, check_times: {}, work_memo: "", work_summary: "", history: {}, itemStats: {} });
   setStatus("");
   renderAll();
   refresh();
@@ -710,6 +729,8 @@ async function save(){
   btn.disabled = true;
   setStatus("저장 중...");
 
+  // check_times는 일부러 빼둡니다. 폰이 기록한 실제 시각을, 화면을 오래 열어둔 채
+  // 저장할 때 옛 값으로 덮어쓰는 사고를 막기 위해서입니다. (폰 → DB 단방향)
   const payload = {
     log_date: state.date,
     owner: state.owner,
@@ -730,6 +751,7 @@ async function save(){
     return;
   }
   setStatus("저장 완료 ✓");
+  loadDay();     // 폰이 그사이 남긴 실제 시각을 화면에 다시 반영합니다.
   loadHistory(); // 방금 저장한 값이 "최근 N일 요약"에도 바로 반영되도록 다시 불러옵니다.
 }
 
