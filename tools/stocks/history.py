@@ -25,7 +25,10 @@ from tossapi import Client, TossError, now
 
 UNIVERSE_SIZE = 40          # 하루에 이력을 모을 종목 수. 호출 한도와 소요 시간의 절충.
 FLOW_DAYS = 30              # 수급 시계열을 몇 거래일치 받아둘지
-DAILY_CANDLE_COUNT = 120    # ATR·거래량 비교에 쓸 일봉 수
+DAILY_CANDLE_COUNT = 200    # API 1회 응답 상한
+DAILY_KEEP = 400            # 보관할 일봉 수.
+# 매일 받은 것으로 덮어쓰면서 이 길이로 자르면, 소급 수집해둔 과거가 아침마다
+# 지워집니다. 실제로 그래서 300일치가 120일치로 잘려 검증이 불가능해졌습니다.
 INDEX_SYMBOLS = ('KOSPI', 'KOSDAQ')
 
 
@@ -252,26 +255,43 @@ def collect_daily(client, symbol):
     existing = {row['timestamp']: row for row in stored.get('candles', [])}
     for row in bars:
         existing[row['timestamp']] = row
-    ordered = [existing[k] for k in sorted(existing)][-DAILY_CANDLE_COUNT:]
+    # 기존 이력을 보존한 채 병합만 합니다. 짧게 자르면 소급 수집분이 날아갑니다.
+    ordered = [existing[k] for k in sorted(existing)][-DAILY_KEEP:]
     write_json(daily_path(symbol), {'symbol': symbol, 'updated_at': now().isoformat(),
                                     'candles': ordered})
 
 
-def collect_index_daily(client):
-    """상대강도 기준이 되는 지수 일봉. 종목과 다른 엔드포인트라 따로 받습니다."""
+def collect_index_daily(client, count=DAILY_KEEP):
+    """상대강도 기준이 되는 지수 일봉. 종목과 다른 엔드포인트라 따로 받습니다.
+
+    1회 응답이 200개로 제한되므로 before 페이지네이션으로 이어 받습니다.
+    한 번만 받으면 200일치뿐이라 그보다 과거 구간의 상대강도를 계산할 수 없고,
+    그러면 그 기간 전체가 검증에서 빠집니다.
+    """
     for symbol in INDEX_SYMBOLS:
         path = STATE / 'daily' / f'_{symbol}.json'
         stored = read_json(path, {}) or {}
-        page = client.get_optional(f'/api/v1/market-indicators/{symbol}/candles',
-                                   interval='1d', count=200)
         merged = {row['timestamp']: row for row in stored.get('candles', [])}
-        for row in (page or {}).get('candles', []):
-            merged[row['timestamp']] = row
-        ordered = [merged[key] for key in sorted(merged)][-300:]
+        before = None
+        for _ in range(4):
+            params = {'interval': '1d', 'count': DAILY_CANDLE_COUNT}
+            if before:
+                params['before'] = before
+            page = client.get_optional(f'/api/v1/market-indicators/{symbol}/candles', **params)
+            rows = (page or {}).get('candles', [])
+            if not rows:
+                break
+            for row in rows:
+                merged[row['timestamp']] = row
+            if len(merged) >= count or not (page or {}).get('nextBefore'):
+                break
+            before = page['nextBefore']
+        ordered = [merged[key] for key in sorted(merged)][-count:]
         if ordered:
             write_json(path, {'symbol': symbol, 'updated_at': now().isoformat(),
                               'candles': ordered})
-            print(f'  지수 {symbol}: 일봉 {len(ordered)}개', flush=True)
+            print(f'  지수 {symbol}: 일봉 {len(ordered)}개 '
+                  f'({ordered[0]["timestamp"][:10]} ~ {ordered[-1]["timestamp"][:10]})', flush=True)
 
 
 def collect_reference(client):

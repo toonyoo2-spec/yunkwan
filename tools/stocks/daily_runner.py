@@ -95,11 +95,12 @@ def index_daily_candles(client):
     """상대강도 기준이 되는 코스피 일봉. 지수는 별도 엔드포인트라 따로 받습니다."""
     stored = read_json(KOSPI_DAILY, {}) or {}
     page = client.get_optional('/api/v1/market-indicators/KOSPI/candles',
-                               interval='1d', count=120)
+                               interval='1d', count=200)
     merged = {row['timestamp']: row for row in stored.get('candles', [])}
     for row in (page or {}).get('candles', []):
         merged[row['timestamp']] = row
-    ordered = [merged[key] for key in sorted(merged)][-120:]
+    # 소급 수집해둔 과거를 매일 아침 잘라내지 않도록 보관 길이를 넉넉히 둡니다.
+    ordered = [merged[key] for key in sorted(merged)][-history.DAILY_KEEP:]
     write_json(KOSPI_DAILY, {'symbol': 'KOSPI', 'updated_at': now().isoformat(),
                              'candles': ordered})
     return ordered

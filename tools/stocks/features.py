@@ -40,9 +40,15 @@ def true_ranges(bars):
 
 
 def atr_pct(bars):
-    """평균 실체 범위를 종가 대비 %로. 손절 폭을 종목 변동성에 맞추는 데 씁니다."""
+    """평균 실체 범위를 종가 대비 %로. 손절 폭을 종목 변동성에 맞추는 데 씁니다.
+
+    일봉 이력이 짧은 종목(신규 상장 등)에서는 빈 목록이 들어올 수 있습니다.
+    여기서 막지 않으면 호출하는 쪽 전체가 IndexError로 죽습니다.
+    """
+    if not bars:
+        return None
     ranges = true_ranges(bars[-(ATR_WINDOW + 1):])
-    close = number(bars[-1]['closePrice'])
+    close = number(bars[-1].get('closePrice'))
     if not ranges or not close:
         return None
     return fmean(ranges) / close * 100
@@ -50,6 +56,8 @@ def atr_pct(bars):
 
 def volume_surge(bars):
     """전일 거래량 ÷ 직전 20일 평균 거래량."""
+    if not bars:
+        return None
     volumes = [number(bar['volume'], 0) for bar in bars[-(VOLUME_WINDOW + 1):]]
     if len(volumes) < VOLUME_WINDOW + 1:
         return None
@@ -59,6 +67,8 @@ def volume_surge(bars):
 
 def price_position(bars):
     """전일 종가가 최근 20일 고가 대비 어디쯤인지. 1.0이면 신고가."""
+    if not bars:
+        return None
     window = bars[-HIGH_WINDOW:]
     highs = [number(bar['highPrice']) for bar in window]
     highs = [h for h in highs if h is not None]
