@@ -404,6 +404,8 @@ function isWeekend(key){
 }
 
 const TODAY = toKey(new Date());
+const AUTOSAVE_DELAY_MS = 600; // 체크 후 이만큼 조용하면 자동 저장 (연달아 누를 때 매번 저장하지 않도록)
+let autosaveTimer = null;
 
 /* ---------- 상태 (항상 새 객체로 교체) ---------- */
 let state = {
@@ -504,6 +506,9 @@ function renderBody(){
     cb.addEventListener('change', () => {
       setState({ checks: { ...state.checks, [cb.dataset.key]: cb.checked } });
       cb.closest('.check-item').classList.toggle('checked', cb.checked);
+      // 체크는 "저장하기"를 안 눌러도 새로고침에 사라지면 안 되므로 자동 저장합니다.
+      // (업무 메모는 타이핑 중일 수 있어 그대로 수동 저장으로 둡니다)
+      scheduleAutosave();
     });
   });
 
@@ -653,6 +658,9 @@ async function refresh(){
 /* ---------- 이동 ---------- */
 function goToDate(dateKey){
   if(!dateKey || dateKey === state.date) return;
+  // 이전 날짜에서 체크하고 바로 날짜를 옮기면, 자동저장 예약이 뒤늦게 발동해
+  // 방금 비운 checks:{}를 새 날짜에 덮어쓸 수 있으므로 먼저 취소합니다.
+  cancelAutosave();
   // 불러오기는 비동기라, 먼저 화면을 새 날짜 기준으로 비워둡니다.
   // 안 그러면 응답이 올 때까지 이전 날짜의 체크 상태가 그대로 보이고
   // (주말↔평일 전환도 늦게 반영), 그 사이에 저장하면 엉뚱한 날짜에 덮어씁니다.
@@ -665,6 +673,7 @@ function goToDate(dateKey){
 
 function goToOwner(owner){
   if(owner === state.owner) return;
+  cancelAutosave(); // 이유는 goToDate와 동일
   setState({ owner, checks: {}, check_times: {}, work_memo: "", work_summary: "", history: {}, itemStats: {} });
   setStatus("");
   renderAll();
@@ -716,6 +725,16 @@ async function summarize(){
   }finally{
     btn.disabled = false;
   }
+}
+
+// 체크를 연달아 누를 때마다 저장하지 않도록 짧게 모았다가 한 번만 저장합니다.
+// 날짜/사람을 옮기면 이전 화면에 걸려 있던 예약은 의미가 없으므로 함께 취소합니다.
+function scheduleAutosave(){
+  if(autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => { autosaveTimer = null; save(); }, AUTOSAVE_DELAY_MS);
+}
+function cancelAutosave(){
+  if(autosaveTimer){ clearTimeout(autosaveTimer); autosaveTimer = null; }
 }
 
 /* ---------- 저장 (upsert) ---------- */
