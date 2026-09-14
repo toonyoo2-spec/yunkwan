@@ -186,13 +186,25 @@
     flex-shrink:0;
     margin:0;
   }
+  /* 목표 시각 — 코드를 안 고쳐도 여기서 바로 조정할 수 있도록 input[type=time]으로 둡니다.
+     기본값과 다르게 바뀐 항목은 색을 줘서 "이건 원래 값이 아니다"를 표시합니다. */
   .check-time{
     font-size:12px;
+    font-family:inherit;
     color:var(--sub);
-    width:44px;
+    /* 12시간제(오전/오후)로 표시하는 기기도 있어 24시간 표기보다 넉넉히 잡습니다. */
+    width:104px;
     flex-shrink:0;
     font-variant-numeric:tabular-nums;
+    border:1px solid transparent;
+    border-radius:6px;
+    background:none;
+    padding:2px 3px;
+    cursor:pointer;
   }
+  .check-time:hover{ border-color:var(--line); background:#fff; }
+  .check-time:focus{ outline:none; border-color:var(--accent); background:#fff; }
+  .check-time[data-custom="yes"]{ color:var(--accent); font-weight:700; }
   .check-label{ font-size:13.5px; }
   /* 폰(MacroDroid)이 자동으로 남긴 "실제로 한 시각".
      목표 시각보다 늦어도 감점이 아니라, 요즘 몇 시로 밀리는지 보는 자료입니다. */
@@ -413,6 +425,7 @@ let state = {
   date: TODAY,
   checks: {},        // { [itemKey]: boolean }
   check_times: {},   // { [itemKey]: "HH:MM" } — 폰에서 자동 기록된 실제 시각(읽기 전용)
+  timeOverrides: {}, // { [itemKey]: "HH:MM" } — 사용자가 화면에서 직접 바꾼 목표 시각(사람별, 날짜 무관)
   work_memo: "",
   work_summary: "",
   history: {},       // { [dateKey]: 체크 개수 }
@@ -428,6 +441,10 @@ function itemsFor(owner){
 }
 function hasMemo(owner){
   return MEMO_OWNERS.includes(owner);
+}
+// 사용자가 바꾼 값이 있으면 그걸, 없으면 ROUTINE_ITEMS의 기본값을 씁니다.
+function effectiveTime(item){
+  return state.timeOverrides[item.key] || item.time;
 }
 
 /* ---------- 렌더링 ---------- */
@@ -473,16 +490,26 @@ function renderBody(){
   const checksHtml = groups.map(group => `
     <div class="panel">
       <h2>${escapeHtml(group.section)}</h2>
-      ${group.items.map(item => `
+      ${group.items.map(item => {
+        const target = effectiveTime(item);
+        const isCustom = !!(item.time && target !== item.time);
+        // 목표 시각은 텍스트가 아니라 input[type=time]으로 그려서, 바로 눌러 고칠 수 있게 합니다.
+        const timeHtml = item.time
+          ? `<input type="time" class="check-time" data-time-key="${escapeHtml(item.key)}"` +
+            ` data-custom="${isCustom ? 'yes' : 'no'}" value="${escapeHtml(target)}"` +
+            ` title="${isCustom ? '기본 ' + escapeHtml(item.time) + ' → 수정됨 · 다시 눌러 조정' : '목표 시각 · 눌러서 조정'}">`
+          : '';
+        return `
         <label class="check-item${state.checks[item.key] ? ' checked' : ''}">
-          ${item.time ? `<span class="check-time">${escapeHtml(item.time)}</span>` : ''}
+          ${timeHtml}
           <input type="checkbox" data-key="${escapeHtml(item.key)}"${state.checks[item.key] ? ' checked' : ''}>
           <span class="check-label">${escapeHtml(item.label)}</span>
           ${state.check_times[item.key]
             ? `<span class="check-actual" title="폰에서 자동으로 기록된 실제 시각">${escapeHtml(state.check_times[item.key])}</span>`
             : ''}
         </label>
-      `).join('')}
+      `;
+      }).join('')}
     </div>
   `).join('');
 
@@ -512,8 +539,39 @@ function renderBody(){
     });
   });
 
+  el.querySelectorAll('input[type=time][data-time-key]').forEach(inp => {
+    // 체크 자동저장과 달리 이건 네이티브 시각 선택기를 "확정"할 때만 한 번 발동하므로
+    // 굳이 모아서 저장할 필요 없이 바로 저장합니다.
+    inp.addEventListener('change', () => saveTimeOverride(inp.dataset.timeKey, inp.value));
+  });
+
   const btn = document.getElementById('summarizeBtn');
   if(btn) btn.addEventListener('click', summarize);
+}
+
+// 목표 시각을 코드가 아니라 이 화면에서 바로 조정합니다. 기본값과 같아지면
+// (되돌렸으면) 굳이 예외로 저장해두지 않고 지웁니다.
+async function saveTimeOverride(key, value){
+  const item = itemsFor(state.owner).find(it => it.key === key);
+  if(!item || !value) return;
+
+  const overrides = { ...state.timeOverrides };
+  if(value === item.time) delete overrides[key];
+  else overrides[key] = value;
+
+  setState({ timeOverrides: overrides });
+  renderBody(); // "수정됨" 표시를 바로 반영
+
+  const { error } = await sb
+    .from('routine_settings')
+    .upsert({ owner: state.owner, item_times: overrides }, { onConflict: 'owner' });
+
+  if(error){
+    console.error("목표 시각 저장 실패:", error);
+    setStatus("목표 시각 저장 실패: " + error.message, true);
+  } else {
+    setStatus("목표 시각 저장됨 ✓ (" + item.label + " → " + value + ")");
+  }
 }
 
 // 최근 HISTORY_DAYS를 "얼마나 지켰는지"가 아니라 "어느 항목에 마찰이 있는지"로 요약합니다.
@@ -651,8 +709,26 @@ async function loadHistory(){
   renderSummary();
 }
 
+// 목표 시각 오버라이드는 날짜가 아니라 사람 단위 설정이라, 날짜를 옮겨도
+// 다시 불러올 필요는 없고 사람을 바꿀 때만 새로 불러옵니다.
+async function loadSettings(){
+  const { data, error } = await sb
+    .from('routine_settings')
+    .select('item_times')
+    .eq('owner', state.owner)
+    .maybeSingle();
+
+  if(error){
+    console.error("루틴 설정 불러오기 실패:", error);
+    return; // 부가 정보라 실패해도 본문(기본 시각)은 그대로 씁니다.
+  }
+
+  setState({ timeOverrides: (data && data.item_times) || {} });
+  renderBody();
+}
+
 async function refresh(){
-  await Promise.all([loadDay(), loadHistory()]);
+  await Promise.all([loadDay(), loadHistory(), loadSettings()]);
 }
 
 /* ---------- 이동 ---------- */
@@ -674,7 +750,7 @@ function goToDate(dateKey){
 function goToOwner(owner){
   if(owner === state.owner) return;
   cancelAutosave(); // 이유는 goToDate와 동일
-  setState({ owner, checks: {}, check_times: {}, work_memo: "", work_summary: "", history: {}, itemStats: {} });
+  setState({ owner, checks: {}, check_times: {}, timeOverrides: {}, work_memo: "", work_summary: "", history: {}, itemStats: {} });
   setStatus("");
   renderAll();
   refresh();
