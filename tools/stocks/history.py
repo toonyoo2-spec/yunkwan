@@ -23,7 +23,9 @@ import premarket
 from store import STATE, read_json, write_json
 from tossapi import Client, TossError, now
 
-UNIVERSE_SIZE = 40          # 하루에 이력을 모을 종목 수. 호출 한도와 소요 시간의 절충.
+UNIVERSE_SIZE = 100         # 거래대금 순위 상한. 40일 때는 선별 조건을 통과하는 날이
+                            # 266일에 79건뿐이라 어떤 가설도 표본 부족으로 판정이 났습니다.
+                            # 40종목 준비에 6분 걸렸으므로 100종목도 08:30 발행 전에 끝납니다.
 FLOW_DAYS = 30              # 수급 시계열을 몇 거래일치 받아둘지
 DAILY_CANDLE_COUNT = 200    # API 1회 응답 상한
 DAILY_KEEP = 400            # 보관할 일봉 수.

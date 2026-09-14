@@ -40,6 +40,25 @@ def tick_size(price):
     return 1000
 
 
+def tick_cost_pct(price):
+    """1틱이 가격의 몇 %인지.
+
+    왜 따로 재는가: 검증 구간 40건의 비용을 쪼개보니 왕복 0.423%p 중
+    슬리피지가 0.243%p로 가장 컸습니다. 거래세(0.151%p)보다 큽니다.
+    그런데 이 값은 종목마다 다릅니다 — KRX 호가단위는 가격대별 계단이라
+    계단 바로 위 가격(예: 20,050원, 200,500원)은 1틱이 0.25%나 되고
+    계단 바로 아래(예: 199,000원)는 0.05%입니다. 같은 전략이라도
+    어느 쪽에 걸리느냐로 거래당 0.2%p가 갈립니다.
+
+    아직 선별 조건으로 쓰지는 않습니다. 학습 구간은 0.10% 이하를,
+    검증 구간은 0.15% 이하를 가리켜 서로 엇갈렸고 표본이 각각 21건·25건뿐이라
+    어느 쪽도 확인된 값이 아닙니다. 우선 기록만 남기고, 표본이 쌓이면 판정합니다.
+    """
+    if not price or price <= 0:
+        return None
+    return tick_size(price) / price * 100
+
+
 def round_trip_cost_pct(entry_price, exit_price):
     """왕복 비용을 진입가 대비 %로. 수수료·거래세·슬리피지를 모두 포함합니다."""
     if not entry_price or not exit_price:
@@ -220,6 +239,18 @@ def report_features(features_row):
             continue
         flags.append({'key': key, 'label': label, 'value': value > 0,
                       'detail': '순매수' if value > 0 else '순매도'})
+    # 비용은 전략과 무관하게 확정된 숫자입니다. 기대값이 0 근처일 때는
+    # 이 값이 승패를 가르므로 근거 화면에 같이 띄웁니다. 둘 다 비율입니다.
+    tick_cost = tick_cost_pct(features_row.get('previous_close'))
+    if tick_cost is not None:
+        numbers.append({'key': 'tick_cost_pct', 'label': '1틱 비용', 'unit': '%',
+                        'value': round(tick_cost, 4),
+                        'note': '호가 한 칸이 가격의 몇 %인지. 낮을수록 슬리피지가 싸다'})
+        numbers.append({'key': 'round_trip_cost_pct', 'label': '왕복 비용(추정)', 'unit': '%',
+                        'value': round(tick_cost * 2 * SLIPPAGE_TICKS
+                                       + (BUY_FEE_RATE + SELL_FEE_RATE) * 100
+                                       + SELL_TAX_RATE * 100, 4),
+                        'note': '슬리피지 2틱 + 수수료 왕복 + 거래세. 이만큼은 이겨야 본전'})
     news_count = features_row.get('news_count')
     return {'numbers': numbers, 'flags': flags,
             'news_count': news_count if news_count is not None else None,

@@ -17,6 +17,7 @@
   (calibration 함수). 보정 결과가 나오기 전까지 강도는 '근거가 얼마나 모였는가'이지
   '얼마나 오를 것인가'가 아닙니다.
 """
+import signals
 from features import number
 
 MAX_SCORE = 100
@@ -41,7 +42,21 @@ RISK_PENALTIES = {
     'margin_loan': -8,          # 신용융자 과다 = 반대매매 위험
     'short_ratio': -7,          # 공매도 비중 과다
     'volatility': -5,           # 변동성 과다
+    'tick_cost': -8,            # 호가단위가 비싸 본전선이 높아지는 종목
 }
+
+# 호가단위 감점 기준. 1틱이 가격의 0.15%를 넘으면 감점합니다.
+#
+# 왜 위험 항목에 넣는가: 이건 예측이 아니라 산수입니다. KRX 호가단위는
+# 가격대별 계단이라, 계단 바로 위에 걸린 종목은 1틱이 0.25%고 바로 아래는
+# 0.05%입니다. 목표 2.0%·손절 2.5%로 같은 거래를 해도 본전 적중률이
+# 20,100원짜리는 70.6%, 19,900원짜리는 61.8%로 갈립니다. 9%p 차이가
+# 시장과 무관하게 미리 정해져 있습니다.
+#
+# 제외가 아니라 감점인 이유: 매일 10종목을 채워야 하므로 후보를 버리지 않고
+# 순위만 낮춥니다. 또 어느 선에서 잘라야 하는지는 아직 표본이 부족합니다
+# (학습 구간은 0.10%, 검증 구간은 0.15%를 가리켜 엇갈렸고 각각 21건·25건).
+TICK_COST_LIMIT_PCT = 0.15
 
 REGIME_PENALTY = {'risk_off': -18, 'unknown': -8, 'normal': 0}
 
@@ -112,6 +127,11 @@ def risk_points(f):
     hit = volatility is not None and volatility > 5.0
     parts.append(('변동성 과다', RISK_PENALTIES['volatility'] if hit else 0.0,
                   f'{volatility:.1f}%' if volatility is not None else '자료 없음'))
+
+    tick_cost = signals.tick_cost_pct(f.get('previous_close'))
+    hit = tick_cost is not None and tick_cost > TICK_COST_LIMIT_PCT
+    parts.append(('호가단위 비용', RISK_PENALTIES['tick_cost'] if hit else 0.0,
+                  f'1틱 {tick_cost:.3f}%' if tick_cost is not None else '자료 없음'))
 
     return parts
 
