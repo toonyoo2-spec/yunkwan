@@ -78,36 +78,53 @@
     padding:3px 10px;
   }
 
-  /* ---- 최근 날짜 요약 ----
-     칸을 균등하게 나눠 가로를 꽉 채웁니다. 칸 개수(--cols)는 JS의
-     HISTORY_DAYS를 그대로 넘겨받아 두 값이 어긋나지 않게 합니다. */
-  .history{
-    display:grid;
-    grid-template-columns:repeat(var(--cols, 14), 1fr);
-    gap:6px;
-    margin-bottom:22px;
-  }
-  .history-day{
-    border:1px solid var(--line);
-    background:#fff;
-    border-radius:8px;
-    padding:6px 0;
-    min-width:0;          /* 그리드 칸이 내용 때문에 안 줄어드는 것 방지 */
-    text-align:center;
-    cursor:pointer;
-    font-family:inherit;
+  /* ---- 최근 N일 요약 (항목별 실행률) ----
+     history 스트립이 "하루 총량"을 보여준다면, 여기는 "어떤 항목이 잘 붙고
+     어떤 항목에서 매번 걸리는지"를 항목 단위로 보여줍니다. */
+  .summary-lead{
+    font-size:13.5px;
+    line-height:1.7;
+    margin:0 0 14px;
     color:var(--ink);
   }
-  .history-day:hover{border-color:var(--accent);}
-  .history-day.current{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;}
-  .history-day .hd-date{font-size:11px;color:var(--sub);}
-  .history-day .hd-score{font-size:12.5px;font-weight:700;margin-top:2px;}
-  .history-day.full .hd-score{color:var(--conf-ink);}
-  .history-day.none .hd-score{color:var(--line);}
-  /* 주말은 기록 대상이 아니라 한눈에 구분되게 흐리게 둡니다. */
-  .history-day.weekend{background:transparent;border-style:dashed;}
-  .history-day.weekend .hd-date{opacity:.45;}
-  .history-day.weekend .hd-score{color:var(--line);}
+  .summary-lead b{ font-weight:700; }
+
+  .rate-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:5px 0;
+  }
+  .rate-label{
+    font-size:13px;
+    width:150px;
+    flex-shrink:0;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .rate-track{
+    flex:1;
+    height:7px;
+    border-radius:4px;
+    background:var(--bg);
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .rate-fill{
+    display:block;
+    height:100%;
+    background:var(--accent);
+    border-radius:4px 0 0 4px;
+  }
+  .rate-pct{
+    font-size:12.5px;
+    color:var(--sub);
+    width:38px;
+    flex-shrink:0;
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
 
   /* 좌: 체크리스트 / 우: 업무 메모 (모바일에서는 1단으로 접힘)
      체크 목록은 폭이 더 필요 없으므로 왼쪽은 고정폭에 가깝게 두고,
@@ -255,12 +272,10 @@
   .status-msg.error{ color:#b3452f; }
 
   @media (max-width:900px){
+    .rate-label{ width:110px; font-size:12.5px; }
     .routine-grid{ grid-template-columns:1fr; gap:14px; }
     .memo-panel textarea{ min-height:150px; }
     .owner-toggle{ max-width:100%; }
-    /* 14칸을 한 줄에 넣으면 좁아서 안 읽히므로 7칸씩 두 줄로 접습니다. */
-    .history{ grid-template-columns:repeat(7, 1fr); }
-    .history-day .hd-date{ font-size:10.5px; }
   }
 </style>
 </head>
@@ -287,7 +302,7 @@
     <span class="today-badge" id="todayBadge" hidden>오늘</span>
   </div>
 
-  <div class="history" id="history"></div>
+  <div class="panel" id="summaryPanel"></div>
 
   <div id="routineBody"></div>
 
@@ -313,7 +328,7 @@
      소스: supabase/functions/summarize-routine/index.ts
    ========================================================= */
 
-const HISTORY_DAYS = 14;     // 최근 며칠치를 요약 줄에 보여줄지
+const HISTORY_DAYS = 14;     // "최근 N일 요약" 패널이 훑는 기간
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 // 사람별 루틴 정의. 보라는 아직 비어 있습니다.
@@ -384,6 +399,7 @@ let state = {
   work_memo: "",
   work_summary: "",
   history: {},       // { [dateKey]: 체크 개수 }
+  itemStats: {},      // { [itemKey]: { done, tracked } } — 최근 HISTORY_DAYS 기준
 };
 
 function setState(patch){
@@ -409,44 +425,6 @@ function renderDateNav(){
   document.getElementById('weekdayLabel').textContent =
     `(${WEEKDAYS[fromKey(state.date).getDay()]})`;
   document.getElementById('todayBadge').hidden = state.date !== TODAY;
-}
-
-function renderHistory(){
-  const el = document.getElementById('history');
-  const total = itemsFor(state.owner).length;
-
-  if(total === 0){ el.innerHTML = ""; return; }
-
-  const days = [];
-  for(let i = HISTORY_DAYS - 1; i >= 0; i--) days.push(shiftDays(TODAY, -i));
-
-  // 칸 개수를 CSS에 넘겨 가로를 균등하게 꽉 채웁니다. (모바일에선 media query가 7칸으로 덮어씀)
-  el.style.setProperty('--cols', days.length);
-
-  el.innerHTML = days.map(key => {
-    const d = fromKey(key);
-    const dateLabel = `${d.getMonth()+1}/${d.getDate()}`;
-    const current = key === state.date ? ' current' : '';
-
-    // 주말은 달성도 없이 자리만 비워둡니다. (평일 리듬이 보이도록 칸 자체는 남김)
-    if(isWeekend(key)){
-      return `<button type="button" class="history-day weekend${current}" data-date="${key}">
-        <div class="hd-date">${dateLabel}</div>
-        <div class="hd-score">—</div>
-      </button>`;
-    }
-
-    const done = state.history[key] || 0;
-    const cls = done === 0 ? 'none' : (done >= total ? 'full' : '');
-    return `<button type="button" class="history-day ${cls}${current}" data-date="${key}">
-      <div class="hd-date">${dateLabel}</div>
-      <div class="hd-score">${done}/${total}</div>
-    </button>`;
-  }).join('');
-
-  el.querySelectorAll('.history-day').forEach(btn => {
-    btn.addEventListener('click', () => goToDate(btn.dataset.date));
-  });
 }
 
 function renderBody(){
@@ -508,7 +486,6 @@ function renderBody(){
     cb.addEventListener('change', () => {
       setState({ checks: { ...state.checks, [cb.dataset.key]: cb.checked } });
       cb.closest('.check-item').classList.toggle('checked', cb.checked);
-      renderHistoryLive();
     });
   });
 
@@ -516,11 +493,58 @@ function renderBody(){
   if(btn) btn.addEventListener('click', summarize);
 }
 
-// 체크를 누르는 즉시 오늘 칸의 숫자도 따라 움직이게 합니다. (저장 전 미리보기)
-function renderHistoryLive(){
-  const done = Object.values(state.checks).filter(Boolean).length;
-  setState({ history: { ...state.history, [state.date]: done } });
-  renderHistory();
+// 최근 HISTORY_DAYS를 "얼마나 지켰는지"가 아니라 "어느 항목에 마찰이 있는지"로 요약합니다.
+// 합격선이나 연속 기록 같은 수치는 두지 않습니다 — 체크리스트는 계약이 아니라
+// 스스로 지키려고 하는 대상이라, 여기서도 추세만 보여주고 판정은 하지 않습니다.
+function renderSummary(){
+  const el = document.getElementById('summaryPanel');
+  const items = itemsFor(state.owner);
+
+  // 빈 패널을 카드째로 남겨두면 내용 없는 흰 박스만 떠 있게 되므로, 통째로 숨깁니다.
+  if(items.length === 0){ el.style.display = 'none'; el.innerHTML = ""; return; }
+  el.style.display = '';
+
+  const trackedDays = Object.keys(state.history).length;
+  if(trackedDays === 0){
+    el.innerHTML = `<h2>최근 ${HISTORY_DAYS}일 요약</h2>
+      <div class="empty">아직 기록이 없습니다. 며칠 쌓이면 여기에 요약이 표시됩니다.</div>`;
+    return;
+  }
+
+  const totalDone = Object.values(state.history).reduce((a, b) => a + b, 0);
+  const avg = (totalDone / trackedDays).toFixed(1);
+
+  const rates = items
+    .map(item => {
+      const s = state.itemStats[item.key];
+      return (s && s.tracked)
+        ? { label: item.label, rate: Math.round((s.done / s.tracked) * 100) }
+        : null;
+    })
+    .filter(Boolean);
+
+  let lead = `최근 ${HISTORY_DAYS}일 중 <b>${trackedDays}일</b>을 기록했고, `
+    + `하루 평균 <b>${avg}개</b> / ${items.length}개를 실행했습니다.`;
+
+  const sorted = [...rates].sort((a, b) => b.rate - a.rate);
+  if(sorted.length > 1 && sorted[0].rate !== sorted[sorted.length - 1].rate){
+    const best = sorted[0], worst = sorted[sorted.length - 1];
+    lead += ` 가장 잘 붙은 건 <b>${escapeHtml(best.label)}</b>(${best.rate}%), `
+      + `마찰이 가장 큰 건 <b>${escapeHtml(worst.label)}</b>(${worst.rate}%)입니다.`;
+  }
+
+  // 항목 순서는 체크리스트와 동일하게 둡니다 — 아래 목록과 바로 대조할 수 있도록.
+  const barsHtml = rates.map(r => `
+    <div class="rate-row">
+      <span class="rate-label" title="${escapeHtml(r.label)}">${escapeHtml(r.label)}</span>
+      <span class="rate-track"><span class="rate-fill" style="width:${r.rate}%"></span></span>
+      <span class="rate-pct">${r.rate}%</span>
+    </div>
+  `).join('');
+
+  el.innerHTML = `<h2>최근 ${HISTORY_DAYS}일 요약</h2>
+    <p class="summary-lead">${lead}</p>
+    ${barsHtml}`;
 }
 
 function setStatus(message, isError){
@@ -532,7 +556,7 @@ function setStatus(message, isError){
 function renderAll(){
   renderOwnerToggle();
   renderDateNav();
-  renderHistory();
+  renderSummary();
   renderBody();
 }
 
@@ -567,8 +591,8 @@ async function loadDay(){
 }
 
 async function loadHistory(){
-  const total = itemsFor(state.owner).length;
-  if(total === 0){ setState({ history: {} }); renderHistory(); return; }
+  const items = itemsFor(state.owner);
+  if(items.length === 0){ setState({ history: {}, itemStats: {} }); renderSummary(); return; }
 
   const from = shiftDays(TODAY, -(HISTORY_DAYS - 1));
   const { data, error } = await sb
@@ -584,11 +608,23 @@ async function loadHistory(){
   }
 
   const history = {};
+  // 항목별로 "그 날짜에 기록이 있었나(tracked)"와 "그때 체크돼 있었나(done)"를 셉니다.
+  // 기록 자체가 없는 날은 항목별 통계에서도 분모에 들어가지 않습니다 — 안 한 게 아니라
+  // 아예 기록하지 않은 날이라 판단할 근거가 없기 때문입니다.
+  const itemStats = {};
+  items.forEach(item => { itemStats[item.key] = { done: 0, tracked: 0 }; });
+
   (data || []).forEach(row => {
-    history[row.log_date] = Object.values(row.checks || {}).filter(Boolean).length;
+    const checks = row.checks || {};
+    history[row.log_date] = Object.values(checks).filter(Boolean).length;
+    items.forEach(item => {
+      itemStats[item.key].tracked += 1;
+      if(checks[item.key]) itemStats[item.key].done += 1;
+    });
   });
-  setState({ history });
-  renderHistory();
+
+  setState({ history, itemStats });
+  renderSummary();
 }
 
 async function refresh(){
@@ -604,14 +640,13 @@ function goToDate(dateKey){
   setState({ date: dateKey, checks: {}, work_memo: "", work_summary: "" });
   setStatus("");
   renderDateNav();
-  renderHistory();
   renderBody();
   refresh();
 }
 
 function goToOwner(owner){
   if(owner === state.owner) return;
-  setState({ owner, checks: {}, work_memo: "", work_summary: "", history: {} });
+  setState({ owner, checks: {}, work_memo: "", work_summary: "", history: {}, itemStats: {} });
   setStatus("");
   renderAll();
   refresh();
@@ -695,7 +730,7 @@ async function save(){
     return;
   }
   setStatus("저장 완료 ✓");
-  loadHistory();
+  loadHistory(); // 방금 저장한 값이 "최근 N일 요약"에도 바로 반영되도록 다시 불러옵니다.
 }
 
 /* ---------- 초기화 ---------- */
