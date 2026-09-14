@@ -252,6 +252,21 @@
   }
   .check-item.checked .check-actual{ color:var(--conf-ink); border-color:var(--conf-ink); }
 
+  /* 하루이틀 빠지는 건 정상이라 표시하지 않고, MISS_WARNING_THRESHOLD일 이상
+     연속으로 안 됐을 때만 눈에 띄게 경고합니다. 체크하는 순간 바로 사라집니다.
+     --wait-* 는 이 사이트에서 이미 "대기/주의" 의미로 쓰는 색이라 그대로 재사용합니다. */
+  .check-warn{
+    margin-left:auto;
+    flex-shrink:0;
+    font-size:11.5px;
+    font-weight:700;
+    color:var(--wait-ink);
+    background:var(--wait-bg);
+    border-radius:20px;
+    padding:1px 9px;
+    white-space:nowrap;
+  }
+
   /* ---- 업무 메모 / AI 요약 ---- */
   textarea{
     width:100%;
@@ -386,6 +401,7 @@
    ========================================================= */
 
 const HISTORY_DAYS = 14;     // "최근 N일 요약" 패널이 훑는 기간
+const MISS_WARNING_THRESHOLD = 3; // 하루이틀은 흔들려도 괜찮지만, 이 이상 연속으로 안 되면 경고
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 // 사람별 루틴 정의. 보라는 아직 비어 있습니다.
@@ -462,6 +478,7 @@ let state = {
   work_summary: "",
   history: {},       // { [dateKey]: 체크 개수 }
   itemStats: {},      // { [itemKey]: { done, tracked } } — 최근 HISTORY_DAYS 기준
+  missStreaks: {},    // { [itemKey]: 연속 미체크 일수 } — 오늘 이전 기록만 기준
 };
 
 function setState(patch){
@@ -531,6 +548,13 @@ function renderBody(){
             ` data-custom="${isCustom ? 'yes' : 'no'}" value="${escapeHtml(target)}"` +
             ` title="${isCustom ? '기본 ' + escapeHtml(item.time) + ' → 수정됨 · 다시 눌러 조정' : '목표 시각 · 눌러서 조정'}">`
           : '';
+        // 오늘 이미 체크했으면 경고를 붙이지 않습니다 — 방금 지켰는데 "밀렸다"고
+        // 보일 이유가 없으니까요. (서버 재계산을 기다리지 않고 바로 사라지게)
+        const streak = state.missStreaks[item.key] || 0;
+        const showWarn = !state.checks[item.key] && streak >= MISS_WARNING_THRESHOLD;
+        const warnHtml = showWarn
+          ? `<span class="check-warn" title="오늘 이전 기록 기준, ${streak}일 연속 체크되지 않았습니다">⚠ ${streak}일째 밀림</span>`
+          : '';
         return `
         <label class="check-item${state.checks[item.key] ? ' checked' : ''}">
           ${timeHtml}
@@ -538,7 +562,7 @@ function renderBody(){
           <span class="check-label">${escapeHtml(item.label)}</span>
           ${state.check_times[item.key]
             ? `<span class="check-actual" title="폰에서 자동으로 기록된 실제 시각">${escapeHtml(state.check_times[item.key])}</span>`
-            : ''}
+            : warnHtml}
         </label>
       `;
       }).join('')}
@@ -564,7 +588,14 @@ function renderBody(){
   el.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.addEventListener('change', () => {
       setState({ checks: { ...state.checks, [cb.dataset.key]: cb.checked } });
-      cb.closest('.check-item').classList.toggle('checked', cb.checked);
+      const row = cb.closest('.check-item');
+      row.classList.toggle('checked', cb.checked);
+      // "며칠째 밀림" 경고는 이제 막 체크했는데 계속 떠 있으면 안 되므로 즉시 지웁니다.
+      // (다음 renderBody 때 missStreaks가 다시 계산되긴 하지만, 그때까진 화면이 맞지 않아 보임)
+      if(cb.checked){
+        const warn = row.querySelector('.check-warn');
+        if(warn) warn.remove();
+      }
       // 체크는 "저장하기"를 안 눌러도 새로고침에 사라지면 안 되므로 자동 저장합니다.
       // (업무 메모는 타이핑 중일 수 있어 그대로 수동 저장으로 둡니다)
       scheduleAutosave();
@@ -739,7 +770,7 @@ async function loadDay(){
 
 async function loadHistory(){
   const items = itemsFor(state.owner);
-  if(items.length === 0){ setState({ history: {}, itemStats: {} }); renderSummary(); return; }
+  if(items.length === 0){ setState({ history: {}, itemStats: {}, missStreaks: {} }); renderSummary(); return; }
 
   const from = shiftDays(TODAY, -(HISTORY_DAYS - 1));
   const { data, error } = await sb
@@ -770,8 +801,27 @@ async function loadHistory(){
     });
   });
 
-  setState({ history, itemStats });
+  // 항목별로 "오늘 이전, 가장 최근 기록일부터 거슬러 올라가며" 며칠 연속 안 했는지 셉니다.
+  // 오늘은 아직 진행 중인 하루라 빼고 계산합니다 — 아침에 열자마자 저녁 항목까지
+  // "밀렸다"고 하면 안 되니까요. 하루이틀은 흔들려도 괜찮으니 경고는 화면에서
+  // MISS_WARNING_THRESHOLD 이상일 때만 보여줍니다(아래 renderBody).
+  const pastRows = (data || [])
+    .filter(row => row.log_date < TODAY)
+    .sort((a, b) => a.log_date < b.log_date ? -1 : 1);
+
+  const missStreaks = {};
+  items.forEach(item => {
+    let streak = 0;
+    for(let i = pastRows.length - 1; i >= 0; i--){
+      if((pastRows[i].checks || {})[item.key]) break;
+      streak++;
+    }
+    missStreaks[item.key] = streak;
+  });
+
+  setState({ history, itemStats, missStreaks });
   renderSummary();
+  renderBody(); // 경고 칩을 체크리스트에도 바로 반영
 }
 
 // 목표 시각 오버라이드는 날짜가 아니라 사람 단위 설정이라, 날짜를 옮겨도
@@ -819,7 +869,7 @@ function goToDate(dateKey){
 function goToOwner(owner){
   if(owner === state.owner) return;
   cancelAutosave(); // 이유는 goToDate와 동일
-  setState({ owner, checks: {}, check_times: {}, timeOverrides: {}, timeChanges: [], work_memo: "", work_summary: "", history: {}, itemStats: {} });
+  setState({ owner, checks: {}, check_times: {}, timeOverrides: {}, timeChanges: [], work_memo: "", work_summary: "", history: {}, itemStats: {}, missStreaks: {} });
   setStatus("");
   renderAll();
   refresh();
