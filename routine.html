@@ -126,6 +126,37 @@
     font-variant-numeric:tabular-nums;
   }
 
+  /* ---- 목표 시각 조정 이력 ----
+     시각을 바꿨다는 건 원래 목표를 못 지키고 있다는 신호라, 조용히
+     사라지지 않고 여기 남습니다. */
+  .change-log{
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+  }
+  .change-log-head{
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--sub);
+    margin-bottom:8px;
+  }
+  .change-row{
+    display:flex;
+    align-items:baseline;
+    gap:9px;
+    font-size:12.5px;
+    padding:3px 0;
+    color:var(--ink);
+  }
+  .change-date{
+    font-variant-numeric:tabular-nums;
+    color:var(--sub);
+    width:32px;
+    flex-shrink:0;
+  }
+  .change-label{ flex-shrink:0; font-weight:500; }
+  .change-arrow{ color:var(--accent); font-variant-numeric:tabular-nums; font-weight:600; }
+
   /* 좌: 체크리스트 / 우: 업무 메모 (모바일에서는 1단으로 접힘)
      체크 목록은 폭이 더 필요 없으므로 왼쪽은 고정폭에 가깝게 두고,
      남는 가로 공간은 전부 메모 칸이 쓰게 합니다. */
@@ -426,6 +457,7 @@ let state = {
   checks: {},        // { [itemKey]: boolean }
   check_times: {},   // { [itemKey]: "HH:MM" } — 폰에서 자동 기록된 실제 시각(읽기 전용)
   timeOverrides: {}, // { [itemKey]: "HH:MM" } — 사용자가 화면에서 직접 바꾼 목표 시각(사람별, 날짜 무관)
+  timeChanges: [],   // [{ key, label, from, to, at }] — 목표 시각을 바꾼 이력(최근 것부터, 최대 20건)
   work_memo: "",
   work_summary: "",
   history: {},       // { [dateKey]: 체크 개수 }
@@ -549,29 +581,59 @@ function renderBody(){
   if(btn) btn.addEventListener('click', summarize);
 }
 
+const TIME_CHANGE_LOG_LIMIT = 20; // 조정 이력은 최근 이만큼만 보관합니다.
+
 // 목표 시각을 코드가 아니라 이 화면에서 바로 조정합니다. 기본값과 같아지면
-// (되돌렸으면) 굳이 예외로 저장해두지 않고 지웁니다.
+// (되돌렸으면) 오버라이드는 예외로 남겨두지 않고 지우지만, "바꿨다는 사실" 자체는
+// 이력에 남깁니다 — 목표를 조정했다는 건 원래 시각을 못 지키고 있다는 신호라
+// 조용히 사라지면 안 되기 때문입니다.
 async function saveTimeOverride(key, value){
   const item = itemsFor(state.owner).find(it => it.key === key);
   if(!item || !value) return;
+
+  const previous = effectiveTime(item);
+  if(value === previous) return; // 실제로 바뀐 게 없으면 이력에 남기지 않습니다.
 
   const overrides = { ...state.timeOverrides };
   if(value === item.time) delete overrides[key];
   else overrides[key] = value;
 
-  setState({ timeOverrides: overrides });
-  renderBody(); // "수정됨" 표시를 바로 반영
+  const entry = { key, label: item.label, from: previous, to: value, at: TODAY };
+  const changes = [entry, ...state.timeChanges].slice(0, TIME_CHANGE_LOG_LIMIT);
+
+  setState({ timeOverrides: overrides, timeChanges: changes });
+  renderBody();    // "수정됨" 표시를 바로 반영
+  renderSummary(); // 방금 바꾼 게 최근 조정 목록에도 바로 보이도록
 
   const { error } = await sb
     .from('routine_settings')
-    .upsert({ owner: state.owner, item_times: overrides }, { onConflict: 'owner' });
+    .upsert({ owner: state.owner, item_times: overrides, changes }, { onConflict: 'owner' });
 
   if(error){
     console.error("목표 시각 저장 실패:", error);
     setStatus("목표 시각 저장 실패: " + error.message, true);
   } else {
-    setStatus("목표 시각 저장됨 ✓ (" + item.label + " → " + value + ")");
+    setStatus("목표 시각 저장됨 ✓ (" + item.label + " " + previous + " → " + value + ")");
   }
+}
+
+// 목표 시각을 바꾼 이력을 보여줍니다. 체크 기록이 하나도 없어도(=아직 이 루틴을
+// 시작 전이어도) 시각을 조정한 사실 자체는 보여야 하므로, 요약 패널의 두 상태
+// (빈 상태 / 실제 요약) 양쪽에서 공통으로 씁니다.
+function changeLogHtml(){
+  if(!state.timeChanges.length) return '';
+  const rows = state.timeChanges.slice(0, 5).map(c => {
+    const d = fromKey(c.at);
+    return `<div class="change-row">
+      <span class="change-date">${d.getMonth() + 1}/${d.getDate()}</span>
+      <span class="change-label">${escapeHtml(c.label)}</span>
+      <span class="change-arrow">${escapeHtml(c.from)} → ${escapeHtml(c.to)}</span>
+    </div>`;
+  }).join('');
+  return `<div class="change-log">
+    <div class="change-log-head">최근 조정한 목표 시각</div>
+    ${rows}
+  </div>`;
 }
 
 // 최근 HISTORY_DAYS를 "얼마나 지켰는지"가 아니라 "어느 항목에 마찰이 있는지"로 요약합니다.
@@ -582,13 +644,15 @@ function renderSummary(){
   const items = itemsFor(state.owner);
 
   // 빈 패널을 카드째로 남겨두면 내용 없는 흰 박스만 떠 있게 되므로, 통째로 숨깁니다.
+  // 단, 시각 조정 이력이 있으면 체크 기록이 없어도 패널은 보여야 합니다.
   if(items.length === 0){ el.style.display = 'none'; el.innerHTML = ""; return; }
   el.style.display = '';
 
   const trackedDays = Object.keys(state.history).length;
   if(trackedDays === 0){
     el.innerHTML = `<h2>최근 ${HISTORY_DAYS}일 요약</h2>
-      <div class="empty">아직 기록이 없습니다. 며칠 쌓이면 여기에 요약이 표시됩니다.</div>`;
+      <div class="empty">아직 기록이 없습니다. 며칠 쌓이면 여기에 요약이 표시됩니다.</div>
+      ${changeLogHtml()}`;
     return;
   }
 
@@ -625,7 +689,8 @@ function renderSummary(){
 
   el.innerHTML = `<h2>최근 ${HISTORY_DAYS}일 요약</h2>
     <p class="summary-lead">${lead}</p>
-    ${barsHtml}`;
+    ${barsHtml}
+    ${changeLogHtml()}`;
 }
 
 function setStatus(message, isError){
@@ -714,7 +779,7 @@ async function loadHistory(){
 async function loadSettings(){
   const { data, error } = await sb
     .from('routine_settings')
-    .select('item_times')
+    .select('item_times, changes')
     .eq('owner', state.owner)
     .maybeSingle();
 
@@ -723,8 +788,12 @@ async function loadSettings(){
     return; // 부가 정보라 실패해도 본문(기본 시각)은 그대로 씁니다.
   }
 
-  setState({ timeOverrides: (data && data.item_times) || {} });
+  setState({
+    timeOverrides: (data && data.item_times) || {},
+    timeChanges: (data && data.changes) || [],
+  });
   renderBody();
+  renderSummary();
 }
 
 async function refresh(){
@@ -750,7 +819,7 @@ function goToDate(dateKey){
 function goToOwner(owner){
   if(owner === state.owner) return;
   cancelAutosave(); // 이유는 goToDate와 동일
-  setState({ owner, checks: {}, check_times: {}, timeOverrides: {}, work_memo: "", work_summary: "", history: {}, itemStats: {} });
+  setState({ owner, checks: {}, check_times: {}, timeOverrides: {}, timeChanges: [], work_memo: "", work_summary: "", history: {}, itemStats: {} });
   setStatus("");
   renderAll();
   refresh();
