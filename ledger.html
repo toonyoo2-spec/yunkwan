@@ -916,8 +916,10 @@ const DOW = ["일","월","화","수","목","금","토"];
    ================================================================================= */
 const PAYMENT_METHODS = ["현대카드[보라]", "하나[보라]", "농협[관]", "복지포인트[관]"];
 const PAYMENT_META = {
-  "현대카드[보라]": { person:"보라", type:"신용카드", desc:"1~31일 사용분이 익월 12일에 한 번에 청구돼요. 청구일에 하나은행 잔고에서 자동으로 빠져나가요." },
-  "하나[보라]":     { person:"보라", type:"체크카드", desc:"보라 수입에서 즉시 빠져나가요. 현대카드 대금도 매월 12일에 여기서 자동으로 빠져나가요." },
+  // autoBill:false — 매월 12일 자동 청구(ensureCardBillForMonth/creditCardBillEvents)를 끔.
+  // 이제부터 현대카드 대금은 "카드대금" 구분으로 직접(선결제 등) 남겨서 관리함.
+  "현대카드[보라]": { person:"보라", type:"신용카드", autoBill:false, desc:"1~31일 사용분을 \"카드대금\" 구분으로 직접 결제 처리해주세요(자동 청구 꺼둠)." },
+  "하나[보라]":     { person:"보라", type:"체크카드", desc:"보라 수입에서 즉시 빠져나가요. 현대카드 대금도 직접 \"카드대금\"으로 남기면 여기서 빠져나가요." },
   "농협[관]":       { person:"관",   type:"체크카드", desc:"관 수입에서 즉시 빠져나가요." },
   "복지포인트[관]": { person:"관",   type:"복지포인트", desc:"매월 1일에 20만원이 충전돼요. 여기서 결제한 금액은 잔액에서 바로 빠지고, 현금이 아니라서 '잔액' 계산에는 영향을 주지 않아요." },
 };
@@ -1255,12 +1257,23 @@ function creditCardExpenseByScope(list, ym){
    날짜 기준) 활성화되지 않아 반영되지 않습니다. */
 function cardBillRecurringKey(payment){ return 'cardbill:' + payment; }
 
+/* 사람이 "카드대금"으로 직접 남긴(수동 선결제) 금액 중, billYm(청구월, 예: 2026-09)에
+   찍힌 것만 골라 합산합니다. 자동 생성된 청구 행(recurringKey 있음)은 스스로와
+   또 비교하면 안 되니 제외합니다. ensureCardBillForMonth(실제 거래 생성)와
+   creditCardBillEvents(카드 현황 화면의 가상 미리보기) 둘 다 이 값을 빼야
+   선결제한 만큼 12일에 또 빠지는 것처럼 이중으로 표시되지 않습니다. */
+function manualCardPrepaidForBillMonth(all, cardName, billYm){
+  return all
+    .filter(t => t.type==='카드대금' && t.category===cardName && !t.recurringKey && t.date.startsWith(billYm))
+    .reduce((s,t)=>s+Number(t.amount||0), 0);
+}
+
 function creditCardBillEvents(payment, rangeStart, rangeEndExclusive){
   const meta = PAYMENT_META[payment];
   // 카드 대금이 빠져나가는 건 체크카드(통장)뿐입니다. 신용카드 자신이나
   // 복지포인트에는 청구가 붙지 않습니다.
   if(!meta || meta.type !== '체크카드') return [];
-  const cards = PAYMENT_METHODS.filter(p => PAYMENT_META[p].type==='신용카드' && PAYMENT_META[p].person===meta.person);
+  const cards = PAYMENT_METHODS.filter(p => PAYMENT_META[p].type==='신용카드' && PAYMENT_META[p].person===meta.person && PAYMENT_META[p].autoBill !== false);
   if(!cards.length) return [];
 
   const all = DB.list();
@@ -1279,9 +1292,9 @@ function creditCardBillEvents(payment, rangeStart, rangeEndExclusive){
         // 목록/잔고 계산에 반영되고 있음.
         const hasReal = all.some(t => t.recurringKey === cardBillRecurringKey(cardPayment) && t.date === billDate);
         if(hasReal) return;
-        const amount = creditCardMonthTotal(all, cardPayment, spendYm);
+        const cardName = cardPayment.replace(/\[.*?\]/, '');
+        const amount = creditCardMonthTotal(all, cardPayment, spendYm) - manualCardPrepaidForBillMonth(all, cardName, billYm);
         if(amount > 0){
-          const cardName = cardPayment.replace(/\[.*?\]/, '');
           events.push({ date: billDate, amount, label: `${cardName} 대금 (${spendYm.slice(5)}월 사용분)` });
         }
       });
@@ -1978,25 +1991,20 @@ function ensureCardBillForMonth(ym){
   if(billDate > today) return; // 아직 결제일이 안 지났으면 만들지 않음(카드 현황 팝업에 "예정"으로만 미리 보임)
 
   const all = DB.list();
-  PAYMENT_METHODS.filter(p => PAYMENT_META[p].type === '신용카드').forEach(cardPayment=>{
+  PAYMENT_METHODS.filter(p => PAYMENT_META[p].type === '신용카드' && PAYMENT_META[p].autoBill !== false).forEach(cardPayment=>{
     const key = cardBillRecurringKey(cardPayment);
     const already = all.some(t => t.recurringKey === key && t.date === billDate);
     if(already) return;
 
     const spendYm = shiftYm(ym, -1);
-    let amount = creditCardMonthTotal(all, cardPayment, spendYm);
-    if(amount <= 0) return;
-
     const cardMeta = PAYMENT_META[cardPayment];
     const cardName = cardPayment.replace(/\[.*?\]/, '');
 
     // 이번 청구 주기(이 달, 이 카드)에 사람이 직접 "카드대금"으로 미리 결제(선결제)해둔
     // 게 있으면 그만큼 자동 청구액에서 빼준다 — 안 그러면 선결제한 금액이 12일에
     // 또 한 번 통장에서 빠져나가는 걸로 계산돼서 이중 차감이 된다.
-    const prepaid = all
-      .filter(t => t.type==='카드대금' && t.category===cardName && !t.recurringKey && t.date.startsWith(ym))
-      .reduce((s,t)=>s+Number(t.amount||0), 0);
-    amount -= prepaid;
+    const prepaid = manualCardPrepaidForBillMonth(all, cardName, ym);
+    const amount = creditCardMonthTotal(all, cardPayment, spendYm) - prepaid;
     if(amount <= 0) return;
 
     const checkingPayment = PAYMENT_METHODS.find(p => PAYMENT_META[p].type==='체크카드' && PAYMENT_META[p].person===cardMeta.person);
