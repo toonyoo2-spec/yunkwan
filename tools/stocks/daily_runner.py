@@ -308,6 +308,12 @@ def assess_day(date):
         'assessed_at': now().isoformat(),
         'simulations': simulations,
         'summary': evaluate.summarize(simulations),
+        # 위 summary는 강도 보정을 위한 목표사다리 전체 집계입니다(관찰 종목 포함).
+        # 아래는 그날 실제로 '이걸 사라'고 내보낸 10종목만, 고시했던 목표 기준으로
+        # 채점한 결과입니다. 계좌 화면의 '목표 달성'(보유 종목 평가손익)과는 다른,
+        # 추천 자체의 +/-입니다.
+        'recommendation_summary': evaluate.summarize_recommendations(
+            simulations, forecast.get('recommendations', [])),
         'complete': all(s.get('result') != 'no_data' for s in simulations),
     }
 

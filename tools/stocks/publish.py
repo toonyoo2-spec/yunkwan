@@ -166,6 +166,7 @@ def sanitize_assessment(assessment):
         row['ladder'] = [pick(entry, LADDER_FIELDS) for entry in ladder.values()]
         simulations.append(row)
     summary = assessment.get('summary', {})
+    rec = assessment.get('recommendation_summary') or {}
     return {
         'trade_date': assessment['trade_date'],
         'assessed_at': assessment['assessed_at'],
@@ -176,6 +177,19 @@ def sanitize_assessment(assessment):
             'skipped_count': summary.get('skipped_count'),
             'per_target': summary.get('per_target'),
             'note': summary.get('note'),
+        },
+        # 보유 종목 평가손익(goal)과 분리된, 추천 10종목 자체의 +/-.
+        # 값은 비율(%)과 건수뿐이라 가격 가드에 걸리지 않습니다.
+        'recommendation_summary': {
+            'recommended_count': rec.get('recommended_count'),
+            'entered_count': rec.get('entered_count'),
+            'win_count': rec.get('win_count'),
+            'net_sum_pct': rec.get('net_sum_pct'),
+            'net_avg_pct': rec.get('net_avg_pct'),
+            'rows': [{'symbol': r.get('symbol'), 'name': r.get('name'),
+                     'status': r.get('status'), 'net_pct': r.get('net_pct'),
+                     'win': r.get('win')} for r in rec.get('rows', [])],
+            'note': rec.get('note'),
         },
     }
 

@@ -65,6 +65,43 @@
   }
 
   // 새벽 해외시장 판정을 아이콘 한 줄로. 이유는 title(길게 누르면/호버) 로만.
+  // 추천 10종목 자체의 +/-. 보유 종목 평가손익(goalLine)과는 분리해서 보여줍니다.
+  function renderRecommendationSummary(assessment) {
+    const box = $('recSummary');
+    if (!box) return;
+    box.hidden = false;
+    box.replaceChildren();
+    const rec = assessment?.recommendationSummary;
+    if (!rec) {
+      box.className = 'rec-summary pending';
+      box.append(element('p', 'rec-sub',
+        assessment
+          ? '이 날은 옛 형식으로 평가되어 추천 성과 집계가 없습니다.'
+          : '마감(장 종료) 이후 이 날의 추천 성과가 표시됩니다.'));
+      return;
+    }
+    if (rec.enteredCount === 0) {
+      box.className = 'rec-summary pending';
+      const skipped = rec.recommendedCount - rec.enteredCount;
+      box.append(element('p', 'rec-sub',
+        `추천 ${rec.recommendedCount}종목 중 진입 0건 — ${skipped}종목 모두 돌파가 없었습니다. `
+        + '이건 승패가 아니라 조건 자체가 그날 나오지 않은 것입니다.'));
+      return;
+    }
+    box.className = 'rec-summary';
+    const headline = element('div', 'rec-headline');
+    headline.append(element('strong', null, '오늘 추천 성과'));
+    const pnlClass = rec.netAvgPct > 0 ? 'up' : rec.netAvgPct < 0 ? 'down' : '';
+    headline.append(element('span', `pnl ${pnlClass}`, pct(rec.netAvgPct)));
+    box.append(headline);
+    box.append(element('p', 'rec-sub',
+      `추천 ${rec.recommendedCount}종목 중 진입 ${rec.enteredCount}건 · `
+      + `${rec.winCount}승 ${rec.enteredCount - rec.winCount}패 · 거래당 평균 ${pct(rec.netAvgPct)} `
+      + `(누적 ${pct(rec.netSumPct)})`));
+    box.append(element('p', 'rec-sub',
+      '보유 종목(장기·스윙 매수분) 평가손익과는 다른, 추천 자체의 결과입니다.'));
+  }
+
   function renderRegime(forecast) {
     const wrap = $('regimeSection');
     const box = $('regime');
@@ -579,10 +616,15 @@
       const node = $(id);
       if (node) node.hidden = !record;
     });
-    if (!record) return;
+    if (!record) {
+      const box = $('recSummary');
+      if (box) box.hidden = true;
+      return;
+    }
 
     const { forecast, assessment } = record;
     renderRegime(forecast);
+    renderRecommendationSummary(assessment);
     renderScoreboard(forecast);
 
     $('candidateCount').textContent = `${forecast.recommendations.length}개`;

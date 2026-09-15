@@ -193,6 +193,30 @@
     };
   }
 
+  function recommendationRow(row) {
+    return {
+      symbol: text(row.symbol, 6),
+      name: optionalText(row.name, 100),
+      status: text(row.status, 30),
+      netPct: num(row.net_pct),
+      win: bool(row.win),
+    };
+  }
+
+  // 추천 10종목 자체의 +/-. 보유 종목 평가손익(goal)과는 분리된 값입니다.
+  function recommendationSummary(value) {
+    if (!value || typeof value !== 'object') return null;
+    return {
+      recommendedCount: num(value.recommended_count),
+      enteredCount: num(value.entered_count),
+      winCount: num(value.win_count),
+      netSumPct: num(value.net_sum_pct),
+      netAvgPct: num(value.net_avg_pct),
+      rows: list(value.rows).map(recommendationRow),
+      note: optionalText(value.note, 300),
+    };
+  }
+
   function assessment(value) {
     if (value == null) return null;
     const summary = value.summary || {};
@@ -207,6 +231,7 @@
         perTarget: summary.per_target || {},
         note: optionalText(summary.note, 400),
       },
+      recommendationSummary: recommendationSummary(value.recommendation_summary),
     };
   }
 

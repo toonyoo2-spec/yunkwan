@@ -208,6 +208,53 @@ def flatten_for_scoreboard(simulations, conditions_only=True):
     return rows
 
 
+def summarize_recommendations(simulations, recommendations):
+    """오늘 실제로 '이걸 사라'고 내보낸 종목만, 그날 고시한 목표 기준으로 채점.
+
+    summarize()의 per_target은 4가지 목표(1.0/1.5/2.0/3.0)를 전부 돌려본
+    보정용 집계라, 실제로 그날 무엇을 추천했는지와 다릅니다. 계좌 화면의
+    '목표 달성'도 보유 종목(장기·스윙 매수분) 평가손익일 뿐, 오늘 추천이
+    맞았는지와는 별개입니다. 이 함수가 '추천 자체의 +/-'를 답합니다.
+    """
+    chosen = {(row['symbol'], row['setup']): row.get('target_pct')
+              for row in recommendations}
+    by_key = {(s['symbol'], s.get('setup')): s for s in simulations}
+
+    rows = []
+    entered_count = 0
+    for key, target_pct in chosen.items():
+        sim = by_key.get(key)
+        if not sim:
+            continue
+        if sim.get('result') != 'traded' or target_pct is None:
+            rows.append({'symbol': sim['symbol'], 'name': sim.get('name'),
+                        'status': 'no_entry' if sim.get('result') != 'traded' else 'no_target',
+                        'net_pct': None, 'win': None})
+            continue
+        entry = (sim.get('ladder') or {}).get(str(target_pct))
+        if not entry:
+            rows.append({'symbol': sim['symbol'], 'name': sim.get('name'),
+                        'status': 'no_ladder_entry', 'net_pct': None, 'win': None})
+            continue
+        entered_count += 1
+        rows.append({'symbol': sim['symbol'], 'name': sim.get('name'),
+                    'status': entry['result'], 'net_pct': entry['net_pct'], 'win': entry['win']})
+
+    nets = [r['net_pct'] for r in rows if r['net_pct'] is not None]
+    wins = [r for r in rows if r.get('win')]
+    net_sum = sum(nets) if nets else None
+    return {
+        'recommended_count': len(chosen),
+        'entered_count': entered_count,
+        'win_count': len(wins),
+        'net_sum_pct': net_sum,
+        'net_avg_pct': (net_sum / len(nets)) if nets else None,
+        'rows': rows,
+        'note': ('추천한 종목만, 그날 실제로 고시한 목표·손절 기준으로 채점한 결과입니다. '
+                '보유 종목 평가손익과는 다른 숫자입니다.'),
+    }
+
+
 def summarize(simulations):
     """하루치 요약. 거래하지 않은 날도 정직하게 0건으로 남깁니다."""
     traded = [s for s in simulations if s.get('result') == 'traded']

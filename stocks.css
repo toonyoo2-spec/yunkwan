@@ -26,6 +26,16 @@ button:disabled{opacity:.4;cursor:default}
 .regime-pill .pill{display:inline-block;font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px;background:#e6eee9;color:var(--accent)}
 .regime-pill.risk-off .pill{background:#f7e3de;color:#b3452f}
 
+/* 추천 10종목 자체의 +/-. 보유 종목 평가손익(goal)과 분리해서 보여줍니다. */
+.rec-summary{margin:0 0 14px;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.rec-summary .rec-headline{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.rec-summary .rec-headline strong{font-size:15px}
+.rec-summary .rec-headline .pnl{font-weight:700;font-size:16px;white-space:nowrap}
+.rec-summary .rec-headline .pnl.up{color:#cf4437}
+.rec-summary .rec-headline .pnl.down{color:#326abd}
+.rec-summary .rec-sub{margin:4px 0 0;font-size:12px;color:var(--sub)}
+.rec-summary.pending{color:var(--sub)}
+
 .date-nav{display:flex;gap:10px}
 .date-nav select{flex:1;min-width:0}
 .records{margin:24px 0}
