@@ -19,6 +19,7 @@ from tossapi import Client, now, parse_time
 
 LIVE_DIR = STATE / 'live'
 OPENING_RANGE_READY = '09:31'   # 이 시각 전에는 레인지가 확정되지 않습니다
+TERMINAL_STATES = {'stopped', 'target_hit'}  # 이후 봉을 다시 봐도 바뀌지 않는 상태
 
 
 def live_path(date):
@@ -99,14 +100,27 @@ def run(client):
     if not plans:
         print('오늘은 추천이 0건이라 감시할 대상이 없습니다.')
         return
+    # 직전 판정에서 이미 손절·목표에 닿은 종목은 그 결과가 봉을 더 봐도 안 바뀝니다.
+    # 다시 분봉을 받아 똑같은 결과를 매번 찍는 대신, 그 기록을 그대로 이어갑니다.
+    previous = {row['symbol']: row for row in
+                (read_json(live_path(date), {}) or {}).get('watching', [])}
+
     watching = []
+    resolved = 0
     for plan in plans:
+        prior = previous.get(plan['symbol'])
+        if prior and prior.get('state') in TERMINAL_STATES:
+            watching.append(prior)
+            resolved += 1
+            continue
         bars = minute_bars_today(client, plan['symbol'], session)
         signal = current_status(plan, bars, detect(plan, bars))
         watching.append({'symbol': plan['symbol'], 'name': plan.get('name'),
                          'setup': plan['setup'], 'target_pct': plan.get('target_pct'),
                          'stop_pct': plan.get('stop_pct'), **signal})
         print(f"  {plan['symbol']} {plan.get('name')}: {signal['state']} — {signal['note']}")
+    if resolved:
+        print(f'  (이미 종료된 {resolved}종목은 다시 확인하지 않았습니다)')
     write_json(live_path(date), {'trade_date': date, 'checked_at': moment.isoformat(),
                                  'watching': watching})
 
