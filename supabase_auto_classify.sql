@@ -1,6 +1,13 @@
 -- Supabase SQL 함수: 농협 알림 자동 등록 (기본값 + 결제수단 고정)
 -- MacroDroid에서 호출되는 insert_transaction_from_device 함수
 --
+-- ⚠️ 이 저장소는 공개(public) 저장소입니다. 아래 v_expected_secret에는 절대
+--    실제 값을 커밋하지 마세요 — 이 값만 알면 누구나 이 함수를 호출해 가짜
+--    거래를 가계부에 넣을 수 있습니다. CHANGE_ME 그대로 두고, 실제 값은
+--    Supabase 대시보드에서 라이브 함수 정의를 확인하거나 채팅 기록에서만
+--    확인하세요(2026-09-22: 예전에 실수로 실제 값이 커밋됐다가 유출돼서 즉시
+--    새 값으로 교체함 — 라이브 DB와 폰의 MacroDroid만 새 값을 알고 있음).
+--
 -- ⚠️ 이 파일은 문서 보관용입니다. 실제 반영은 이 파일을 실행하는 게 아니라
 --    Supabase에 직접 적용(마이그레이션)하는 방식으로 이뤄지므로, 이 파일과
 --    라이브 DB 정의가 어긋날 수 있습니다. 다음에 이 함수를 다시 만들 일이
@@ -19,7 +26,7 @@
 CREATE OR REPLACE FUNCTION insert_transaction_from_device(p_secret TEXT, p_line TEXT)
 RETURNS json AS $$
 DECLARE
-  v_expected_secret CONSTANT TEXT := 'ecc717436f2fe645ee253564e680f96cc3918ff20b153d36';  -- 폰의 MacroDroid에도 동일한 값이 설정돼 있어야 함
+  v_expected_secret CONSTANT TEXT := 'CHANGE_ME_긴_무작위_문자열';  -- ⚠️ 절대 실제 값을 여기에 커밋하지 마세요. 폰의 MacroDroid에도 동일한 값이 설정돼 있어야 함
   v_scope TEXT := '관';
   v_type TEXT := '지출';  -- 기본값은 지출
   v_main TEXT := '생활비';
