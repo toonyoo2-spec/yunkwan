@@ -4024,20 +4024,47 @@ function saveEditTx(id){
   const amount = parseAmountInput(document.getElementById('e_amount_'+id).value);
   if(!date || !amount){ alert('날짜와 금액을 입력해주세요.'); return; }
   const payment = document.getElementById('e_pay_'+id)?.value || '';
+  const scope = document.getElementById('e_scope_'+id).value || '';
+  const type = document.getElementById('e_type_'+id).value;
+  const category = document.getElementById('e_category_'+id).value;
+  const note = document.getElementById('e_note_'+id).value;
+  const tx = DB.list().find(t => t.id === id);
+
+  // 이체: scope=보내는 쪽, category=받는 쪽(submitTransfer와 동일 규약).
+  // 원래 이체가 아니었던 행을 이체로 바꾸는 경우엔 반대쪽 행을 새로 만들어 짝을
+  // 맞춰주고, 이미 이체출/이체입이었던 행을 다시 저장하는 경우엔 방향(main)은
+  // 그대로 유지한 채 그 행만 갱신함(반대쪽 행은 손대지 않음 — 삭제할 때도 마찬가지).
+  if(type === '이체'){
+    const wasTransfer = tx && (tx.main === '이체출' || tx.main === '이체입');
+    const toPayment = TRANSFER_COUNTERPART_PAYMENT[payment];
+    if(!category || !payment || !toPayment){
+      alert('이체 상대방(소분류)과 보내는 쪽 결제수단(농협[관] 또는 하나[보라])을 선택해주세요.');
+      return;
+    }
+    const mainValue = wasTransfer ? tx.main : '이체출';
+    DB.update(id, { date, scope, type: '이체', main: mainValue, category, note, user: payment, payment, amount });
+    if(!wasTransfer){
+      DB.add({ date, scope: category, type: '이체', main: '이체입', category: scope, note, user: toPayment, payment: toPayment, amount });
+    }
+    state.editingTxId = null;
+    const targetYm = ymOf(date);
+    if(targetYm !== state.currentYm) location.hash = '#/' + targetYm;
+    else renderMonth(targetYm);
+    return;
+  }
 
   // 자동이체 거래라면 override 설정도 함께 업데이트
-  const tx = DB.list().find(t => t.id === id);
   if(tx && tx.recurringKey){
     const ym = ymOf(date);
     DB.setRecurringOverride(tx.recurringKey, ym, amount);
   }
 
   DB.update(id, {
-    date, scope: document.getElementById('e_scope_'+id).value || '',
-    type: document.getElementById('e_type_'+id).value,
+    date, scope,
+    type,
     main: document.getElementById('e_main_'+id).value,
-    category: document.getElementById('e_category_'+id).value,
-    note: document.getElementById('e_note_'+id).value,
+    category,
+    note,
     user: payment, payment,
     amount
   });
