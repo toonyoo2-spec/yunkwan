@@ -684,9 +684,9 @@
   }
 }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-2">
-<script src="./app-ui.js?v=20261017-2" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-2">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-3">
+<script src="./app-ui.js?v=20261017-3" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-3">
 </head>
 <body>
 <script src="./nav.js?v=20261017"></script>
@@ -800,10 +800,10 @@
 </div>
 
 <div class="cal-modal-overlay" id="editModalOverlay" onclick="if(event.target===this) closeEditModal()">
-  <div class="cal-modal">
-    <button class="cal-modal-close" onclick="closeEditModal()">✕</button>
-    <h3 class="cal-modal-title">체험단 수정</h3>
-    <div class="edit-form-grid">
+  <div class="cal-modal bk-form-dialog">
+    <header class="bk-dialog-head"><button class="cal-modal-close" onclick="closeEditModal()">✕</button>
+    <h3 class="cal-modal-title">체험단 수정</h3></header>
+    <div class="bk-dialog-body"><div class="edit-form-grid">
       <div class="field" style="grid-area:name;">
         <label>체험단 이름</label>
         <input id="edit-name">
@@ -874,9 +874,9 @@
         <textarea id="edit-guide" style="min-height:140px;"></textarea>
       </div>
     </div>
-    <div class="modal-actions">
+    </div><div class="modal-actions">
       <button class="modal-del-btn" onclick="deleteItemFromModal()">삭제</button>
-      <button class="modal-save-btn" onclick="saveEditModal()">저장</button>
+      <div class="bk-dialog-buttons"><button type="button" class="ghost-btn" onclick="closeEditModal()">취소</button><button class="modal-save-btn" onclick="saveEditModal()">저장</button></div>
     </div>
   </div>
 </div>
@@ -954,36 +954,11 @@ const STATUS_SECTIONS = [
   { key:"end",     scrollable:true },
 ];
 
-const TABLE_COLGROUP_HTML = `
-  <colgroup>
-    <col style="width:74px;">
-    <col style="width:128px;">
-    <col style="width:128px;">
-    <col style="width:95px;">
-    <col style="width:68px;">
-    <col style="width:76px;">
-    <col style="width:172px;">
-    <col style="width:108px;">
-    <col style="width:80px;">
-    <col style="width:80px;">
-    <col style="width:168px;">
-  </colgroup>`;
-const TABLE_THEAD_HTML = `
-  <thead>
-    <tr>
-      <th>지역</th>
-      <th>체험단 이름</th>
-      <th>제공내역</th>
-      <th>상태/예약</th>
-      <th>주말</th>
-      <th>플랫폼</th>
-      <th>주소</th>
-      <th>예약문의</th>
-      <th>주차장</th>
-      <th>마감일자</th>
-      <th>키워드</th>
-    </tr>
-  </thead>`;
+const TABLE_COLGROUP_HTML = `<colgroup>
+  <col style="width:8%"><col style="width:23%"><col style="width:23%">
+  <col style="width:14%"><col style="width:132px"><col style="width:100px"><col style="width:64px">
+</colgroup>`;
+const TABLE_THEAD_HTML = `<thead><tr><th>지역</th><th>체험단 이름</th><th>제공내역</th><th>예약 · 방문</th><th>플랫폼</th><th>마감일</th><th>상세</th></tr></thead>`;
 
 const platformList = ["디너의여왕","리뷰노트","놀러와체험단","레뷰","데일리뷰","파블로체험단","서울오빠","강남맛집","리뷰플레이스","기타"];
 
@@ -1443,15 +1418,11 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
         <td data-label="제공내역" class="ellipsis-cell" title="${escapeHtml(it.provide)}" onclick="openDetailModal('${it.id}')" style="cursor:pointer;">${escapeHtml(it.provide) || '-'}</td>
         <td data-label="상태/예약" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기" style="cursor:pointer;">
           <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
-          ${resvText ? `<div class="resv-text">${resvText}</div>` : ''}
+          ${resvText ? `<div class="resv-text">${resvText}</div>` : ''}<div class="bk-visit-note">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</div>
         </td>
-        <td data-label="주말" style="white-space:nowrap;font-size:12px;">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</td>
-        <td data-label="플랫폼">${platformValueHtml(it)}</td>
-        <td data-label="주소" class="ellipsis-cell" title="${escapeHtml(it.address)}">${escapeHtml(it.address) || '-'}</td>
-        <td data-label="예약문의">${escapeHtml(it.contact) || '-'}</td>
-        <td data-label="주차장">${escapeHtml(it.parking) || '-'}</td>
+        <td data-label="플랫폼"><span class="bk-platform">${platformValueHtml(it)}</span></td>
         <td data-label="마감일자">${escapeHtml(normalizeDate(it.deadline)) || '-'}</td>
-        <td data-label="키워드" class="ellipsis-cell" title="${escapeHtml(it.keyword)}">${escapeHtml(it.keyword) || '-'}</td>
+        <td><button type="button" class="bk-detail-button" onclick="openDetailModal('${it.id}')" aria-label="${escapeHtml(it.name)} 상세 보기">상세</button></td>
       </tr>
     `;
   };
@@ -1502,7 +1473,9 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
           </table>
         </div>
       </div>`;
-    return `<div class="status-section${sec.scrollable ? ' scrollable' : ''}">${title}${tableHtml}</div>`;
+    return sec.key === 'end'
+      ? `<details class="status-section bk-archive" ${filter === 'end' ? 'open' : ''}><summary>종료된 체험단 <span>${secItems.length}건 · 펼쳐보기</span></summary>${tableHtml}</details>`
+      : `<section class="status-section">${title}${tableHtml}</section>`;
   }).join('');
   tableSectionsEl.innerHTML = sectionsHtml;
 
@@ -1512,10 +1485,10 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
       if(!secItems.length) return '';
       const title = `<div class="status-section-title ${sec.key}"><span class="dot"></span>${statusMeta[sec.key].label} (${secItems.length})</div>`;
       const cardsHtml = secItems.map(cardHtml).join('');
-      const body = sec.scrollable
-        ? `<div class="rv-scroll-section">${cardsHtml}</div>`
-        : `<div class="rv-cards">${cardsHtml}</div>`;
-      return `<div class="status-section">${title}${body}</div>`;
+      const body = `<div class="rv-cards">${cardsHtml}</div>`;
+      return sec.key === 'end'
+        ? `<details class="status-section bk-archive" ${filter === 'end' ? 'open' : ''}><summary>종료된 체험단 <span>${secItems.length}건 · 펼쳐보기</span></summary>${body}</details>`
+        : `<section class="status-section">${title}${body}</section>`;
     }).join('');
   }
 }
