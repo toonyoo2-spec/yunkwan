@@ -310,8 +310,9 @@
     .doc-row .actions{width:100%;justify-content:flex-end;}
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017">
-<script src="./app-ui.js?v=20261017" defer></script>
+<link rel="stylesheet" href="./app-ui.css?v=20261017-2">
+<script src="./app-ui.js?v=20261017-2" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-2">
 </head>
 <body>
 <script src="./nav.js?v=20261017"></script>
@@ -321,7 +322,7 @@
     <h1>중요 문서함</h1>
   </header>
 
-  <div class="panel">
+  <div class="panel bk-entry-panel">
     <h2>새 문서 등록</h2>
     <div class="form-grid">
       <div class="type-toggle" id="typeToggle">
@@ -489,7 +490,7 @@ function fileRowHtml(d){
     <div class="doc-row" onclick="previewDoc('${d.id}')">
       <div class="icon">${iconFor(d.fileName)}</div>
       <div class="body">
-        <div class="title">${escapeHtml(d.title)}</div>
+        <button type="button" class="title bk-record-title" onclick="event.stopPropagation();previewDoc('${d.id}')">${escapeHtml(d.title)}</button>
         <div class="meta">
           <span class="owner-badge">${escapeHtml(d.owner||'공동')}</span>
           <span class="cat-badge">${escapeHtml(d.category)}</span>

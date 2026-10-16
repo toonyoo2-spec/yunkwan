@@ -266,8 +266,9 @@
     .item-form-grid2{grid-template-columns:1fr 1fr;}
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017">
-<script src="./app-ui.js?v=20261017" defer></script>
+<link rel="stylesheet" href="./app-ui.css?v=20261017-2">
+<script src="./app-ui.js?v=20261017-2" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-2">
 </head>
 <body>
 <script src="./nav.js?v=20261017"></script>
@@ -278,7 +279,7 @@
     <p>여행을 등록하고, 날짜별 일정과 예산을 정리하세요.</p>
   </header>
 
-  <div class="panel">
+  <div class="panel bk-entry-panel">
     <h2>새 여행 추가</h2>
     <div class="form-grid">
       <div class="field">
@@ -452,7 +453,7 @@ function renderTrips(){
   grid.innerHTML = trips.map(t => `
     <div class="trip-card ${t.id===selectedTripId?'selected':''}" onclick="openItinerary('${t.id}')">
       <span class="dday">${escapeHtml(tripDday(t.startDate))}</span>
-      <div class="title">${escapeHtml(t.title)}</div>
+      <button type="button" class="title bk-record-title" onclick="event.stopPropagation();openItinerary('${t.id}')">${escapeHtml(t.title)}</button>
       <div class="dates">${formatDateShort(t.startDate)} ~ ${formatDateShort(t.endDate)} · ${tripDayCount(t.startDate, t.endDate)}</div>
       ${t.budget ? `<div class="budget">예산 ${escapeHtml(t.budget)}</div>` : ''}
       ${t.memo ? `<div class="memo">${escapeHtml(t.memo)}</div>` : ''}

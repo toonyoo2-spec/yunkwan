@@ -380,8 +380,9 @@
 
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017">
-<script src="./app-ui.js?v=20261017" defer></script>
+<link rel="stylesheet" href="./app-ui.css?v=20261017-2">
+<script src="./app-ui.js?v=20261017-2" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-2">
 </head>
 <body>
 <script src="./nav.js?v=20261017"></script>
@@ -786,6 +787,26 @@ function calRender(){
     rowSegments[rowKey].forEach(seg => calCurrentSegments.push(seg));
   });
   calPositionBars();
+  calRenderAgenda(y, m);
+}
+
+function calRenderAgenda(y, m){
+  let agenda = document.getElementById('calAgenda');
+  if(!agenda){ agenda = document.createElement('section'); agenda.id = 'calAgenda'; agenda.className = 'bk-agenda'; document.querySelector('.cal-grid-wrap').after(agenda); }
+  const month = `${y}-${String(m+1).padStart(2,'0')}`;
+  const entries = calItems.filter(it => it.status !== 'wait' && calEventDate(it).startsWith(month)).map(it => ({kind:'campaign',id:it.id,date:calEventDate(it),end:'',time:it.resvTime||'',title:it.name,meta:calStatusLabel[it.status]||''}));
+  coupleItems.filter(it => calDateRange(it.date,it.endDate).some(date=>date.startsWith(month))).forEach(it => entries.push({kind:'couple',id:it.id,date:it.date,end:it.endDate,time:it.time||'',title:it.title,meta:it.owner||'공통'}));
+  entries.sort((a,b)=>(a.date+' '+a.time).localeCompare(b.date+' '+b.time));
+  agenda.replaceChildren();
+  const title = document.createElement('h2'); title.textContent = '이번 달 일정'; agenda.append(title);
+  if(!entries.length){ const empty = document.createElement('p'); empty.className='bk-agenda-date'; empty.textContent='등록된 일정이 없어요.'; agenda.append(empty); return; }
+  entries.forEach(entry => {
+    const button = document.createElement('button'); button.type='button'; button.className='bk-agenda-row';
+    const date = document.createElement('span'); date.className='bk-agenda-date'; date.textContent=entry.date.slice(5).replace('-','/')+(entry.end && entry.end!==entry.date ? ' ~ '+entry.end.slice(5).replace('-','/') : '')+(entry.time ? ' · '+entry.time : '');
+    const text = document.createElement('span'); text.className='bk-agenda-title'; text.textContent=entry.title;
+    const meta = document.createElement('small'); meta.textContent=entry.meta; text.append(meta);
+    button.append(date,text); button.addEventListener('click',()=>calShowDetail(entry.id,entry.kind)); agenda.append(button);
+  });
 }
 
 function calDateRowCol(dateStr, y, m){

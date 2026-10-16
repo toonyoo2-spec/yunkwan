@@ -707,8 +707,9 @@ tr.edit-row td{padding:12px 10px;}
 }
 
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017">
-<script src="./app-ui.js?v=20261017" defer></script>
+<link rel="stylesheet" href="./app-ui.css?v=20261017-2">
+<script src="./app-ui.js?v=20261017-2" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-2">
 </head>
 <body>
 <script src="./nav.js?v=20261017"></script>
@@ -1813,7 +1814,7 @@ function toggleDetailSection(){
     icon.textContent = '▲';
   } else {
     section.style.display = 'none';
-    text.textContent = '📊 상세 분석 보기';
+    text.textContent = '상세 분석 보기';
     icon.textContent = '▼';
   }
 }
@@ -2577,63 +2578,25 @@ function renderMonth(ym){
 
   document.getElementById('view').innerHTML = `
     <!-- 히어로: 지출 + 수입 (PC: 한 카드, 모바일: 두 카드) -->
-    <div class="section expense-income-section">
-      <div class="card" style="padding:24px;background:linear-gradient(135deg, #fff 0%, #fef5f5 100%);">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-          <span style="font-size:16px;font-weight:600;color:var(--expense);">💰 이번 달 지출</span>
-          ${monthlyBudget
-            ? `<span style="font-size:13px;font-weight:600;color:${budgetDiff<0?'var(--expense)':'var(--income)'};">
-                예산 ${budgetDiff<0 ? won(Math.abs(budgetDiff))+' 초과' : won(budgetDiff)+' 남음'}
-              </span>`
-            : `<span style="font-size:12px;color:var(--muted);cursor:pointer;" onclick="setMonthlyBudget('${ym}')">예산 설정하기</span>`}
+    <div class="bk-money-grid section">
+      <section class="card bk-money-card expense">
+        <div class="bk-money-head"><h2>이번 달 지출</h2>
+          <button class="bk-budget-link" onclick="setMonthlyBudget('${ym}')">${monthlyBudget ? `예산 ${budgetDiff<0 ? won(Math.abs(budgetDiff))+' 초과' : won(budgetDiff)+' 남음'}` : '예산 설정'}</button>
         </div>
-        <div style="font-size:36px;font-weight:800;color:var(--expense);margin-bottom:16px;cursor:pointer;" onclick="openTotalExpenseModal('${ym}')">
-          ${won(totalSummary.expense)}
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:24px;" class="expense-items">
-          ${kpiBlocks[0].lines.map(line => `
-            <span style="font-size:14px;cursor:pointer;" onclick="${line.onclick}">
-              <i class="dot" style="background:${line.dotColor};"></i>${line.name} <b style="font-weight:700;color:${line.valueColor};">${line.value}</b>
-            </span>
-          `).join('')}
-        </div>
-        <div class="income-section-pc" style="padding-top:24px;border-top:1px solid var(--line);">
-          <div style="font-size:16px;font-weight:600;color:var(--income);margin-bottom:12px;">💵 이번 달 수입</div>
-          <div style="font-size:36px;font-weight:800;color:var(--income);margin-bottom:16px;cursor:pointer;" onclick="openTotalIncomeModal('${ym}')">
-            ${won(totalSummary.income)}
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:16px;">
-            ${kpiBlocks[1].lines.map(line => `
-              <span style="font-size:14px;cursor:pointer;" onclick="${line.onclick}">
-                <i class="dot" style="background:${line.dotColor};"></i>${line.name} <b style="font-weight:700;color:${line.valueColor};">${line.value}</b>
-              </span>
-            `).join('')}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 모바일 전용: 수입 카드 -->
-    <div class="section income-section-mobile">
-      <div class="card" style="padding:24px;background:linear-gradient(135deg, #fff 0%, #f0fff5 100%);">
-        <div style="font-size:16px;font-weight:600;color:var(--income);margin-bottom:12px;">💵 이번 달 수입</div>
-        <div style="font-size:36px;font-weight:800;color:var(--income);margin-bottom:16px;cursor:pointer;" onclick="openTotalIncomeModal('${ym}')">
-          ${won(totalSummary.income)}
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:16px;">
-          ${kpiBlocks[1].lines.map(line => `
-            <span style="font-size:14px;cursor:pointer;" onclick="${line.onclick}">
-              <i class="dot" style="background:${line.dotColor};"></i>${line.name} <b style="font-weight:700;color:${line.valueColor};">${line.value}</b>
-            </span>
-          `).join('')}
-        </div>
-      </div>
+        <button class="bk-money-value" onclick="openTotalExpenseModal('${ym}')">${won(totalSummary.expense)}</button>
+        <div class="bk-money-owners">${kpiBlocks[0].lines.map(line=>`<button onclick="${line.onclick}"><span>${line.name}</span><b>${line.value}</b></button>`).join('')}</div>
+      </section>
+      <section class="card bk-money-card income">
+        <div class="bk-money-head"><h2>이번 달 수입</h2></div>
+        <button class="bk-money-value" onclick="openTotalIncomeModal('${ym}')">${won(totalSummary.income)}</button>
+        <div class="bk-money-owners">${kpiBlocks[1].lines.map(line=>`<button onclick="${line.onclick}"><span>${line.name}</span><b>${line.value}</b></button>`).join('')}</div>
+      </section>
     </div>
 
     <!-- 토글 버튼 -->
     <div class="section" style="margin-bottom:12px;">
       <button class="card" id="detailToggleBtn" onclick="toggleDetailSection()" style="width:100%;padding:16px;cursor:pointer;border:none;background:linear-gradient(135deg, #fff 0%, #fafafa 100%);display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:600;color:var(--ink);">
-        <span id="detailToggleText">📊 상세 분석 보기</span>
+        <span id="detailToggleText">상세 분석 보기</span>
         <span id="detailToggleIcon">▼</span>
       </button>
     </div>
@@ -3934,7 +3897,7 @@ function displayRowHtml(t){
         <span class="tx-card-icon" style="box-shadow:0 0 0 2px ${scopeDotColor} inset;" title="${escapeHtml(t.scope||'미지정')}">${categoryIcon(t)}</span>
         <span class="tx-card-body">
           <span class="tx-card-title" title="${escapeHtml(t.note)}">${titleText}${fixedTag}</span>
-          <span class="tx-card-sub">${mainLabel} · ${catLabel} · <span onclick="event.stopPropagation()">${paySelect}</span></span>
+          <span class="tx-card-sub">${escapeHtml(t.scope||'미지정')} · ${mainLabel} · ${catLabel} · <span onclick="event.stopPropagation()">${paySelect}</span></span>
         </span>
         <span class="tx-card-amt amt ${TYPE_KEY[t.type]}">${(t.type==='지출'||t.type==='카드대금'||isTransferOut(t))?'-':'+'}${Number(t.amount).toLocaleString('ko-KR')}원</span>
       </div>

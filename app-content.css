@@ -1,0 +1,289 @@
+/* Content system: consistent controls, information density and readable responsive layouts.
+   Rules use page owners to keep calendars, cards and forms from styling each other. */
+:root { --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --control-height:40px; --touch-control-height:44px; --inline-control-height:32px; --panel-padding:20px; --content-radius:14px; }
+.bk-app :is(#appContent,#app) { min-width:0; }
+.bk-app :is(h2,h3,p,label,summary,.field,.body,.info) { overflow-wrap:anywhere; }
+.bk-app :is(.panel,.cal-panel,.positions-box,.research-box,.stock-card,.doc-row,.trip-card,.project-card,.rv-card,.camp-card) { border:1px solid var(--line); border-radius:14px; background:var(--card); box-shadow:var(--shadow-card); }
+.bk-app :is(.panel,.cal-panel,.positions-box,.research-box) { padding:20px; margin-bottom:20px; }
+.bk-app :is(.panel h2,.positions-box h2,.research-box h2,.section-head h2) { margin-top:0; font-size:16px; font-weight:700; }
+.bk-app .bk-page-heading { gap:6px; margin-bottom:24px; }
+.bk-app .bk-page-heading h1,.bk-app .hero h1 { font-size:28px; line-height:1.3; }
+.bk-app :is(.field,.bk-form-field) { min-width:0; margin-bottom:0; }
+.bk-app :is(.field > label,.couple-field > label,.bk-form-field > span) { display:block; font-size:12px; font-weight:600; color:var(--sub); margin:0 0 6px; line-height:1.5; }
+.bk-app :where(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]),select,textarea) { min-height:var(--control-height); height:auto; padding:8px 10px; font-size:14px; line-height:1.4; border-radius:8px; }
+.bk-app input[type=date] { min-width:160px; }
+.bk-app input[type=time] { min-width:130px; }
+.bk-app textarea { min-height:96px; resize:vertical; }
+.bk-app :is(.form-grid,.field-row,.edit-form-grid,.couple-form) { gap:14px; }
+.bk-app :is(.form-grid,.field-row) > * { min-width:0; }
+.bk-app :is(.save-btn,.couple-save-btn,.add-item-btn,.add-btn,.ghost-btn.primary) { min-height:var(--control-height); border:1px solid var(--accent); background:var(--accent); color:#fff; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:650; }
+.bk-app :is(.tab,.chip,.cat-tab,.ghost-btn,.dl-btn,.back-btn,.ai-btn,.del-btn,.ext-link,.owner-toggle button,.type-toggle button) { min-height:36px; padding:7px 12px; border:1px solid var(--line); border-radius:8px; font-size:13px; font-weight:550; line-height:1.4; background:#fff; color:var(--sub); text-decoration:none; }
+.bk-app :is(.tab,.chip,.cat-tab,.ghost-btn,.dl-btn,.back-btn,.ai-btn,.del-btn,.ext-link):hover { border-color:var(--accent); color:var(--accent); background:#faf8fe; }
+.bk-app :is(.tab.active,.chip.active,.chip.on,.cat-tab.active,.owner-toggle button.active,.type-toggle button.active) { color:var(--accent); border-color:var(--accent); background:var(--accent-soft); }
+.bk-app :is(.tabs,.cat-tabs) { display:flex; flex-wrap:wrap; gap:6px; max-width:100%; overflow:visible; }
+.bk-app :is(.tab,.chip,.cat-tab) { white-space:normal; text-align:center; }
+.bk-app :is(.summary,.kpis) { gap:12px; margin-bottom:20px; }
+.bk-app .sum-card { padding:16px; border-radius:12px; }
+.bk-app .sum-card .num { font-size:26px; line-height:1.3; }
+.bk-app .sum-card .lbl { font-size:12px; line-height:1.5; }
+.bk-app :is(.badge,.status-badge,.cat-badge,.dday,.owner-badge,.weekend-tag) { font-size:11px; font-weight:600; line-height:1.5; border-radius:6px; padding:3px 7px; white-space:normal; }
+.bk-app :is(.section-title,.section-head) { margin-top:20px; margin-bottom:12px; }
+.bk-app .section-head { align-items:center; }
+.bk-app .bk-entry-panel { padding:0; }
+.bk-entry-details > summary { display:flex; align-items:center; gap:10px; padding:16px 20px; cursor:pointer; list-style:none; font-size:14px; font-weight:650; color:var(--ink); }
+.bk-entry-details > summary::-webkit-details-marker { display:none; }
+.bk-entry-details > summary::after { content:'＋'; font-size:18px; font-weight:400; color:var(--accent); margin-left:auto; flex-shrink:0; }
+.bk-entry-details[open] > summary::after { content:'−'; }
+.bk-entry-details[open] > summary { border-bottom:1px solid var(--line); }
+.bk-entry-hint { color:var(--sub); font-size:12px; font-weight:400; }
+.bk-entry-body { padding:20px; }
+.bk-app .bk-entry-body .field { margin-bottom:12px; }
+.bk-app :is(.cal-modal,.modal-card) { padding:24px; border-radius:16px; }
+.bk-app :is(.cal-modal-title,.modal-card h3) { font-size:19px; line-height:1.4; padding-right:36px; overflow-wrap:anywhere; }
+.bk-app :is(.modal-sub,.detail-value,.guide-body,.modal-tx-list .n) { overflow-wrap:anywhere; white-space:normal; }
+.bk-app :is(.modal-tx-list li,.cat-dot-row,.kpi-row) { gap:10px; }
+.bk-app .modal-tx-list li { flex-wrap:wrap; }
+.bk-app :is(.modal-tx-list .n,.cat-dot-row .left) { min-width:0; }
+.bk-app :is(.modal-close,.cal-modal-close) { top:12px; right:12px; width:36px; height:36px; min-width:36px; min-height:36px; }
+/* LEDGER: a form needs field widths; table rows need a different control density. */
+.bk-app[data-page=ledger] #app { padding:0; }
+.bk-app[data-page=ledger] .table-toolbar { padding:12px 16px; gap:8px; }
+.bk-app[data-page=ledger] .note-search { width:180px; min-height:36px; padding:7px 10px; }
+.bk-app[data-page=ledger] .table-toolbar .filters { gap:6px; align-items:center; }
+.bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)) !important; grid-template-areas:none; gap:12px; padding:16px; align-items:end; }
+.bk-app[data-page=ledger] .bk-form-field { grid-area:auto; grid-column:span 2; }
+.bk-app[data-page=ledger] .bk-form-field[data-field=date] { grid-column:span 3; }
+.bk-app[data-page=ledger] .bk-form-field[data-field=category] { grid-column:span 3; }
+.bk-app[data-page=ledger] .bk-form-field[data-field=note] { grid-column:span 5; }
+.bk-app[data-page=ledger] :is(.bk-form-field[data-field=payment],.bk-form-field[data-field=pay]) { grid-column:span 4; }
+.bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) .bk-form-field > :is(input,select) { width:100%; min-width:0; grid-area:auto; height:40px; font-size:14px; padding:8px 10px; background-image:none; appearance:auto; }
+.bk-app[data-page=ledger] .tx-form input[type=date]::-webkit-calendar-picker-indicator { opacity:1; }
+.bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) .add-btn { grid-column:span 1; grid-area:auto; width:100%; min-width:0; height:40px; padding:8px; }
+.bk-app[data-page=ledger] .tx-edit-actions { grid-column:1/-1; grid-area:auto; }
+.bk-app[data-page=ledger] :is(.tx-form-recur,.tx-edit-form) .bk-form-field { grid-column:span 3; }
+.bk-app[data-page=ledger] :is(.tx-form-recur,.tx-edit-form) .bk-form-field[data-field=note] { grid-column:span 6; }
+.bk-app[data-page=ledger] .tx-form-recur .add-btn { grid-column:span 3; }
+.bk-app[data-page=ledger] table.tx-table-main { table-layout:auto; }
+.bk-app[data-page=ledger] table.tx-table-main :is(th,td) { width:auto; padding:9px 12px; }
+.bk-app[data-page=ledger] table.tx-table-main :is(th,td):nth-child(6) { width:28%; white-space:normal; overflow:visible; overflow-wrap:anywhere; }
+.bk-app[data-page=ledger] table.tx-table-main :is(th,td):nth-child(7) { width:110px; text-align:right; }
+.bk-app[data-page=ledger] table.tx-table-main :is(th,td):nth-child(8) { width:166px; }
+.bk-app[data-page=ledger] table.tx-table-main td { white-space:normal; overflow:visible; text-overflow:clip; }
+.bk-app[data-page=ledger] table.tx-table-main .pay-quick-select { min-width:140px; min-height:var(--inline-control-height); height:32px; padding:4px 24px 4px 8px; font-size:12px; line-height:1.4; border-radius:7px; }
+.bk-app[data-page=ledger] table.tx-table-main tr.tx-date-header td { display:table-cell; width:auto; background:#faf8fd; padding:8px 12px; font-size:12px; }
+.bk-app[data-page=ledger] .tx-date-header .tx-date-total { float:right; }
+.bk-app[data-page=ledger] .cal-grid { grid-template-columns:repeat(7,minmax(0,1fr)); }
+.bk-app[data-page=ledger] .cal-cell { min-height:60px; aspect-ratio:auto; padding:6px; border-radius:6px; }
+.bk-app[data-page=ledger] .cal-cell.empty { padding:0; min-height:0; }
+.bk-app[data-page=ledger] .topbar .nav-center { position:static; transform:none; order:2; margin-inline:auto; }
+.bk-app[data-page=ledger] .topbar { justify-content:space-between; gap:10px; }
+.bk-app[data-page=ledger] .topbar .actions { order:3; }
+.bk-app[data-page=ledger] .topbar .ghost-btn { font-size:12px; }
+.bk-app[data-page=ledger] .topbar .ghost-btn::after { display:none; }
+/* ROUTINE: fixed-size time controls, flowing labels and a memo that doesn't stretch. */
+.bk-app[data-page=routine] .routine-grid { grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); align-items:start; gap:20px; }
+.bk-app[data-page=routine] .check-column { gap:16px; }
+.bk-app[data-page=routine] .check-column .panel { margin-bottom:0; }
+.bk-app[data-page=routine] .memo-panel .field { flex:none; }
+.bk-app[data-page=routine] .memo-panel textarea { flex:none; min-height:180px; height:180px; }
+.bk-app[data-page=routine] .check-item { display:grid; grid-template-columns:20px minmax(0,1fr) 138px; gap:8px; padding:8px 10px; min-height:52px; }
+.bk-app[data-page=routine] .check-item input[type=checkbox] { grid-column:1; grid-row:1; }
+.bk-app[data-page=routine] .check-label { grid-column:2; grid-row:1; white-space:normal; font-size:13px; }
+.bk-app[data-page=routine] input.check-time { grid-column:3; grid-row:1; width:138px; min-width:138px; min-height:34px; height:34px; padding:4px 6px; font-size:13px; background:#faf8fd; }
+.bk-app[data-page=routine] :is(.check-actual,.check-warn) { grid-column:2/-1; justify-self:start; margin:0; }
+.bk-app[data-page=routine] .check-item.checked { background:var(--accent-soft); border-color:#cbbbe7; }
+.bk-app[data-page=routine] .check-item.checked .check-label { color:var(--accent); }
+.bk-app[data-page=routine] .rate-row { display:grid; grid-template-columns:minmax(100px,180px) minmax(20px,1fr) 38px; gap:12px; padding:5px 0; }
+.bk-app[data-page=routine] .rate-label { width:auto; white-space:normal; overflow:visible; font-size:13px; }
+.bk-app[data-page=routine] .rate-track { width:100%; }
+.bk-app[data-page=routine] .change-row { flex-wrap:wrap; }
+.bk-app[data-page=routine] .date-nav input { width:172px; }
+/* BLOG: keep names, benefits and locations readable instead of cutting them off. */
+.bk-app[data-page=review] #appContent { overflow:visible; }
+.bk-app[data-page=review] #addPanel { display:block; }
+.bk-app[data-page=review] .form-row .field { flex:1 1 180px; }
+.bk-app[data-page=review] .form-row .field:has(input[type=date]) { flex:1 1 180px; }
+.bk-app[data-page=review] :is(.form-row input,.form-row select) { width:100%; min-width:0; }
+.bk-app[data-page=review] .edit-form-grid { grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-areas:'name name' 'status platform' 'provide provide' 'address address' 'contact contact' 'deadline weekend' 'resv resv' 'keyword keyword' 'guide guide'; }
+.bk-app[data-page=review] .edit-resv-row { display:grid; grid-template-columns:minmax(160px,1fr) minmax(0,1fr); gap:10px; }
+.bk-app[data-page=review] .status-section-wait,.bk-app[data-page=review] .status-section-done { max-height:none; overflow:visible; }
+.bk-app[data-page=review] table { min-width:1177px; table-layout:fixed; }
+.bk-app[data-page=review] table td { white-space:normal; overflow-wrap:anywhere; overflow:visible; text-overflow:clip; padding:10px; line-height:1.6; }
+.bk-app[data-page=review] :is(.rv-name,.rv-row2,.rv-row3,.rv-row3-provide,.rv-row3-platform,.rv-provide) { white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; }
+.bk-app[data-page=review] :is(.rv-row1,.rv-row2,.rv-row3) { align-items:flex-start; gap:8px; flex-wrap:wrap; }
+.bk-app[data-page=review] .rv-name { flex:1 1 180px; }
+.bk-app[data-page=review] .rv-row3-platform { flex-shrink:1; }
+.bk-app[data-page=review] .rv-row3-provide { flex:1 1 180px; }
+.bk-app[data-page=review] .rv-card { padding:14px 16px; }
+/* DOCUMENTS / PROJECTS / TRAVEL: shared readable records, no empty media placeholders. */
+.bk-app[data-page=docs] .form-grid { grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); }
+.bk-app :is(.doc-row .title,.doc-row .meta,.doc-row .memo,.cred-value,.project-card .title,.project-card .desc,.project-card .impact-box,.trip-card .title,.trip-card .memo,.item-title,.item-memo,.camp-card .card-title,.camp-card .card-content) { overflow-wrap:anywhere; white-space:normal; overflow:visible; text-overflow:clip; -webkit-line-clamp:unset; }
+.bk-app .doc-row { align-items:flex-start; gap:12px; padding:16px; }
+.bk-app .doc-row .actions { flex-wrap:wrap; gap:6px; }
+.bk-app .doc-row .body { min-width:0; }
+.bk-app .cred-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.bk-app .preview-head .name { white-space:normal; overflow-wrap:anywhere; overflow:visible; }
+.bk-app .preview-head { align-items:flex-start; gap:12px; }
+.bk-app .preview-head button { flex-shrink:0; }
+.bk-app .project-card .thumb:not(:has(img)) { display:none; }
+.bk-app .project-card .body { padding:20px; gap:10px; }
+.bk-app .project-card .card-top { flex-wrap:wrap; }
+.bk-app .project-card .status-select { min-width:110px; width:auto; min-height:34px; padding:5px 24px 5px 8px; font-size:12px; }
+.bk-app .project-card .cat-badge { max-width:100%; }
+.bk-app[data-page=task] #grid,.bk-app[data-page=trip] #tripGrid { grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr)); gap:16px; align-items:start; }
+.bk-app[data-page=task] .image-drop { min-height:120px; }
+.bk-app .trip-card { padding:18px; }
+.bk-app .trip-card .memo { display:block; }
+.bk-app[data-page=trip] :is(.form-grid,.item-form-grid,.item-form-grid2) { grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+.bk-app .item-row { flex-wrap:wrap; gap:10px; padding:14px 0; }
+.bk-app .item-row .body { flex:1 1 180px; }
+.bk-app .item-row .cost { margin-left:auto; }
+.bk-app[data-page=trip] :is(.form-grid,.item-form-grid,.item-form-grid2) input { width:100%; min-width:0; }
+/* STOCKS / CAMPAIGN DISCOVERY share card/record density with the rest of the app. */
+.bk-app[data-page=stocks] .hero { gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+.bk-app[data-page=stocks] .eyebrow { display:none; }
+.bk-app[data-page=stocks] .hero p.sub { margin:8px 0 0; }
+.bk-app[data-page=stocks] .hero > .badge { margin:0; }
+.bk-app[data-page=stocks] .date-nav { display:grid; grid-template-columns:40px minmax(0,1fr) 40px; gap:8px; }
+.bk-app[data-page=stocks] .date-nav button { min-width:0; padding:8px; }
+.bk-app[data-page=stocks] :is(.stock-top,.position-top,.rec-headline) { flex-wrap:wrap; }
+.bk-app[data-page=stocks] :is(.stock-top h3,.position-top h3) { overflow-wrap:anywhere; }
+.bk-app[data-page=stocks] .plan { margin-left:auto; white-space:normal; }
+.bk-app[data-page=stocks] .notice { padding:14px 16px; border-radius:12px; font-size:13px; }
+.bk-app[data-page=stocks] .notice a { color:var(--accent); }
+.bk-app[data-page=stocks] .summary { grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); }
+.bk-app[data-page=stocks] .score-table :is(th,td) { padding:8px 6px; }
+.bk-app[data-page=stocks] .position-form { grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }
+.bk-app[data-page=campaigns] .filter-row { gap:20px; align-items:flex-start; }
+.bk-app[data-page=campaigns] .chip-group { gap:6px; }
+.bk-app[data-page=campaigns] .weekend-toggle { line-height:1.6; }
+.bk-app[data-page=campaigns] .card-top,.bk-app[data-page=campaigns] .card-status { flex-wrap:wrap; }
+.bk-app[data-page=campaigns] :is(.place-cell,.content-cell) { white-space:normal; overflow-wrap:anywhere; }
+/* HOME: compact month overview plus full-text agenda at every size. */
+.bk-app[data-page=index] .cal-header { display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap; gap:10px; margin:0 0 14px; }
+.bk-app[data-page=index] .cal-title { min-width:120px; font-size:18px; }
+.bk-app[data-page=index] .cal-nav-btn { width:36px; height:36px; background:white; }
+.bk-app[data-page=index] .cal-add-couple-btn { position:static; transform:none; margin-left:auto; padding:8px 12px; min-height:36px; border-radius:8px; font-size:13px; background:var(--accent); color:#fff; }
+.bk-app[data-page=index] .cal-legend { justify-content:flex-start; padding:0 0 14px; gap:8px 14px; font-size:12px; }
+.bk-app[data-page=index] .cal-grid { grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; }
+.bk-app[data-page=index] .cal-cell { min-height:86px; border-radius:8px; padding:6px; }
+.bk-app[data-page=index] .cal-cell.today { background:var(--accent-soft); border-color:var(--accent); }
+.bk-app[data-page=index] .cal-cell.other-month { background:#faf9fc; }
+.bk-app[data-page=index] :is(.cal-event,.cal-holiday-name) { white-space:normal; overflow-wrap:anywhere; overflow:visible; text-overflow:clip; }
+.bk-agenda { border-top:1px solid var(--line); margin-top:20px; padding-top:18px; }
+.bk-agenda h2 { font-size:15px; margin:0 0 12px; }
+.bk-agenda-row { display:grid; grid-template-columns:130px minmax(0,1fr); align-items:start; gap:14px; width:100%; background:white; border:0; border-bottom:1px solid var(--line); padding:12px 0; text-align:left; cursor:pointer; font:inherit; color:var(--ink); }
+.bk-agenda-date { color:var(--sub); font-size:12px; }
+.bk-agenda-title { font-size:14px; overflow-wrap:anywhere; }
+.bk-agenda-title small { display:block; margin-top:4px; font-size:12px; color:var(--sub); }
+@media (max-width:1100px) {
+  .bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+  .bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) .bk-form-field { grid-column:span 1; }
+  .bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) :is(.bk-form-field[data-field=note],.bk-form-field[data-field=date],.bk-form-field[data-field=payment],.bk-form-field[data-field=pay],.tx-edit-actions) { grid-column:1/-1; }
+  .bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) .add-btn { grid-column:1/-1; }
+  .bk-app[data-page=ledger] table.tx-table-main tr.tx-row-mobile { padding:12px 16px; }
+  .bk-app[data-page=ledger] table.tx-table-main :is(.tx-row-mobile td,.edit-row td) { width:100%; }
+  .bk-app[data-page=ledger] table.tx-table-main .tx-row-mobile td { padding:0; border:0; }
+  .bk-app[data-page=ledger] table.tx-table-main .tx-row-mobile td:nth-child(1) { width:100%; }
+  .bk-app[data-page=ledger] .tx-card-line1 { display:grid; grid-template-columns:28px minmax(0,1fr) auto; align-items:start; gap:10px; }
+  .bk-app[data-page=ledger] :is(.tx-card-title,.tx-card-sub) { overflow:visible; white-space:normal; text-overflow:clip; overflow-wrap:anywhere; }
+  .bk-app[data-page=ledger] .tx-card-title { font-size:14px; line-height:1.6; }
+  .bk-app[data-page=ledger] .tx-card-sub { display:flex; flex-wrap:wrap; align-items:center; gap:4px; font-size:12px; }
+  .bk-app[data-page=ledger] .tx-card-sub > span:has(select) { display:block; width:100%; }
+  .bk-app[data-page=ledger] table.tx-table-main .tx-card-sub .pay-quick-select { width:166px; max-width:100%; min-width:0; height:36px; min-height:36px; border:1px solid var(--line); padding:5px 24px 5px 8px; font-size:13px; }
+  .bk-app[data-page=ledger] .tx-card-amt { font-size:13px; padding-top:2px; }
+  .bk-app[data-page=ledger] table.tx-table-main tr.tx-date-header td { display:block; width:100%; }
+  .bk-app[data-page=routine] .routine-grid { grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width:820px) {
+  body.bk-app { padding-inline:12px; }
+  #bkNav { margin-inline:-12px; }
+  .bk-app .bk-page-heading h1,.bk-app .hero h1 { font-size:24px; }
+  .bk-app :is(.panel,.cal-panel,.positions-box,.research-box,.stock-card) { padding:16px; margin-bottom:16px; }
+  .bk-app .bk-entry-panel { padding:0; }
+  .bk-entry-details > summary { padding:14px 16px; }
+  .bk-entry-hint { display:none; }
+  .bk-entry-body { padding:16px; }
+  .bk-app :where(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]),select,textarea) { font-size:16px; min-height:var(--touch-control-height); }
+  .bk-app :is(.tab,.chip,.cat-tab,.ghost-btn,.dl-btn,.back-btn,.ai-btn,.del-btn,.ext-link,.owner-toggle button,.type-toggle button,.save-btn,.add-item-btn) { min-height:var(--control-height); }
+  .bk-app :is(.summary,.kpis) { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .bk-app .sum-card { padding:12px 14px; }
+  .bk-app .sum-card .num { font-size:24px; }
+  .bk-app .form-grid { grid-template-columns:minmax(0,1fr); }
+  .bk-app :is(.field-row,.edit-resv-row) { grid-template-columns:minmax(0,1fr); }
+  .bk-app[data-page=ledger] .note-search { width:100%; margin-left:0 !important; }
+  .bk-app[data-page=ledger] .table-toolbar { padding:12px; }
+  .bk-app[data-page=ledger] .table-toolbar .filters { flex-wrap:wrap; }
+  .bk-app[data-page=ledger] .topbar .nav-center { width:auto; }
+  .bk-app[data-page=ledger] .cal-cell { min-height:54px; padding:4px 2px; }
+  .bk-app[data-page=ledger] .cal-cell .amt { font-size:9px; }
+  .bk-app[data-page=ledger] .cat-tabs { flex-wrap:wrap; }
+  .bk-app[data-page=ledger] :is(.summary-strip,.kpi-rows) { gap:8px 16px; }
+  .bk-app[data-page=ledger] .kpi-row { flex-wrap:wrap; }
+  .bk-app[data-page=review] .form-row .field { flex-basis:100%; }
+  .bk-app[data-page=review] .edit-form-grid { display:flex; flex-direction:column; }
+  .bk-app[data-page=review] .edit-resv-row { grid-template-columns:minmax(0,1fr); }
+  .bk-app[data-page=review] .toolbar { align-items:stretch; }
+  .bk-app[data-page=review] .rv-card { padding:14px; }
+  .bk-app[data-page=docs] .doc-row { flex-wrap:wrap; }
+  .bk-app[data-page=docs] .doc-row .actions { width:100%; justify-content:flex-end; }
+  .bk-app .cred-grid { grid-template-columns:minmax(0,1fr); }
+  .bk-app[data-page=trip] :is(.form-grid,.item-form-grid,.item-form-grid2) { grid-template-columns:minmax(0,1fr); }
+  .bk-app[data-page=stocks] .hero { flex-direction:column; gap:12px; }
+  .bk-app[data-page=stocks] .hero > .badge { white-space:normal; }
+  .bk-app[data-page=index] .cal-cell { min-height:62px; padding:4px 2px; border-radius:5px; }
+  .bk-app[data-page=index] .cal-holiday-name { font-size:9px; line-height:1.4; }
+  .bk-app[data-page=index] .cal-add-couple-btn { margin-left:0; flex:1 1 100%; }
+  .bk-app[data-page=index] .cal-event { font-size:10px; padding:2px; }
+  .bk-agenda-row { grid-template-columns:minmax(0,1fr); gap:4px; }
+}
+@media (max-width:380px) {
+  .bk-app[data-page=routine] .check-item { grid-template-columns:20px minmax(0,1fr); }
+  .bk-app[data-page=routine] input.check-time { grid-column:2; grid-row:2; width:150px; }
+  .bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) { grid-template-columns:minmax(0,1fr) !important; }
+  .bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) .bk-form-field { grid-column:1/-1; }
+  .bk-app[data-page=ledger] .tx-card-line1 { grid-template-columns:24px minmax(0,1fr); }
+  .bk-app[data-page=ledger] .tx-card-amt { grid-column:2; }
+  .bk-app[data-page=routine] .date-nav { display:grid; grid-template-columns:40px minmax(0,1fr) 40px; }
+  .bk-app[data-page=routine] .date-nav input { width:100%; min-width:0; }
+}
+@media (max-width:820px) {
+  /* The month grid shows event markers; the agenda below preserves every full title. */
+  .bk-app[data-page=index] .cal-event { height:6px; min-height:6px; font-size:0; padding:0; color:transparent; background:var(--accent); overflow:hidden; border-radius:3px; }
+  .bk-app[data-page=index] .cal-event-time { font-size:0; }
+}
+/* Monthly totals use the same two-card pattern as the other overview panels. */
+.bk-app[data-page=ledger] .bk-money-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.bk-app[data-page=ledger] .bk-money-card { padding:20px; }
+.bk-money-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px; min-height:28px; }
+.bk-money-head h2 { margin:0; font-size:14px !important; }
+.bk-app .bk-budget-link { border:0; padding:4px 0; background:none; font-size:12px; color:var(--accent); cursor:pointer; }
+.bk-money-value { display:block; max-width:100%; text-align:left; padding:0; margin-bottom:16px; background:none; border:0; font-size:30px; line-height:1.3; font-weight:750; font-variant-numeric:tabular-nums; color:var(--expense); overflow-wrap:anywhere; cursor:pointer; }
+.income .bk-money-value { color:var(--income); }
+.bk-money-owners { display:flex; flex-wrap:wrap; gap:8px 16px; }
+.bk-money-owners button { display:flex; gap:6px; background:none; border:0; padding:4px 0; font-size:12px; color:var(--sub); cursor:pointer; }
+.bk-money-owners b { color:var(--ink); font-weight:600; }
+.bk-app[data-page=routine] .check-label { cursor:pointer; padding:5px 0; }
+.bk-app .cred-item { flex-wrap:wrap; min-width:0; }
+.bk-app[data-page=ledger] #detailToggleBtn { padding:12px 16px !important; font-size:13px !important; border:1px solid var(--line) !important; background:#fff !important; border-radius:10px; }
+@media (max-width:820px) {
+  .bk-app[data-page=ledger] .bk-money-grid { grid-template-columns:minmax(0,1fr); gap:12px; }
+  .bk-app[data-page=ledger] .bk-money-card { padding:16px; }
+  .bk-money-value { font-size:28px; margin-bottom:10px; }
+}
+.bk-app[data-page=routine] .save-row { margin:16px 0 24px; }
+.bk-app .bk-record-title { display:block; border:0; padding:0; background:transparent; color:var(--ink); text-align:left; font-family:inherit; cursor:pointer; line-height:1.6; overflow-wrap:anywhere; }
+.bk-app .bk-record-title:hover { color:var(--accent); text-decoration:underline; text-underline-offset:3px; }
+.bk-app .preview-box { border:1px solid var(--line); border-radius:16px; }
+.bk-app .preview-head .close-btn { width:36px; height:36px; border-radius:8px; background:#faf8fd; }
+.bk-app input:is([type=checkbox],[type=radio]) { accent-color:var(--accent); }
+.bk-app :is(.doc-row .icon,.doc-row .owner-badge,.project-card .impact-box,.memo-panel .summary-box) { background:var(--accent-soft); }
+.bk-app[data-page=ledger] #detailSection .card { background:var(--card) !important; padding:var(--panel-padding) !important; }
+.bk-app[data-page=ledger] #cardStatusWrap { display:grid !important; grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr)); gap:8px 16px !important; }
+.bk-app[data-page=ledger] #cardStatusWrap > span { display:flex !important; align-items:center; justify-content:space-between; gap:8px; width:auto; padding:8px 0; font-size:13px !important; border-bottom:1px solid var(--line); }
+.bk-app[data-page=ledger] #cardStatusWrap b { font-size:15px !important; margin-left:auto; }
+.bk-app[data-page=ledger] .tx-edit-form .edit-actions { grid-column:1/-1; display:flex; flex-wrap:wrap; gap:8px; }
+.bk-app[data-page=ledger] .tx-edit-form .fixed-field { grid-column:span 3; white-space:normal; overflow-wrap:anywhere; align-self:center; font-size:13px; }
+@media (max-width:1100px) {
+  .bk-app[data-page=ledger] .tx-edit-form .fixed-field { grid-column:1/-1; }
+}

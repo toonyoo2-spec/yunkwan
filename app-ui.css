@@ -46,7 +46,7 @@ body.bk-app { padding:0 36px 64px 264px; font-size:14px; line-height:1.55; -webk
 .bk-skip { position:fixed; top:-100px; left:240px; z-index:20000; background:var(--accent); color:white; border-radius:8px; padding:10px 20px; }
 .bk-skip:focus { top:10px; }
 /* Identical controls, typography and selected states across all nine pages. */
-.bk-app :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=color]):not([type=range]),select,textarea) { min-height:44px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--ink); font-size:14px; padding:10px 12px; max-width:100%; min-width:0; }
+.bk-app :where(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=color]):not([type=range]),select,textarea) { min-height:44px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--ink); font-size:14px; padding:10px 12px; max-width:100%; min-width:0; }
 .bk-app textarea { line-height:1.6; min-height:90px; }
 .bk-app :is(input,select,textarea):focus { border-color:var(--accent); }
 .bk-app :is(.field label,.couple-field label) { font-size:13px; color:var(--sub); margin-bottom:7px; }
@@ -66,19 +66,10 @@ body.bk-app { padding:0 36px 64px 264px; font-size:14px; line-height:1.55; -webk
 .bk-app :is(.table-wrap,.table-card) { max-width:100%; overflow-x:auto; overscroll-behavior-x:contain; }
 .bk-app :is(th,td) { padding-top:13px; padding-bottom:13px; }
 .bk-app th { background:#faf8fd; color:var(--sub); }
-.bk-app :is(.empty,.empty-day) { color:var(--sub); line-height:1.8; padding:40px 20px; }
+.bk-app :is(.empty:not(.cal-cell),.empty-day) { color:var(--sub); line-height:1.8; padding:40px 20px; }
 .bk-app :is(.cal-modal,.modal-card) { border:1px solid var(--line); border-radius:20px; box-shadow:0 20px 70px rgba(45,26,77,.15); max-height:calc(100dvh - 40px); overflow-y:auto; }
 .bk-app :is(.cal-modal-overlay,.modal-overlay) { padding:20px; }
 .bk-app :is(.modal-close,.cal-modal-close) { min-width:40px; min-height:40px; }
-.bk-app .cal-title { font-size:20px; font-weight:700; }
-.bk-app .cal-nav-btn { min-width:40px; background:white; }
-.bk-app .cal-cell { min-height:112px; background:#fff; border-color:var(--line); border-radius:10px; }
-.bk-app .cal-cell.today { border-color:var(--accent); background:#f6f1ff; }
-.bk-app .cal-cell.other-month { background:#faf9fc; border-color:transparent; }
-.bk-app .cal-daynum { font-size:13px; }
-.bk-app .cal-legend { padding:12px 0 18px; margin:0; }
-.bk-app .cal-header { margin-bottom:4px; }
-.bk-app .cal-add-couple-btn { border-radius:9px; }
 .bk-app .stock-page { max-width:1440px; }
 .bk-app .hero { margin:6px 0 28px; }
 .bk-app :is(.badge,.regime-pill .pill) { font-weight:600; }
@@ -98,8 +89,6 @@ body.bk-app { padding:0 36px 64px 264px; font-size:14px; line-height:1.55; -webk
 @media (max-width:1100px) and (min-width:821px) {
   body.bk-app { padding-left:238px; padding-right:24px; }
   #bkNav { width:214px; padding-inline:14px; }
-  .bk-app .cal-header { justify-content:flex-start; gap:8px; }
-  .bk-app .cal-add-couple-btn { position:static; transform:none; margin-left:auto; }
 }
 @media (max-width:820px) {
   html { scroll-padding-top:90px; }
@@ -120,18 +109,10 @@ body.bk-app { padding:0 36px 64px 264px; font-size:14px; line-height:1.55; -webk
   .bk-app .bk-page-heading { margin-bottom:22px; gap:6px; }
   .bk-app .bk-page-heading p { font-size:13px; }
   .bk-app :is(.panel,.cal-panel) { padding:16px; border-radius:14px; margin-bottom:18px; }
-  .bk-app :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=color]):not([type=range]),select,textarea) { font-size:16px; }
+  .bk-app :where(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=color]):not([type=range]),select,textarea) { font-size:16px; }
   .bk-app :is(.summary,.kpis) { gap:10px; }
   .bk-app .sum-card { padding:14px; }
   .bk-app .sum-card .num { font-size:24px; }
-  .bk-app .cal-header { flex-wrap:wrap; justify-content:center; gap:8px; }
-  .bk-app .cal-add-couple-btn { position:static; transform:none; margin:8px 0 4px; flex-basis:100%; }
-  .bk-app .cal-title { font-size:18px; min-width:110px; }
-  .bk-app .cal-grid { gap:3px; }
-  .bk-app .cal-cell { min-height:84px; padding:4px 2px; border-radius:6px; }
-  .bk-app .cal-legend { justify-content:flex-start; gap:8px 12px; font-size:11px; }
-  .bk-app .cal-daynum { font-size:12px; }
-  .bk-app .cal-dow { font-size:11px; }
   .bk-app :is(.toolbar,.filter-row,.table-toolbar) { flex-wrap:wrap; gap:10px; }
   .bk-app .topbar { justify-content:space-between; gap:12px; }
   .bk-app .topbar .nav-center { position:static; transform:none; order:3; width:100%; justify-content:center; flex-wrap:wrap; }
