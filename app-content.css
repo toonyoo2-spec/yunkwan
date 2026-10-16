@@ -342,10 +342,6 @@
   .bk-agenda-row { padding:14px 0; }
   .bk-agenda-title { font-size:15px; line-height:1.5; }
 }
-@media (max-width:350px) {
-  .bk-app[data-page=routine] .check-item { grid-template-columns:22px minmax(0,1fr); }
-  .bk-app[data-page=routine] input.check-time { grid-column:2; grid-row:2; }
-}
 .bk-app[data-page=review] #addFormBody .form-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
 .bk-app[data-page=review] #addFormBody .form-row { display:contents; }
 .bk-app[data-page=review] #addFormBody .field { min-width:0; }
@@ -368,4 +364,16 @@
 @media (max-width:480px) {
   .bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) { grid-template-columns:minmax(0,1fr) !important; }
   .bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) .bk-form-field { grid-column:1/-1; }
+}
+
+@media (max-width:380px) {
+  .bk-app[data-page=routine] .date-nav { grid-template-columns:36px minmax(0,1fr) 36px 48px; gap:6px; }
+  .bk-app[data-page=routine] .date-nav button { width:100%; min-width:0; padding:6px; white-space:nowrap; }
+  .bk-app[data-page=routine] .date-nav .weekday { grid-column:2/-1; font-size:12px; }
+  .bk-app[data-page=routine] .check-item { grid-template-columns:20px minmax(0,1fr) 112px; }
+  .bk-app[data-page=routine] input.check-time { grid-column:3; grid-row:1; width:112px; min-width:112px; padding:4px; }
+  .bk-app[data-page=ledger] .topbar { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; }
+  .bk-app[data-page=ledger] .topbar .year-select { grid-column:1; grid-row:1; }
+  .bk-app[data-page=ledger] .topbar .actions { grid-column:2; grid-row:1; }
+  .bk-app[data-page=ledger] .topbar .nav-center { grid-column:1/-1; grid-row:2; width:100%; justify-content:center; }
 }
