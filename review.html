@@ -684,16 +684,17 @@
   }
 }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017">
-<script src="./app-ui.js?v=20261017" defer></script>
+<link rel="stylesheet" href="./app-ui.css?v=20261017-2">
+<script src="./app-ui.js?v=20261017-2" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-2">
 </head>
 <body>
 <script src="./nav.js?v=20261017"></script>
 <div class="wrap" id="appContent">
 
   <div class="subnav">
-    <a href="./review.html" class="active">체험단예정</a>
-    <a href="./campaigns.html">체험단확인</a>
+    <a href="./review.html" class="active">체험단 관리</a>
+    <a href="./campaigns.html">체험단 확인</a>
   </div>
 
   <header>
@@ -1467,7 +1468,7 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
     return `
       <div class="rv-card" onclick="openDetailModal('${it.id}')">
         <div class="rv-row1">
-          <span class="rv-name" style="color:${STATUS_INK[it.status] || 'inherit'};">${escapeHtml(it.name)} ${postBadgeHtml(it)}</span>
+          <button type="button" class="rv-name bk-record-title" onclick="event.stopPropagation();openDetailModal('${it.id}')" style="color:${STATUS_INK[it.status] || 'inherit'};">${escapeHtml(it.name)} ${postBadgeHtml(it)}</button>
           <span style="font-size:11.5px;white-space:nowrap;flex-shrink:0;">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>
         </div>
         <div class="rv-row2">

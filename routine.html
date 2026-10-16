@@ -350,8 +350,9 @@
     .owner-toggle{ max-width:100%; }
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017">
-<script src="./app-ui.js?v=20261017" defer></script>
+<link rel="stylesheet" href="./app-ui.css?v=20261017-2">
+<script src="./app-ui.js?v=20261017-2" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-2">
 </head>
 <body>
 <script src="./nav.js?v=20261017"></script>
@@ -376,7 +377,6 @@
     <span class="today-badge" id="todayBadge" hidden>오늘</span>
   </div>
 
-  <div class="panel" id="summaryPanel"></div>
 
   <div id="routineBody"></div>
 
@@ -384,6 +384,8 @@
     <button class="save-btn" id="saveBtn">저장하기</button>
     <span class="status-msg" id="statusMsg"></span>
   </div>
+
+  <div class="panel" id="summaryPanel"></div>
 
 </div>
 
@@ -546,7 +548,7 @@ function renderBody(){
         const isCustom = !!(item.time && target !== item.time);
         // 목표 시각은 텍스트가 아니라 input[type=time]으로 그려서, 바로 눌러 고칠 수 있게 합니다.
         const timeHtml = item.time
-          ? `<input type="time" class="check-time" data-time-key="${escapeHtml(item.key)}"` +
+          ? `<input type="time" class="check-time" aria-label="${escapeHtml(item.label)} 목표 시각" data-time-key="${escapeHtml(item.key)}"` +
             ` data-custom="${isCustom ? 'yes' : 'no'}" value="${escapeHtml(target)}"` +
             ` title="${isCustom ? '기본 ' + escapeHtml(item.time) + ' → 수정됨 · 다시 눌러 조정' : '목표 시각 · 눌러서 조정'}">`
           : '';
@@ -558,14 +560,14 @@ function renderBody(){
           ? `<span class="check-warn" title="오늘 이전 기록 기준, ${streak}일 연속 체크되지 않았습니다">⚠ ${streak}일째 밀림</span>`
           : '';
         return `
-        <label class="check-item${state.checks[item.key] ? ' checked' : ''}">
+        <div class="check-item${state.checks[item.key] ? ' checked' : ''}">
           ${timeHtml}
-          <input type="checkbox" data-key="${escapeHtml(item.key)}"${state.checks[item.key] ? ' checked' : ''}>
-          <span class="check-label">${escapeHtml(item.label)}</span>
+          <input type="checkbox" id="routine-${escapeHtml(item.key)}" data-key="${escapeHtml(item.key)}"${state.checks[item.key] ? ' checked' : ''}>
+          <label class="check-label" for="routine-${escapeHtml(item.key)}">${escapeHtml(item.label)}</label>
           ${state.check_times[item.key]
             ? `<span class="check-actual" title="폰에서 자동으로 기록된 실제 시각">${escapeHtml(state.check_times[item.key])}</span>`
             : warnHtml}
-        </label>
+        </div>
       `;
       }).join('')}
     </div>
@@ -578,7 +580,7 @@ function renderBody(){
         <label for="workMemo">업무 메모</label>
         <textarea id="workMemo" placeholder="하루 중 생각날 때마다 자유롭게 적어두세요...">${escapeHtml(state.work_memo)}</textarea>
       </div>
-      <button class="ai-btn" id="summarizeBtn">✨ AI로 요약 정리하기</button>
+      <button class="ai-btn" id="summarizeBtn">AI로 요약 정리하기</button>
       <div class="summary-box" id="summaryBox" style="display:${state.work_summary ? 'block' : 'none'}">
         <div class="summary-head">AI 업무일지 요약</div>
         <div id="summaryText">${escapeHtml(state.work_summary)}</div>
