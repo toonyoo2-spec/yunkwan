@@ -474,17 +474,30 @@ function renderList(){
   document.getElementById('countLine').textContent = `${filtered.length}건`;
 }
 
+let listingsLoading = false;
 async function loadListings(){
-  const { data, error } = await sb
-    .from('campaign_listings')
-    .select('*')
-    .order('deadline_date', { ascending: true, nullsFirst: false });
-  if(error){
+  if(listingsLoading) return;
+  listingsLoading = true;
+  try {
+    const pageSize = 500;
+    const listings = [];
+    for(let offset = 0; ; offset += pageSize){
+      const { data, error } = await sb.from('campaign_listings').select('*')
+        .order('deadline_date', { ascending:true, nullsFirst:false })
+        .order('id', { ascending:true })
+        .range(offset, offset + pageSize - 1);
+      if(error) throw error;
+      listings.push(...(data || []));
+      if(!data || data.length < pageSize) break;
+    }
+    state.items = listings;
+    renderList();
+  } catch(error) {
     console.error(error);
-    return;
+    document.getElementById('countLine').textContent = '목록을 불러오지 못했어요. 잠시 후 다시 시도해요.';
+  } finally {
+    listingsLoading = false;
   }
-  state.items = data || [];
-  renderList();
 }
 
 window.addEventListener('authReady', () => {
