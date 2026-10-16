@@ -934,12 +934,16 @@ async function coupleInitAuth(){
     coupleLoggedIn = false;
     coupleShowLogin();
   }
-  sb.auth.onAuthStateChange(async (event, session) => {
+  sb.auth.onAuthStateChange((event, session) => {
     if(session){
       coupleLoggedIn = true;
       coupleHideLogin();
-      await calLoad();
-      await coupleLoad();
+      // Auth notifications run under the client's session lock. Fetch after it returns.
+      setTimeout(() => {
+        if(!coupleLoggedIn) return;
+        calLoad();
+        coupleLoad();
+      }, 0);
     } else {
       coupleLoggedIn = false;
       coupleItems = [];
