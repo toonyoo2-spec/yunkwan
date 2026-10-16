@@ -380,20 +380,24 @@
 
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-2">
-<script src="./app-ui.js?v=20261017-2" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-2">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-3">
+<script src="./app-ui.js?v=20261017-3" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-3">
 </head>
 <body>
 <script src="./nav.js?v=20261017"></script>
 <div class="wrap" id="appContent">
 
-  <div class="cal-panel">
+  <div class="cal-panel" id="calendarPanel">
     <div class="cal-header">
       <button class="cal-nav-btn" onclick="calChangeMonth(-1)">‹</button>
       <div class="cal-title" id="calTitle"></div>
       <button class="cal-nav-btn" onclick="calChangeMonth(1)">›</button>
       <button class="cal-add-couple-btn" onclick="coupleOpenAdd()">+ 일정 추가</button>
+    </div>
+    <div class="bk-view-switch" aria-label="일정 보기 방식">
+      <button type="button" data-calendar-view="list" onclick="calSetView('list')">일정 목록</button>
+      <button type="button" data-calendar-view="calendar" onclick="calSetView('calendar')">월간 달력</button>
     </div>
     <div class="cal-legend">
       <span><i class="dot confirm"></i>예약완료</span>
@@ -614,6 +618,15 @@ function calEventDate(it){
   return calNormalizeDate(it.resvDate);
 }
 
+let calViewMode = window.matchMedia('(max-width:820px)').matches ? 'list' : 'calendar';
+function calSetView(mode){
+  calViewMode = mode;
+  const panel = document.getElementById('calendarPanel');
+  panel.dataset.view = mode;
+  panel.querySelectorAll('[data-calendar-view]').forEach(button=>button.setAttribute('aria-pressed', String(button.dataset.calendarView === mode)));
+  if(mode === 'calendar') requestAnimationFrame(calPositionBars);
+}
+
 function calChangeMonth(delta){
   calCursor.setMonth(calCursor.getMonth() + delta);
   calRender();
@@ -788,6 +801,7 @@ function calRender(){
   });
   calPositionBars();
   calRenderAgenda(y, m);
+  calSetView(calViewMode);
 }
 
 function calRenderAgenda(y, m){
