@@ -1523,8 +1523,11 @@ document.getElementById('in-address').addEventListener('input', function(){
 });
 
 // 인증이 완료된 후에만 데이터를 로드하도록 이벤트 리스너 추가
+let reviewLiveStarted = false;
 window.addEventListener('authReady', function() {
   loadInitialData();
+  if(reviewLiveStarted) return;
+  reviewLiveStarted = true;
 
   // 다른 사람이 같은 테이블을 수정하면(다른 탭/기기 포함) 실시간으로 반영
   sb.channel('campaigns-changes')

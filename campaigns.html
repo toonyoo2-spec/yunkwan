@@ -500,9 +500,12 @@ async function loadListings(){
   }
 }
 
+let listingsLiveStarted = false;
 window.addEventListener('authReady', () => {
   renderChips();
   loadListings();
+  if(listingsLiveStarted) return;
+  listingsLiveStarted = true;
 
   document.getElementById('weekendOnly').addEventListener('change', (e) => {
     state.weekendOnly = e.target.checked;
