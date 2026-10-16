@@ -5,3 +5,8 @@ tools/stocks/market_runs/
 tools/stocks/시장후보.html
 tools/stocks/toss_connection_result.json
 tools/stocks/__pycache__/
+
+# Local coordination and browser evidence
+.shared/
+work/
+evidence/
