@@ -353,3 +353,19 @@
   .bk-app .bk-page-heading .bk-eyebrow { display:none; }
   .bk-app[data-page=review] #addFormBody .form-grid { grid-template-columns:minmax(0,1fr); }
 }
+
+/* Keep form spacing additive once, and keep the action row reachable in long dialogs. */
+.bk-app .bk-entry-body :is(.form-grid,.field-row) > .field { margin-bottom:0; }
+.bk-dialog-footer { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 24px; border-top:1px solid var(--line); background:white; }
+.bk-dialog-footer .bk-dialog-buttons { margin-left:auto; }
+.bk-app .bk-dialog-footer :is(.couple-save-btn,.cal-modal-del-btn) { width:auto; min-height:40px; margin:0; padding:8px 16px; }
+.bk-app[data-page=review] #edit-provide { min-height:88px; height:88px; }
+@media (max-width:820px) {
+  .bk-app[data-page=review] #addPanel .toolbar { flex-direction:row; align-items:center; justify-content:space-between; gap:12px; }
+  .bk-app[data-page=review] #addFormToggleBtn { width:auto; flex:0 0 auto; }
+  .bk-dialog-footer { padding:12px 16px; }
+}
+@media (max-width:480px) {
+  .bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) { grid-template-columns:minmax(0,1fr) !important; }
+  .bk-app[data-page=ledger] :is(.tx-form,.tx-edit-form) .bk-form-field { grid-column:1/-1; }
+}

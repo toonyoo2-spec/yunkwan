@@ -380,9 +380,9 @@
 
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-3">
-<script src="./app-ui.js?v=20261017-3" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-3">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-4">
+<script src="./app-ui.js?v=20261017-4" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-4">
 </head>
 <body>
 <script src="./nav.js?v=20261017"></script>
@@ -440,9 +440,10 @@
 
   <!-- 부부 일정 추가/수정 입력폼 팝업 -->
   <div class="cal-modal-overlay" id="coupleAddOverlay" onclick="if(event.target===this) coupleCloseAdd()">
-    <div class="cal-modal">
-      <button class="cal-modal-close" onclick="coupleCloseAdd()">✕</button>
-      <div class="cal-modal-title" id="coupleModalTitle" style="margin-bottom:16px;">일정 추가</div>
+    <div class="cal-modal bk-form-dialog">
+      <header class="bk-dialog-head"><button class="cal-modal-close" onclick="coupleCloseAdd()">✕</button>
+      <h3 class="cal-modal-title" id="coupleModalTitle">일정 추가</h3></header>
+      <div class="bk-dialog-body">
       <div class="owner-toggle" id="ownerToggle">
         <button type="button" data-owner="관" onclick="coupleSelectOwner('관')">관</button>
         <button type="button" data-owner="보라" onclick="coupleSelectOwner('보라')">보라</button>
@@ -472,9 +473,12 @@
         <label>메모</label>
         <textarea id="couple-in-memo" placeholder="장소, 준비물 등"></textarea>
       </div>
-      <button class="couple-save-btn" id="coupleSaveBtn" onclick="coupleAddEvent()">저장</button>
-      <button class="cal-modal-del-btn" id="coupleModalDelBtn" style="display:none; margin-top:8px; width:100%;" onclick="coupleDeleteEvent(coupleEditId)">삭제</button>
       <div class="couple-status-msg" id="coupleStatusMsg"></div>
+      </div>
+      <footer class="bk-dialog-footer">
+        <button class="cal-modal-del-btn" id="coupleModalDelBtn" style="display:none;" onclick="coupleDeleteEvent(coupleEditId)">삭제</button>
+        <div class="bk-dialog-buttons"><button type="button" class="ghost-btn" onclick="coupleCloseAdd()">취소</button><button class="couple-save-btn" id="coupleSaveBtn" onclick="coupleAddEvent()">저장</button></div>
+      </footer>
     </div>
   </div>
 
