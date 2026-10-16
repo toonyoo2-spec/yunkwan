@@ -4,17 +4,17 @@
    - 페이지별 고유 UI(캘린더, 리스트 등)는 각 파일의 <style>에 그대로 둡니다.
    ========================================================= */
 :root{
-  --bg:#f6f5f1;
-  --ink:#22221f;
-  --sub:#6b6a63;
-  --line:#e1dfd6;
+  --bg:#f7f6fb;
+  --ink:#262237;
+  --sub:#706b80;
+  --line:#e7e3ef;
   --card:#ffffff;
-  --accent:#3a5a52;
+  --accent:#7352b6;
 
   --wait-bg:#fdf3d9;   --wait-ink:#8a6d16;
   --conf-bg:#d4f4dd;   --conf-ink:#2d7a3e;
-  --done-bg:#e5e5e5;   --done-ink:#6b6a63;
-  --end-bg:#e5e5e5;    --end-ink:#6b6a63;
+  --done-bg:#e5e5e5;   --done-ink:#706b80;
+  --end-bg:#e5e5e5;    --end-ink:#706b80;
 
   /* 부부 일정 전용 색상 (사람별 구분, index.html에서만 사용) */
   --owner-gwan-bg:#fef3c7;    --owner-gwan-ink:#f59e0b;

@@ -1,0 +1,159 @@
+/* BORAKWAN shared UI. Loaded after page-specific styles on every app tab. */
+:root {
+  --bg:#f7f6fb; --ink:#292438; --sub:#70697f; --line:#e7e2ef;
+  --card:#fff; --accent:#7352b6; --accent-hover:#5c3b98;
+  --accent-soft:#f0eafb; --focus:#7352b6;
+  --radius-s:9px; --radius-m:16px; --radius-l:20px;
+  --shadow-card:0 3px 16px -10px rgba(52,33,84,.14);
+  --owner-gwan-ink:#946000; --owner-bora-ink:#7352b6; --owner-common-ink:#167259;
+}
+html { scroll-padding-top:24px; }
+body.bk-app { padding:0 36px 64px 264px; font-size:14px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+.bk-app .wrap { width:100%; max-width:1440px; margin-inline:auto; overflow:visible; }
+.bk-app button, .bk-app input, .bk-app select, .bk-app textarea { font-family:inherit; }
+.bk-app button, .bk-app a, .bk-app input, .bk-app select, .bk-app textarea { -webkit-tap-highlight-color:transparent; }
+.bk-app :is(button, a, input, select, textarea, [tabindex]):focus-visible { outline:3px solid var(--focus); outline-offset:3px; }
+.bk-app button { transition:background-color .15s, border-color .15s, box-shadow .15s; }
+.bk-app button:disabled { cursor:not-allowed; }
+.bk-app :is(.panel,.cal-panel,.stock-card,.trip-card,.proj-card,.doc-card,.card,.sum-card) { border-color:var(--line); border-radius:var(--radius-m); box-shadow:var(--shadow-card); }
+.bk-app :is(.panel,.cal-panel) { padding:24px; margin-bottom:24px; }
+.bk-app :is(h1,.bk-page-title) { font-size:30px; line-height:1.25; letter-spacing:-1px; font-weight:750; color:var(--ink); }
+.bk-app :is(h2,.panel h2,.section-head h2) { font-size:16px; line-height:1.5; }
+.bk-app .panel h2::before { display:none; }
+.bk-app .bk-page-heading { margin:6px 0 28px; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+.bk-app .bk-page-heading h1 { margin:0; }
+.bk-app .bk-page-heading p { margin:0; font-size:14px; color:var(--sub); line-height:1.7; }
+.bk-app .bk-page-heading .bk-eyebrow { font-size:12px; font-weight:650; color:var(--accent); }
+.bk-topline { display:flex; align-items:center; justify-content:space-between; max-width:1440px; margin:0 auto 30px; height:74px; border-bottom:1px solid var(--line); color:var(--sub); font-size:12px; gap:12px; }
+.bk-topline strong { color:var(--ink); font-weight:600; }
+.bk-topline span[aria-hidden] { margin:0 10px; color:#c6bdd4; }
+.bk-date { font-variant-numeric:tabular-nums; white-space:nowrap; }
+#bkNav { position:fixed; inset:0 auto 0 0; width:228px; z-index:100; display:flex; flex-direction:column; background:#fff; border-right:1px solid var(--line); padding:30px 18px 20px; overflow-y:auto; }
+.bk-brand-row { display:flex; align-items:center; justify-content:space-between; margin:0 5px 28px; }
+.bk-brand { display:flex; gap:10px; align-items:center; color:var(--ink); text-decoration:none; font-size:16px; font-weight:800; letter-spacing:.4px; }
+.bk-mark { display:grid; place-items:center; width:36px; height:38px; border-radius:12px; background:var(--accent); color:white; font-size:27px; font-weight:650; letter-spacing:-2px; }
+.bk-brand small { display:block; margin-top:2px; font-size:10px; font-weight:500; letter-spacing:.05em; color:var(--sub); }
+.bk-nav-group { padding:18px 14px 7px; color:var(--sub); font-size:11px; font-weight:600; letter-spacing:.1em; }
+.bk-nav-group:first-child { padding-top:0; }
+#bkNav .bk-card { display:flex; align-items:center; gap:12px; min-height:46px; margin:3px 0; padding:11px 14px; border-radius:10px; text-decoration:none; color:#696175; font-size:14px; font-weight:550; }
+#bkNav .bk-card:hover { color:var(--accent); background:#f8f5fd; }
+#bkNav .bk-card.active { color:var(--accent); background:var(--accent-soft); font-weight:700; }
+.bk-icon { display:flex; flex-shrink:0; }
+.bk-active-dot { width:5px; height:5px; border-radius:50%; margin-left:auto; background:var(--accent); }
+.bk-nav-footer { margin-top:auto; padding:28px 10px 0; display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--sub); font-size:11px; }
+.bk-refresh, .bk-toggle { display:grid; place-items:center; width:40px; height:40px; padding:0; border:1px solid var(--line); background:white; border-radius:10px; color:var(--sub); cursor:pointer; font-size:22px; }
+.bk-toggle { display:none; }
+.bk-skip { position:fixed; top:-100px; left:240px; z-index:20000; background:var(--accent); color:white; border-radius:8px; padding:10px 20px; }
+.bk-skip:focus { top:10px; }
+/* Identical controls, typography and selected states across all nine pages. */
+.bk-app :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=color]):not([type=range]),select,textarea) { min-height:44px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--ink); font-size:14px; padding:10px 12px; max-width:100%; min-width:0; }
+.bk-app textarea { line-height:1.6; min-height:90px; }
+.bk-app :is(input,select,textarea):focus { border-color:var(--accent); }
+.bk-app :is(.field label,.couple-field label) { font-size:13px; color:var(--sub); margin-bottom:7px; }
+.bk-app input::placeholder, .bk-app textarea::placeholder { color:#837b92; opacity:1; }
+.bk-app :is(.save-btn,.couple-save-btn,.ghost-btn,.add-btn,.cal-add-couple-btn,.cal-nav-btn,.date-nav button,.owner-toggle button,.type-toggle button,.tab,.chip,.cat-tab) { min-height:42px; font-size:13px; border-radius:9px; }
+.bk-app :is(.save-btn,.couple-save-btn,.cal-add-couple-btn,.ghost-btn.primary) { background:var(--accent); border-color:var(--accent); color:white; padding:10px 18px; font-weight:650; }
+.bk-app :is(.save-btn,.couple-save-btn,.cal-add-couple-btn,.ghost-btn.primary):hover { background:var(--accent-hover); }
+.bk-app :is(.tab.active,.chip.active,.owner-toggle button.active,.type-toggle button.active,.cat-tab.active) { background:var(--accent-soft); color:var(--accent); border-color:var(--accent); }
+.bk-app :is(.tabs,.subnav,.owner-toggle,.type-toggle,.cat-tabs) { gap:6px; }
+.bk-app .subnav { margin-bottom:22px; }
+.bk-app .subnav a { display:inline-flex; align-items:center; padding:9px 15px; min-height:42px; border-radius:9px; text-decoration:none; }
+.bk-app .subnav a.active { color:var(--accent); background:var(--accent-soft); border-color:var(--accent); }
+.bk-app :is(.summary,.kpis) { gap:14px; }
+.bk-app .sum-card { padding:20px; }
+.bk-app .sum-card .num { font-size:28px; font-variant-numeric:tabular-nums; }
+.bk-app .sum-card .lbl { font-size:13px; margin-top:4px; }
+.bk-app :is(.table-wrap,.table-card) { max-width:100%; overflow-x:auto; overscroll-behavior-x:contain; }
+.bk-app :is(th,td) { padding-top:13px; padding-bottom:13px; }
+.bk-app th { background:#faf8fd; color:var(--sub); }
+.bk-app :is(.empty,.empty-day) { color:var(--sub); line-height:1.8; padding:40px 20px; }
+.bk-app :is(.cal-modal,.modal-card) { border:1px solid var(--line); border-radius:20px; box-shadow:0 20px 70px rgba(45,26,77,.15); max-height:calc(100dvh - 40px); overflow-y:auto; }
+.bk-app :is(.cal-modal-overlay,.modal-overlay) { padding:20px; }
+.bk-app :is(.modal-close,.cal-modal-close) { min-width:40px; min-height:40px; }
+.bk-app .cal-title { font-size:20px; font-weight:700; }
+.bk-app .cal-nav-btn { min-width:40px; background:white; }
+.bk-app .cal-cell { min-height:112px; background:#fff; border-color:var(--line); border-radius:10px; }
+.bk-app .cal-cell.today { border-color:var(--accent); background:#f6f1ff; }
+.bk-app .cal-cell.other-month { background:#faf9fc; border-color:transparent; }
+.bk-app .cal-daynum { font-size:13px; }
+.bk-app .cal-legend { padding:12px 0 18px; margin:0; }
+.bk-app .cal-header { margin-bottom:4px; }
+.bk-app .cal-add-couple-btn { border-radius:9px; }
+.bk-app .stock-page { max-width:1440px; }
+.bk-app .hero { margin:6px 0 28px; }
+.bk-app :is(.badge,.regime-pill .pill) { font-weight:600; }
+.bk-app .regime-pill:not(.risk-off) .pill { background:var(--accent-soft); }
+.bk-app .date-nav { align-items:center; flex-wrap:wrap; }
+.bk-app .date-nav button { min-width:42px; }
+.bk-app .assessment { background:#f8f6fc; }
+/* Same login treatment for the shared gate, home and ledger. */
+.bk-app :is(#authGate,#authOverlay,#coupleLoginOverlay) { background:var(--bg); padding:24px; z-index:10000; }
+.bk-app :is(#authGate .box,#authOverlay .modal-card,#coupleLoginOverlay .cal-modal) { width:100%; max-width:410px !important; padding:32px; border:1px solid var(--line); border-radius:22px; background:white; box-shadow:0 16px 70px -35px rgba(66,37,105,.35); }
+.bk-app :is(#authGate .box,#authOverlay .modal-card,#coupleLoginOverlay .cal-modal)::before { content:'BORAKWAN'; display:block; color:var(--accent); font-size:13px; letter-spacing:2px; font-weight:800; margin-bottom:28px; }
+.bk-app :is(#authGate h2,#authOverlay .display,#coupleLoginOverlay .cal-modal-title) { font-size:24px !important; color:var(--ink); }
+.bk-app :is(#authGate p,#authOverlay p,#coupleLoginOverlay p) { font-size:14px !important; margin-bottom:24px !important; }
+.bk-app #authGate .field label { font-size:13px; }
+.bk-app #authGate .field input { min-height:46px; font-size:16px; border-color:var(--line); border-radius:9px; }
+.bk-app :is(#authGate button,#authOverlay .primary,#coupleLoginOverlay .couple-save-btn) { min-height:46px; background:var(--accent); border-radius:9px; font-size:14px; }
+@media (max-width:1100px) and (min-width:821px) {
+  body.bk-app { padding-left:238px; padding-right:24px; }
+  #bkNav { width:214px; padding-inline:14px; }
+  .bk-app .cal-header { justify-content:flex-start; gap:8px; }
+  .bk-app .cal-add-couple-btn { position:static; transform:none; margin-left:auto; }
+}
+@media (max-width:820px) {
+  html { scroll-padding-top:90px; }
+  body.bk-app { padding:0 16px calc(32px + env(safe-area-inset-bottom)); overflow-x:visible; }
+  #bkNav { position:sticky; inset:auto; top:0; width:auto; margin:0 -16px; padding:12px 16px; border-right:0; border-bottom:1px solid var(--line); overflow:visible; }
+  .bk-brand-row { margin:0; }
+  .bk-brand { font-size:14px; }
+  .bk-brand small { font-size:10px; }
+  .bk-mark { width:32px; height:34px; font-size:24px; }
+  .bk-toggle { display:grid; }
+  #bkNavLinks { display:none; }
+  #bkNav.is-open #bkNavLinks { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding-top:14px; }
+  .bk-nav-group,.bk-nav-footer { display:none; }
+  #bkNav .bk-card { padding:10px 6px; min-height:62px; justify-content:center; flex-direction:column; gap:5px; font-size:12px; margin:0; }
+  .bk-active-dot { display:none; }
+  .bk-topline { height:54px; margin-bottom:18px; font-size:11px; }
+  .bk-app :is(h1,.bk-page-title) { font-size:25px; letter-spacing:-.7px; }
+  .bk-app .bk-page-heading { margin-bottom:22px; gap:6px; }
+  .bk-app .bk-page-heading p { font-size:13px; }
+  .bk-app :is(.panel,.cal-panel) { padding:16px; border-radius:14px; margin-bottom:18px; }
+  .bk-app :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=color]):not([type=range]),select,textarea) { font-size:16px; }
+  .bk-app :is(.summary,.kpis) { gap:10px; }
+  .bk-app .sum-card { padding:14px; }
+  .bk-app .sum-card .num { font-size:24px; }
+  .bk-app .cal-header { flex-wrap:wrap; justify-content:center; gap:8px; }
+  .bk-app .cal-add-couple-btn { position:static; transform:none; margin:8px 0 4px; flex-basis:100%; }
+  .bk-app .cal-title { font-size:18px; min-width:110px; }
+  .bk-app .cal-grid { gap:3px; }
+  .bk-app .cal-cell { min-height:84px; padding:4px 2px; border-radius:6px; }
+  .bk-app .cal-legend { justify-content:flex-start; gap:8px 12px; font-size:11px; }
+  .bk-app .cal-daynum { font-size:12px; }
+  .bk-app .cal-dow { font-size:11px; }
+  .bk-app :is(.toolbar,.filter-row,.table-toolbar) { flex-wrap:wrap; gap:10px; }
+  .bk-app .topbar { justify-content:space-between; gap:12px; }
+  .bk-app .topbar .nav-center { position:static; transform:none; order:3; width:100%; justify-content:center; flex-wrap:wrap; }
+  .bk-app .form-grid { grid-template-columns:minmax(0,1fr); }
+  .bk-app :is(.form-row,.field-row) { min-width:0; }
+  .bk-app .form-row .field { min-width:0; flex-basis:calc(50% - 10px); }
+  .bk-app :is(.cal-modal,.modal-card) { max-height:calc(100dvh - 32px); }
+  .bk-app :is(.cal-modal-overlay,.modal-overlay) { padding:16px; }
+  .bk-app :is(#authGate .box,#authOverlay .modal-card,#coupleLoginOverlay .cal-modal) { padding:28px 24px; }
+  .bk-skip { left:16px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .bk-app *, .bk-app *::before, .bk-app *::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; }
+}
+/* Neutralize broad legacy header rules so the shared rail never shifts by page. */
+#bkNav { align-items:stretch; justify-content:flex-start; flex-wrap:nowrap; gap:0; margin-bottom:0; }
+.bk-app #authGate .field input:focus { border-color:var(--accent); }
+.bk-app .report-dialog { border:1px solid var(--line); border-radius:20px; }
+.bk-app .hero > .badge { background:var(--accent-soft); }
+@media (max-width:820px) {
+  /* Keep all statuses and registration available on a phone. */
+  .bk-app #addPanel { display:block; }
+  .bk-app .tabs .tab[data-key="end"] { display:inline-flex; align-items:center; }
+  .bk-app .tabs { max-width:100%; overflow-x:auto; flex-wrap:nowrap; }
+}
