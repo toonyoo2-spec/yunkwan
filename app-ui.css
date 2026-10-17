@@ -123,7 +123,7 @@ body.bk-app {margin:0;padding:0 40px 56px 268px;font-size:14px;line-height:1.55;
 .bk-sheet .edit-actions button:last-child {order:2;}
 .bk-app .bk-entry-panel[data-bk-entry],.bk-app #addPanel[data-bk-entry],.bk-app .bk-tx-entry {display:contents;}
 .bk-entry-panel[data-bk-entry]>.bk-entry-details>summary,#addPanel[data-bk-entry]>.toolbar,.bk-tx-entry>summary {display:none;}
-.bk-entry-body[data-bk-editor]:not(.bk-sheet),#addFormBody[data-bk-editor]:not(.bk-sheet),#txAddForm[data-bk-editor]:not(.bk-sheet) {display:none !important;}
+.bk-entry-body[data-bk-editor]:not(.bk-sheet),#addFormBody[data-bk-editor]:not(.bk-sheet),#txAddForm[data-bk-editor]:not(.bk-sheet),.tx-form-recur[data-bk-editor]:not(.bk-sheet) {display:none !important;}
 .bk-sheet .form-grid,.bk-sheet .field-row,.bk-sheet .edit-form-grid {gap:16px;}
 .bk-sheet .field,.bk-sheet .couple-field {margin-bottom:0;}
 .bk-sheet .form-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
