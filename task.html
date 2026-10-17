@@ -276,9 +276,9 @@
     .summary{grid-template-columns:repeat(2,1fr);}
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-workspace1">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-semantic3">
 <script src="./app-ui.js?v=20261017-workspace1" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-workspace1">
+<link rel="stylesheet" href="./app-content.css?v=20261017-semantic3">
 </head>
 <body>
 <script src="./nav.js?v=20261017-workspace1"></script>
@@ -380,10 +380,10 @@ document.addEventListener('visibilitychange', () => {
 });
 
 const STATUS_META = {
-  idea:  { label:"아이디어", cls:"idea" },
-  doing: { label:"진행중",   cls:"doing" },
-  done:  { label:"완료",     cls:"done" },
-  hold:  { label:"보류",     cls:"hold" },
+  idea:  { label:"○ 아이디어", cls:"idea" },
+  doing: { label:"□ 진행중",   cls:"doing" },
+  done:  { label:"✓ 완료",     cls:"done" },
+  hold:  { label:"− 보류",     cls:"hold" },
 };
 const STATUS_ORDER = ["idea","doing","done","hold"];
 
@@ -459,7 +459,7 @@ function renderSummary(){
   const counts = { idea:0, doing:0, done:0, hold:0 };
   projects.forEach(p => { if(counts[p.status] !== undefined) counts[p.status]++; });
   const defs = [
-    { key:"idea", label:"아이디어", cls:"idea" },
+    { key:"idea", label:"○ 아이디어", cls:"idea" },
     { key:"doing", label:"진행중", cls:"doing" },
     { key:"done", label:"완료", cls:"done" },
     { key:"hold", label:"보류", cls:"hold" },
