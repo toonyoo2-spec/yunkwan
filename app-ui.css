@@ -218,3 +218,6 @@ body.bk-app {margin:0;padding:0 40px 56px 268px;font-size:14px;line-height:1.55;
  .bk-app[data-page=ledger] .bk-sheet .bk-form-field>span {margin-bottom:4px;}
  .bk-app[data-page=ledger] .bk-sheet .bk-form-field :is(input,select) {min-width:0;padding-left:8px;padding-right:8px;}
  .bk-app[data-page=ledger] .bk-sheet .bk-recurring-end {grid-column:1/-1;}
+@media(max-width:820px) {
+ .bk-app[data-page=ledger] .bk-sheet {inset:auto 0 0 !important;height:auto !important;max-height:calc(100dvh - 12px) !important;}
+}
