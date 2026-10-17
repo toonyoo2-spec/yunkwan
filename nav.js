@@ -1,5 +1,5 @@
-/* Shared navigation for all BORAKWAN application pages. */
-(function () {
+/* BORAKWAN workspace navigation. Six focused modules, shared keyboard-accessible menu. */
+(function(){
   const icons = {
     home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/>',
     ledger: '<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h3M8 16h8"/>',
@@ -11,84 +11,35 @@
     task: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v10"/>',
     trip: '<path d="m3 11 18-8-8 18-2-8Z"/>'
   };
-  const items = [
-    ['index', 'home', '홈', '함께 보는 일정', '일정과 체험단 예약을 한눈에 확인해요.', '일상'],
-    ['ledger', 'ledger', '가계부', '우리 집 가계부', '수입과 지출을 기록하고 돈의 흐름을 살펴봐요.', '일상'],
-    ['routine', 'routine', '루틴', '루틴', '', '일상'],
-    ['review', 'review', '블로그', '블로그 체험단 관리', '예약부터 작성 완료까지, 체험단 진행 상황을 관리해요.', '기록'],
-    ['campaigns', 'campaigns', '체험단 확인', '체험단 확인', '', '기록'],
-    ['docs', 'docs', '보관함', '중요 문서함', '다시 찾을 문서와 링크를 한곳에 모아둬요.', '기록'],
-    ['task', 'task', 'Task', 'Task · 포트폴리오', '', '계획'],
-    ['trip', 'trip', '여행', '여행 계획표', '', '계획'],
-    ['stocks', 'stocks', '주식', '주식 기록', '', '계획']
-  ];
-  const file = location.pathname.split('/').pop() || 'index.html';
-  const current = items.find(item => `${item[0]}.html` === file) || items[0];
-  document.body.classList.add('bk-app');
-  document.body.dataset.page = current[0];
-  document.title = `${current[3]} · BORAKWAN`;
-  const svg = name => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
-  let group = '';
-  const links = items.map(item => {
-    const heading = group !== item[5] ? `<div class="bk-nav-group">${item[5]}</div>` : '';
-    group = item[5];
-    return `${heading}<a class="bk-card${item === current ? ' active' : ''}" href="./${item[0]}.html" ${item === current ? 'aria-current="page"' : ''}><span class="bk-icon">${svg(item[1])}</span><span>${item[2]}</span>${item === current ? '<span class="bk-active-dot" aria-hidden="true"></span>' : ''}</a>`;
-  }).join('');
-  const quickItems = items.filter(item => ['index','ledger','routine','review'].includes(item[0]));
-  const bottomLinks = quickItems.map(item => `<a href="./${item[0]}.html" ${item===current?'aria-current="page"':''}>${svg(item[1])}<span>${item[2]}</span></a>`).join('');
-  document.body.insertAdjacentHTML('afterbegin', `
-    <a class="bk-skip" href="#bkMain">본문으로 건너뛰기</a>
-    <header id="bkNav">
-      <div class="bk-brand-row"><a class="bk-brand" href="./index.html" aria-label="BORAKWAN 홈"><span class="bk-mark" aria-hidden="true">b.</span><span>BORAKWAN<small>우리의 일상 기록</small></span></a><div class="bk-mobile-tools"><span id="bkMobileAction"></span><button class="bk-toggle" type="button" aria-expanded="false" aria-controls="bkMenu" aria-label="전체 메뉴 열기">${svg('task')}</button></div></div>
-      <nav id="bkNavLinks" aria-label="주요 메뉴">${links}</nav>
-      <div class="bk-nav-footer"><span>일상 · 기록 · 계획</span><button class="bk-refresh" type="button" aria-label="현재 페이지 새로고침" title="새로고침">↻</button></div>
-    </header>
-    <div class="bk-topline"><span>${current[5]} <span aria-hidden="true">/</span> <strong>${current[2]}</strong></span><div><span class="bk-date">${new Intl.DateTimeFormat('ko-KR', {month:'long',day:'numeric',weekday:'short'}).format(new Date())}</span><button type="button" class="bk-menu-launch" aria-controls="bkMenu">${svg('campaigns')}<span>메뉴 찾기</span></button></div></div>
-    <nav class="bk-bottomnav" aria-label="빠른 이동">${bottomLinks}<button type="button" class="bk-more" aria-controls="bkMenu" ${quickItems.includes(current)?'':'aria-current="page"'}>${svg('task')}<span>전체 메뉴</span></button></nav>
-    <dialog id="bkMenu" aria-label="전체 메뉴"><header class="bk-dialog-head"><div><p class="bk-kicker">BORAKWAN</p><h2>어디로 이동할까요?</h2></div><button type="button" class="bk-icon-button bk-menu-close" aria-label="전체 메뉴 닫기">×</button></header><div class="bk-menu-body"><label class="bk-search"><span class="bk-sr-only">메뉴 검색</span><input type="search" id="bkMenuSearch" placeholder="메뉴 이름 검색" autocomplete="off"></label><div class="bk-menu-grid">${links}</div><p class="bk-menu-empty" hidden>일치하는 메뉴가 없어요.</p></div></dialog>
-  `);
-  const nav = document.getElementById('bkNav');
-  const toggle = nav.querySelector('.bk-toggle');
-  const menu = document.getElementById('bkMenu');
-  const menuSearch = document.getElementById('bkMenuSearch');
-  const openMenu = () => { if(menu.open) return; menu.showModal(); toggle.setAttribute('aria-expanded','true'); menuSearch.value=''; menuSearch.dispatchEvent(new Event('input')); menuSearch.focus(); };
-  toggle.addEventListener('click', openMenu);
-  document.querySelector('.bk-more').addEventListener('click', openMenu);
-  document.querySelector('.bk-menu-launch').addEventListener('click', openMenu);
-  menu.querySelector('.bk-menu-close').addEventListener('click',()=>menu.close());
-  menu.addEventListener('click',event=>{if(event.target===menu)menu.close();});
-  menu.addEventListener('close',()=>toggle.setAttribute('aria-expanded','false'));
-  menu.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();menu.close();}});
-  menuSearch.addEventListener('input',()=>{
-    let matches=0;
-    menu.querySelectorAll('.bk-card').forEach(link=>{link.hidden=!link.textContent.toLowerCase().includes(menuSearch.value.trim().toLowerCase());if(!link.hidden)matches++;});
-    menu.querySelector('.bk-menu-empty').hidden=matches>0;
-  });
-  document.addEventListener('keydown', event=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'&&!document.body.classList.contains('bk-modal-open')){event.preventDefault();openMenu();}});
-  nav.querySelector('.bk-refresh').addEventListener('click', () => location.reload());
-  document.addEventListener('DOMContentLoaded', () => {
-    const content = document.querySelector('#appContent, #app');
-    if (!content) return;
-    const main = document.createElement('div');
-    main.id = 'bkMain';
-    main.tabIndex = -1;
-    content.before(main);
-    if (content.tagName !== 'MAIN') content.setAttribute('role', 'main');
-    const addHeading = () => {
-      if (content.querySelector('h1')) return;
-      content.insertAdjacentHTML('afterbegin', `<header class="bk-page-heading"><p class="bk-eyebrow">${current[5]}</p><h1>${current[3]}</h1><p>${current[4]}</p></header>`);
-    };
-    addHeading();
-    // The ledger replaces its root when the month/year changes.
-    if (current[0] === 'ledger') new MutationObserver(addHeading).observe(content, { childList: true });
-    const heading = content.querySelector('h1');
-    if (heading) {
-      heading.classList.add('bk-page-title');
-      const header = heading.closest('header');
-      if (header) {
-        header.classList.add('bk-page-heading');
-        if (current[4] && !header.querySelector('p:not(.bk-eyebrow)')) header.insertAdjacentHTML('beforeend', `<p class="bk-page-description">${current[4]}</p>`);
-      }
-    }
-  });
+
+ const items=[
+  ['index','home','일정','일정','월간 일정과 예약을 함께 관리해요.'],
+  ['ledger','ledger','가계부','가계부','수입과 지출을 기록하고 흐름을 확인해요.'],
+  ['review','review','내 체험단','내 체험단','예약·방문·작성할 체험단을 관리해요.'],
+  ['campaigns','campaigns','모집 중','모집 중인 체험단','지역과 플랫폼으로 원하는 체험을 찾아요.'],
+  ['docs','docs','보관함','보관함','문서와 계정 정보를 필요할 때 빠르게 찾아요.'],
+  ['task','task','프로젝트','프로젝트','진행 중인 일과 결과물을 모아봐요.']
+ ];
+ const file=location.pathname.split('/').pop()||'index.html';
+ const current=items.find(i=>i[0]+'.html'===file)||items[0];
+ document.body.classList.add('bk-app');document.body.dataset.page=current[0];document.title=current[3]+' · BORAKWAN';
+ const svg=name=>`<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
+ const link=i=>`<a class="bk-card${i===current?' active':''}" href="./${i[0]}.html" ${i===current?'aria-current="page"':''}>${svg(i[1])}<span>${i[2]}</span></a>`;
+ const frequent=items.filter(i=>['index','ledger','review','docs'].includes(i[0]));
+ document.body.insertAdjacentHTML('afterbegin',`
+ <a class="bk-skip" href="#bkMain">본문으로 건너뛰기</a>
+ <header id="bkNav"><a class="bk-brand" href="./index.html" aria-label="BORAKWAN 홈"><span class="bk-mark">b.</span><strong>BORAKWAN</strong></a><nav id="bkNavLinks" aria-label="주요 메뉴">${items.map(link).join('')}</nav><div class="bk-mobile-tools"><span id="bkMobileAction"></span><button class="bk-toggle bk-icon-button" type="button" aria-controls="bkMenu" aria-expanded="false" aria-label="전체 메뉴 열기">${svg('task')}</button></div><button class="bk-refresh bk-icon-button" type="button" aria-label="현재 페이지 새로고침">↻</button></header>
+ <nav class="bk-bottomnav" aria-label="빠른 이동">${frequent.map(link).join('')}<button class="bk-more" type="button" aria-controls="bkMenu">${svg('task')}<span>전체</span></button></nav>
+ <dialog id="bkMenu" aria-label="전체 메뉴"><header class="bk-dialog-head"><h2>메뉴</h2><button class="bk-icon-button bk-menu-close" type="button" aria-label="전체 메뉴 닫기">×</button></header><div class="bk-menu-body"><label class="bk-search"><span class="bk-sr-only">메뉴 검색</span><input id="bkMenuSearch" type="search" placeholder="메뉴 검색" autocomplete="off"></label><div class="bk-menu-grid">${items.map(link).join('')}</div><p class="bk-menu-empty" hidden>일치하는 메뉴가 없어요.</p></div></dialog>`);
+ const menu=document.getElementById('bkMenu'),search=document.getElementById('bkMenuSearch'),toggle=document.querySelector('.bk-toggle');
+ const open=()=>{if(menu.open)return;menu.showModal();toggle.setAttribute('aria-expanded','true');search.value='';search.dispatchEvent(new Event('input'));search.focus()};
+ toggle.addEventListener('click',open);document.querySelector('.bk-more').addEventListener('click',open);document.querySelector('.bk-refresh').addEventListener('click',()=>location.reload());
+ menu.querySelector('.bk-menu-close').addEventListener('click',()=>menu.close());menu.addEventListener('click',e=>{if(e.target===menu)menu.close()});menu.addEventListener('close',()=>toggle.setAttribute('aria-expanded','false'));menu.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();menu.close()}});
+ search.addEventListener('input',()=>{let count=0;menu.querySelectorAll('.bk-card').forEach(a=>{a.hidden=!a.textContent.includes(search.value.trim());if(!a.hidden)count++});menu.querySelector('.bk-menu-empty').hidden=count>0});
+ document.addEventListener('DOMContentLoaded',()=>{
+  const content=document.querySelector('#appContent,#app');if(!content)return;
+  const skip=document.createElement('div');skip.id='bkMain';skip.tabIndex=-1;content.before(skip);content.setAttribute('role','main');
+  const heading=()=>{let h=content.querySelector('h1');if(!h){content.insertAdjacentHTML('afterbegin',`<header class="bk-page-heading"><h1>${current[3]}</h1><p>${current[4]}</p></header>`);h=content.querySelector('h1')}h.textContent=current[3];h.classList.add('bk-page-title');const head=h.closest('header')||h.parentElement;head.classList.add('bk-page-heading');};
+  heading();if(current[0]==='ledger')new MutationObserver(heading).observe(content,{childList:true});
+ });
 })();

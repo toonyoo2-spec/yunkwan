@@ -276,12 +276,12 @@
     .summary{grid-template-columns:repeat(2,1fr);}
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-product6">
-<script src="./app-ui.js?v=20261017-product6" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-product6">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-workspace1">
+<script src="./app-ui.js?v=20261017-workspace1" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-workspace1">
 </head>
 <body>
-<script src="./nav.js?v=20261017-product6"></script>
+<script src="./nav.js?v=20261017-workspace1"></script>
 <div class="wrap" id="appContent">
 
   <header>
@@ -289,7 +289,7 @@
     <p>이직을 준비하며 만들고 있는 프로젝트를 정리합니다. 상태와 성과를 같이 기록해두면 나중에 이력서 쓸 때 바로 꺼내 쓸 수 있어요.</p>
   </header>
 
-  <div class="summary" id="summary"></div>
+  <div class="summary" id="summary" hidden></div>
 
   <div class="panel bk-entry-panel">
     <h2>새 프로젝트 추가</h2>
@@ -475,7 +475,7 @@ function renderSummary(){
 function renderTabs(){
   const statusTabs = ["all", ...STATUS_ORDER];
   document.getElementById('statusTabs').innerHTML = statusTabs.map(s => `
-    <button class="tab ${statusFilter===s?'active':''}" onclick="setStatusFilter('${s}')">${s==='all'?'전체':STATUS_META[s].label}</button>
+    <button class="tab ${statusFilter===s?'active':''}" onclick="setStatusFilter('${s}')">${s==='all'?'전체':STATUS_META[s].label} <span>${s==='all'?projects.length:projects.filter(p=>p.status===s).length}</span></button>
   `).join('');
 
   const cats = Array.from(new Set(projects.map(p => (p.category||"").trim()).filter(Boolean)));

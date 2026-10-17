@@ -380,19 +380,15 @@
 
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-product6">
-<script src="./app-ui.js?v=20261017-product6" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-product6">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-workspace1">
+<script src="./app-ui.js?v=20261017-workspace1" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-workspace1">
 </head>
 <body>
-<script src="./nav.js?v=20261017-product6"></script>
+<script src="./nav.js?v=20261017-workspace1"></script>
 <div class="wrap" id="appContent">
 
-  <nav class="bk-home-links" aria-label="자주 하는 일">
-    <a href="./ledger.html?action=new">거래 기록<span>수입 · 지출 추가</span></a>
-    <a href="./routine.html">루틴 확인<span>오늘 체크 · 업무 메모</span></a>
-    <a href="./review.html">체험단 관리<span>예약 · 작성 상태</span></a>
-  </nav>
+  <div class="bk-calendar-workspace">
   <div class="cal-panel" id="calendarPanel">
     <div class="cal-header">
       <button class="cal-nav-btn" onclick="calChangeMonth(-1)">‹</button>
@@ -415,6 +411,9 @@
       <div class="cal-grid" id="calGrid"></div>
       <div class="cal-bars-layer" id="calBarsLayer"></div>
     </div>
+  </div>
+
+  <aside class="bk-day-panel" id="bkDayPanel" aria-label="선택한 날짜의 일정"></aside>
   </div>
 
   <!-- 이벤트 요약 상세 팝업 (체험단 / 부부 일정 공용) -->
@@ -628,6 +627,7 @@ function calEventDate(it){
 }
 
 let calViewMode = 'calendar';
+let calSelectedDate = calNormalizeDate(new Date());
 function calSetView(mode){
   calViewMode = mode;
   const panel = document.getElementById('calendarPanel');
@@ -778,7 +778,7 @@ function calRender(){
 
     const holidayHtml = holidayName ? `<div class="cal-holiday-name" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName.endsWith('대체공휴일') ? '대체휴일' : holidayName)}</div>` : '';
 
-    cells.push(`<div class="cal-cell ${isToday?'today':''}"><div class="cal-daynum-row"><div class="cal-daynum ${(isWeekend||holidayName)?'weekend':''}" title="${escapeHtml(holidayName)}">${d}</div></div>${holidayHtml}${slotsHtml}${eventsHtml}</div>`);
+    cells.push(`<div data-date="${dateStr}" onclick="if(event.target===this)calSelectDay('${dateStr}')" class="cal-cell ${calSelectedDate===dateStr?'selected':''} ${isToday?'today':''}"><div class="cal-daynum-row"><button type="button" aria-pressed="${calSelectedDate===dateStr}" class="cal-daynum cal-day-select ${(isWeekend||holidayName)?'weekend':''}" aria-label="${dateStr} 일정 보기" onclick="calSelectDay('${dateStr}')" title="${escapeHtml(holidayName)}">${d}</button></div>${holidayHtml}${slotsHtml}${eventsHtml}</div>`);
   }
 
   const totalSoFar = startOffset + daysInMonth;
@@ -796,13 +796,14 @@ function calRender(){
   calPositionBars();
   calRenderAgenda(y, m);
   calSetView(calViewMode);
+  calRenderSelectedDay();
 }
 
 function calRenderAgenda(y, m){
   let agenda = document.getElementById('calAgenda');
   if(!agenda){ agenda = document.createElement('section'); agenda.id = 'calAgenda'; agenda.className = 'bk-agenda'; document.querySelector('.cal-grid-wrap').after(agenda); }
   const month = `${y}-${String(m+1).padStart(2,'0')}`;
-  const entries = calItems.filter(it => it.status !== 'wait' && calEventDate(it).startsWith(month)).map(it => ({kind:'campaign',id:it.id,date:calEventDate(it),end:'',time:it.resvTime||'',title:it.name,meta:calStatusLabel[it.status]||''}));
+  const entries = calItems.filter(it => it.status !== 'wait' && calEventDate(it).startsWith(month)).map(it => ({kind:'campaign',id:it.id,date:calEventDate(it),end:'',time:it.resvTime||'',title:it.name,meta:calStatusLabel[it.status]||'',active:it.status==='confirm'}));
   coupleItems.filter(it => calDateRange(it.date,it.endDate).some(date=>date.startsWith(month))).forEach(it => entries.push({kind:'couple',id:it.id,date:it.date,end:it.endDate,time:it.time||'',title:it.title,meta:it.owner||'공통'}));
   entries.sort((a,b)=>(a.date+' '+a.time).localeCompare(b.date+' '+b.time));
   agenda.replaceChildren();
@@ -825,6 +826,31 @@ function calRenderAgenda(y, m){
     const summary=document.createElement('summary');summary.textContent=`지난 일정 ${earlier.length}건`;past.append(summary);
     earlier.forEach(entry=>appendEntry(entry,past));agenda.append(past);
   }
+}
+
+function calSelectDay(date){
+  calSelectedDate=date;
+  calRenderSelectedDay();
+  if(innerWidth<=820)document.getElementById('bkDayPanel')?.scrollIntoView({block:'nearest'});
+}
+function calAddSelected(){
+  coupleOpenAdd();
+  document.getElementById('couple-in-date').value=calSelectedDate;
+  document.getElementById('couple-in-endDate').value=calSelectedDate;
+}
+function calRenderSelectedDay(){
+  const pane=document.getElementById('bkDayPanel');if(!pane)return;
+  const month=`${calCursor.getFullYear()}-${String(calCursor.getMonth()+1).padStart(2,'0')}`;
+  if(!calSelectedDate.startsWith(month))calSelectedDate=month+'-01';
+  const date=calSelectedDate;
+  document.querySelectorAll('.cal-cell[data-date]').forEach(cell=>{cell.classList.toggle('selected',cell.dataset.date===date);cell.querySelector('.cal-day-select')?.setAttribute('aria-pressed',String(cell.dataset.date===date));});
+  const entries=calItems.filter(it=>it.status!=='wait'&&calEventDate(it)).map(it=>({id:it.id,kind:'campaign',date:calEventDate(it),end:calEventDate(it),time:it.resvTime||'',title:it.name,meta:calStatusLabel[it.status]||'',active:it.status==='confirm'}));
+  coupleItems.forEach(it=>entries.push({id:it.id,kind:'couple',date:it.date,end:it.endDate||it.date,time:it.time||'',title:it.title,meta:it.owner||'공통'}));
+  entries.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  const selected=entries.filter(it=>it.date<=date&&it.end>=date);
+  const next=entries.filter(it=>it.date>date&&it.active!==false).slice(0,3);
+  const row=it=>`<button type="button" class="bk-day-record" onclick="calShowDetail('${it.id}','${it.kind}')"><span>${escapeHtml(it.time||'시간 미정')} · ${escapeHtml(it.meta)}</span><strong>${escapeHtml(it.title)}</strong></button>`;
+  pane.innerHTML=`<div class="bk-day-head"><span class="bk-small-label">선택한 날짜</span><h2>${Number(date.slice(5,7))}월 ${Number(date.slice(8))}일 <small>${['일','월','화','수','목','금','토'][new Date(date+'T12:00:00').getDay()]}요일</small></h2><button type="button" class="bk-secondary" onclick="calAddSelected()">이날에 일정 추가</button></div><div class="bk-day-records">${selected.length?selected.map(row).join(''):'<p class="bk-day-empty">등록된 일정이 없어요.</p>'}</div>${next.length?`<div class="bk-next-events"><h3>다가오는 일정</h3>${next.map(it=>`<div><span class="bk-small-label">${it.date.slice(5).replace('-','/')}</span>${row(it)}</div>`).join('')}</div>`:''}<nav class="bk-quick-actions" aria-label="빠른 작업"><a href="./ledger.html?action=new">거래 기록 <span>↗</span></a><a href="./review.html?action=new">체험단 등록 <span>↗</span></a></nav>`;
 }
 
 function calSummaryTitle(value, kind){

@@ -310,12 +310,12 @@
     .doc-row .actions{width:100%;justify-content:flex-end;}
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-product6">
-<script src="./app-ui.js?v=20261017-product6" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-product6">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-workspace1">
+<script src="./app-ui.js?v=20261017-workspace1" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-workspace1">
 </head>
 <body>
-<script src="./nav.js?v=20261017-product6"></script>
+<script src="./nav.js?v=20261017-workspace1"></script>
 <div class="wrap" id="appContent">
 
   <header>
@@ -520,7 +520,7 @@ function credentialRowHtml(d){
           <span class="cat-badge">${escapeHtml(d.category||'기타')}</span>
           <span>${escapeHtml((d.uploadedAt||"").slice(0,10))}</span>
         </div>
-        <div class="cred-grid">
+        <details class="cred-details"><summary>계정 정보 보기</summary><div class="cred-grid">
           <div class="cred-item">
             <span class="cred-label">아이디</span>
             <span class="cred-value" id="${cidId}">${escapeHtml(d.accountId||'')}</span>
@@ -530,6 +530,7 @@ function credentialRowHtml(d){
             <span class="cred-value" id="${cpwId}">${escapeHtml(d.accountPw||'')}</span>
           </div>
         </div>
+        </details>
         ${d.memo ? `<div class="memo">${escapeHtml(d.memo)}</div>` : ''}
       </div>
       <div class="actions">
