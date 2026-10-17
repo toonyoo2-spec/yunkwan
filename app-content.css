@@ -276,3 +276,15 @@
 .bk-routine-progress progress::-webkit-progress-value {background:var(--accent);border-radius:5px;}
 @media(max-width:820px){.bk-app .sum-card:is(button){align-items:center;text-align:center;}}
 .bk-app[data-page=ledger] table.tx-table-main .tx-card-sub .pay-quick-select {max-width:100%;border:1px solid var(--line);border-radius:7px;background:white;padding:5px 24px 5px 8px;}
+
+/* Month previews use short titles; complete information stays in details and the agenda. */
+.bk-app[data-page=index] .cal-event {display:block;width:100%;min-height:32px;margin:0;border:0;text-align:left;cursor:pointer;line-height:1.3;padding:3px 4px;font-weight:550;}
+.bk-app[data-page=index] .cal-event-time {display:block;margin:0;white-space:nowrap;font-size:10px;line-height:1.3;font-weight:650;}
+.bk-app[data-page=index] .cal-event-title {display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;white-space:normal;line-height:1.3;}
+.bk-app[data-page=index] .cal-holiday-name {display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.3;}
+@media(max-width:820px){
+ .bk-app[data-page=index] .cal-panel {padding:12px;}
+ .bk-app[data-page=index] .cal-grid {gap:3px;}
+ .bk-app[data-page=index] .cal-event {padding:3px 1px;font-size:10px;}
+ .bk-app[data-page=index] .cal-event-time {font-size:9.5px;}
+}
