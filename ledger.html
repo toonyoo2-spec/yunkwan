@@ -710,6 +710,8 @@ tr.edit-row td{padding:12px 10px;}
 <link rel="stylesheet" href="./app-ui.css?v=20261017-semantic3">
 <script src="./app-ui.js?v=20261017-workspace1" defer></script>
 <link rel="stylesheet" href="./app-content.css?v=20261017-semantic3">
+<link rel="stylesheet" href="./workspace.css?v=20261017-apple1">
+<script src="./workspace.js?v=20261017-apple1" defer></script>
 </head>
 <body>
 <script src="./nav.js?v=20261017-workspace1"></script>
@@ -2593,6 +2595,17 @@ function renderMonth(ym){
         <details class="bk-money-breakdown"><summary>사용자별 수입</summary><div class="bk-money-owners">${kpiBlocks[1].lines.map(line=>`<button onclick="${line.onclick}"><span>${line.name}</span><b>${line.value}</b></button>`).join('')}</div></details>
       </section>
     </div>
+
+    <section class="bk-flow-overview section" aria-label="이번 달 수입과 지출 비교">
+      <div class="bk-flow-heading"><h2>이번 달의 흐름</h2><span>수입과 지출을 한눈에</span></div>
+      <div class="bk-flow-comparison">
+        <div class="bk-flow-bars">
+          <div class="bk-flow-row income"><span>수입</span><div class="bk-flow-track"><i style="width:${totalSummary.income / Math.max(totalSummary.income,totalSummary.expense,1)*100}%"></i></div><strong>${won(totalSummary.income)}</strong></div>
+          <div class="bk-flow-row expense"><span>지출</span><div class="bk-flow-track"><i style="width:${totalSummary.expense / Math.max(totalSummary.income,totalSummary.expense,1)*100}%"></i></div><strong>${won(totalSummary.expense)}</strong></div>
+        </div>
+        <div class="bk-flow-net"><span>수입 − 지출</span><strong class="${totalSummary.income-totalSummary.expense >= 0 ? 'income' : 'expense'}">${won(totalSummary.income-totalSummary.expense)}</strong><small>선택한 달의 기록 기준</small></div>
+      </div>
+    </section>
 
     <!-- 토글 버튼 -->
     <div class="section" style="margin-bottom:12px;">

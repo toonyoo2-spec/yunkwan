@@ -7,7 +7,7 @@
     배포 직후에도 새로고침 한 번으로 바로 최신 내용이 보이게 합니다.
   - 나머지 정적 파일만 stale-while-revalidate(캐시 먼저 보여주고 백그라운드 갱신)로 처리합니다.
 */
-const CACHE_NAME = "borakwan-shell-v33";
+const CACHE_NAME = "borakwan-shell-v34";
 
 /*
   어떤 페이지에 들어가도 항상 최신이어야 하는 공용 파일들.
@@ -25,6 +25,8 @@ const ALWAYS_FRESH = [
   "/panel-common.css",
   "/app-ui.css",
   "/app-content.css",
+  "/workspace.css",
+  "/workspace.js",
   "/app-ui.js",
   "/auth-gate.js",
 ];
@@ -63,6 +65,8 @@ const SHELL_FILES = [
   "./panel-common.css",
   "./app-ui.css",
   "./app-content.css",
+  "./workspace.css",
+  "./workspace.js",
   "./app-ui.js",
   "./campaigns.html",
   "./manifest.json",
