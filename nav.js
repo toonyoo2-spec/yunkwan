@@ -34,26 +34,37 @@
     group = item[5];
     return `${heading}<a class="bk-card${item === current ? ' active' : ''}" href="./${item[0]}.html" ${item === current ? 'aria-current="page"' : ''}><span class="bk-icon">${svg(item[1])}</span><span>${item[2]}</span>${item === current ? '<span class="bk-active-dot" aria-hidden="true"></span>' : ''}</a>`;
   }).join('');
+  const quickItems = items.filter(item => ['index','ledger','routine','review'].includes(item[0]));
+  const bottomLinks = quickItems.map(item => `<a href="./${item[0]}.html" ${item===current?'aria-current="page"':''}>${svg(item[1])}<span>${item[2]}</span></a>`).join('');
   document.body.insertAdjacentHTML('afterbegin', `
     <a class="bk-skip" href="#bkMain">본문으로 건너뛰기</a>
     <header id="bkNav">
-      <div class="bk-brand-row"><a class="bk-brand" href="./index.html" aria-label="BORAKWAN 홈"><span class="bk-mark" aria-hidden="true">b.</span><span>BORAKWAN<small>우리의 일상 기록</small></span></a><button class="bk-toggle" type="button" aria-expanded="false" aria-controls="bkNavLinks" aria-label="전체 메뉴 열기"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div>
+      <div class="bk-brand-row"><a class="bk-brand" href="./index.html" aria-label="BORAKWAN 홈"><span class="bk-mark" aria-hidden="true">b.</span><span>BORAKWAN<small>우리의 일상 기록</small></span></a><div class="bk-mobile-tools"><span id="bkMobileAction"></span><button class="bk-toggle" type="button" aria-expanded="false" aria-controls="bkMenu" aria-label="전체 메뉴 열기">${svg('task')}</button></div></div>
       <nav id="bkNavLinks" aria-label="주요 메뉴">${links}</nav>
-      <div class="bk-nav-footer"><span>함께 쌓아가는 하루</span><button class="bk-refresh" type="button" aria-label="현재 페이지 새로고침" title="새로고침">↻</button></div>
+      <div class="bk-nav-footer"><span>일상 · 기록 · 계획</span><button class="bk-refresh" type="button" aria-label="현재 페이지 새로고침" title="새로고침">↻</button></div>
     </header>
-    <div class="bk-topline"><span>우리의 공간 <span aria-hidden="true">/</span> <strong>${current[2]}</strong></span><span class="bk-date">${new Intl.DateTimeFormat('ko-KR', {month:'long',day:'numeric',weekday:'short'}).format(new Date())}</span></div>
+    <div class="bk-topline"><span>${current[5]} <span aria-hidden="true">/</span> <strong>${current[2]}</strong></span><div><span class="bk-date">${new Intl.DateTimeFormat('ko-KR', {month:'long',day:'numeric',weekday:'short'}).format(new Date())}</span><button type="button" class="bk-menu-launch" aria-controls="bkMenu">${svg('campaigns')}<span>메뉴 찾기</span></button></div></div>
+    <nav class="bk-bottomnav" aria-label="빠른 이동">${bottomLinks}<button type="button" class="bk-more" aria-controls="bkMenu" ${quickItems.includes(current)?'':'aria-current="page"'}>${svg('task')}<span>전체 메뉴</span></button></nav>
+    <dialog id="bkMenu" aria-label="전체 메뉴"><header class="bk-dialog-head"><div><p class="bk-kicker">BORAKWAN</p><h2>어디로 이동할까요?</h2></div><button type="button" class="bk-icon-button bk-menu-close" aria-label="전체 메뉴 닫기">×</button></header><div class="bk-menu-body"><label class="bk-search"><span class="bk-sr-only">메뉴 검색</span><input type="search" id="bkMenuSearch" placeholder="메뉴 이름 검색" autocomplete="off"></label><div class="bk-menu-grid">${links}</div><p class="bk-menu-empty" hidden>일치하는 메뉴가 없어요.</p></div></dialog>
   `);
   const nav = document.getElementById('bkNav');
   const toggle = nav.querySelector('.bk-toggle');
-  toggle.addEventListener('click', () => {
-    const expanded = toggle.getAttribute('aria-expanded') !== 'true';
-    toggle.setAttribute('aria-expanded', String(expanded));
-    toggle.setAttribute('aria-label', expanded ? '전체 메뉴 닫기' : '전체 메뉴 열기');
-    nav.classList.toggle('is-open', expanded);
+  const menu = document.getElementById('bkMenu');
+  const menuSearch = document.getElementById('bkMenuSearch');
+  const openMenu = () => { if(menu.open) return; menu.showModal(); toggle.setAttribute('aria-expanded','true'); menuSearch.value=''; menuSearch.dispatchEvent(new Event('input')); menuSearch.focus(); };
+  toggle.addEventListener('click', openMenu);
+  document.querySelector('.bk-more').addEventListener('click', openMenu);
+  document.querySelector('.bk-menu-launch').addEventListener('click', openMenu);
+  menu.querySelector('.bk-menu-close').addEventListener('click',()=>menu.close());
+  menu.addEventListener('click',event=>{if(event.target===menu)menu.close();});
+  menu.addEventListener('close',()=>toggle.setAttribute('aria-expanded','false'));
+  menu.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();menu.close();}});
+  menuSearch.addEventListener('input',()=>{
+    let matches=0;
+    menu.querySelectorAll('.bk-card').forEach(link=>{link.hidden=!link.textContent.toLowerCase().includes(menuSearch.value.trim().toLowerCase());if(!link.hidden)matches++;});
+    menu.querySelector('.bk-menu-empty').hidden=matches>0;
   });
-  nav.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && nav.classList.contains('is-open')) { toggle.click(); toggle.focus(); }
-  });
+  document.addEventListener('keydown', event=>{if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'&&!document.body.classList.contains('bk-modal-open')){event.preventDefault();openMenu();}});
   nav.querySelector('.bk-refresh').addEventListener('click', () => location.reload());
   document.addEventListener('DOMContentLoaded', () => {
     const content = document.querySelector('#appContent, #app');

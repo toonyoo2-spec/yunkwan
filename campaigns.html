@@ -236,12 +236,12 @@
 
   #appContent{display:none;}
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-5">
-<script src="./app-ui.js?v=20261017-5" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-5">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-product1">
+<script src="./app-ui.js?v=20261017-product1" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-product1">
 </head>
 <body>
-<script src="./nav.js?v=20261017"></script>
+<script src="./nav.js?v=20261017-product1"></script>
 <div class="wrap" id="appContent">
 
   <div class="subnav">
@@ -276,7 +276,7 @@
   </div>
 
   <div class="panel">
-    <div class="count-line" id="countLine"></div>
+    <div class="bk-discovery-tools"><label class="bk-search"><span class="bk-sr-only">체험단 검색</span><input type="search" id="listingSearch" placeholder="장소·체험내용 검색" autocomplete="off"></label><div class="count-line" id="countLine" role="status"></div></div>
     <div class="table-wrap">
       <table>
         <thead>
@@ -293,6 +293,7 @@
     </div>
     <div class="mobile-cards" id="cardList"></div>
     <div class="empty" id="emptyMsg" style="display:none;"></div>
+    <button type="button" id="listingMore" class="bk-secondary bk-load-more" hidden onclick="listingLimit += 30; renderList()">더 보기</button>
   </div>
 
 </div>
@@ -394,11 +395,17 @@ async function togglePicked(id, current){
   // realtime 구독이 다시 불러오므로 여기선 별도 갱신 안 해도 됨
 }
 
+let listingLimit = 30;
+let listingSignature = '';
 function renderList(){
+  const search = (document.getElementById('listingSearch')?.value || '').trim().toLocaleLowerCase();
+  const signature = JSON.stringify([[...state.regions].sort(),[...state.sources].sort(),state.weekendOnly,search]);
+  if(signature !== listingSignature){ listingLimit=30;listingSignature=signature; }
   // 마감일이 지난 건(수집만 되고 자동으로 안 지워지는 항목)은 기본 목록에서 빼서,
   // 새로고침해도 이미 끝난 캠페인들이 위쪽(마감일 오름차순이라 지난 날짜가 먼저 옴)에
   // 계속 쌓여 보이는 문제를 막는다. 찜한(picked) 건은 지나도 계속 보여준다.
   const filtered = state.items.filter(it =>
+    (!search || [it.title,it.reward_text,it.source,it.region_area].join(' ').toLocaleLowerCase().includes(search)) &&
     state.regions.has(it.region_area) &&
     state.sources.has(it.source) &&
     (!state.weekendOnly || it.weekend_ok === 'possible') &&
@@ -416,6 +423,10 @@ function renderList(){
     return 0;
   });
 
+  const visible = filtered.slice(0,listingLimit);
+  const more = document.getElementById('listingMore');
+  more.hidden = visible.length >= filtered.length;
+  more.textContent = `30건 더 보기 · ${Math.max(0,filtered.length-visible.length)}건 남음`;
   const tbody = document.getElementById('tbody');
   const cardList = document.getElementById('cardList');
   const emptyMsg = document.getElementById('emptyMsg');
@@ -429,7 +440,7 @@ function renderList(){
       : '선택한 조건에 해당하는 캠페인이 없습니다.';
   } else {
     emptyMsg.style.display = 'none';
-    tbody.innerHTML = filtered.map(it => `
+    tbody.innerHTML = visible.map(it => `
       <tr class="${it.picked ? 'picked' : ''}" data-id="${it.id}">
         <td class="pick-cell">
           <input type="checkbox" class="pick-box" ${it.picked ? 'checked' : ''} data-id="${it.id}" data-picked="${it.picked}">
@@ -447,7 +458,7 @@ function renderList(){
       </tr>
     `).join('');
 
-    cardList.innerHTML = filtered.map(it => `
+    cardList.innerHTML = visible.map(it => `
       <div class="camp-card ${it.picked ? 'picked' : ''}" data-id="${it.id}">
         <div class="card-top">
           <input type="checkbox" class="pick-box" ${it.picked ? 'checked' : ''} data-id="${it.id}" data-picked="${it.picked}">
@@ -471,7 +482,7 @@ function renderList(){
     });
   }
 
-  document.getElementById('countLine').textContent = `${filtered.length}건`;
+  document.getElementById('countLine').textContent = `${filtered.length}건 · ${visible.length}건 표시`;
 }
 
 let listingsLoading = false;
@@ -500,6 +511,7 @@ async function loadListings(){
   }
 }
 
+document.getElementById('listingSearch').addEventListener('input',renderList);
 let listingsLiveStarted = false;
 window.addEventListener('authReady', () => {
   renderChips();

@@ -310,12 +310,12 @@
     .doc-row .actions{width:100%;justify-content:flex-end;}
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-5">
-<script src="./app-ui.js?v=20261017-5" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-5">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-product1">
+<script src="./app-ui.js?v=20261017-product1" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-product1">
 </head>
 <body>
-<script src="./nav.js?v=20261017"></script>
+<script src="./nav.js?v=20261017-product1"></script>
 <div class="wrap" id="appContent">
 
   <header>
@@ -639,6 +639,7 @@ async function uploadDoc(){
     document.getElementById('in-cred-pw').value = "";
 
     await loadDocs();
+    window.BKUI?.closeEntry();
     return;
   }
 
@@ -693,6 +694,7 @@ async function uploadDoc(){
   pickedFile = null;
 
   await loadDocs();
+  window.BKUI?.closeEntry();
 }
 
 /* ---- 미리보기 (비공개 버킷 → 서명 URL로 5분간 유효한 링크 발급, 팝업으로 표시) ---- */
