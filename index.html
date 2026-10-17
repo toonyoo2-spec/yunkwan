@@ -382,7 +382,7 @@
 </style>
 <link rel="stylesheet" href="./app-ui.css?v=20261017-workspace1">
 <script src="./app-ui.js?v=20261017-workspace1" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-workspace1">
+<link rel="stylesheet" href="./app-content.css?v=20261017-calendar-color2">
 </head>
 <body>
 <script src="./nav.js?v=20261017-workspace1"></script>
@@ -400,12 +400,9 @@
       <button type="button" data-calendar-view="list" onclick="calSetView('list')">일정 목록</button>
       <button type="button" data-calendar-view="calendar" onclick="calSetView('calendar')">월간 달력</button>
     </div>
-    <div class="cal-legend">
-      <span><i class="dot confirm"></i>예약완료</span>
-      <span><i class="dot done"></i>체험완료</span>
-      <span><i class="dot owner-gwan"></i>관</span>
-      <span><i class="dot owner-bora"></i>보라</span>
-      <span><i class="dot owner-common"></i>공통</span>
+    <div class="cal-legend" aria-label="일정 색상과 체험단 상태 안내">
+      <div class="cal-legend-group"><span class="cal-legend-label">일정</span><span><i class="dot owner-gwan" aria-hidden="true"></i>관</span><span><i class="dot owner-bora" aria-hidden="true"></i>보라</span><span><i class="dot owner-common" aria-hidden="true"></i>공통</span></div>
+      <div class="cal-legend-group"><span class="cal-legend-label">체험단</span><span><i class="cal-state" aria-hidden="true">□</i>예약완료</span><span><i class="cal-state" aria-hidden="true">✓</i>체험완료</span><span><i class="cal-state" aria-hidden="true">−</i>종료</span></div>
     </div>
     <div class="cal-grid-wrap">
       <div class="cal-grid" id="calGrid"></div>
