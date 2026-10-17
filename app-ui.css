@@ -207,3 +207,14 @@ body.bk-app {margin:0;padding:0 40px 56px 268px;font-size:14px;line-height:1.55;
 .bk-app .bk-sheet {align-items:stretch !important;justify-content:flex-start !important;text-align:left;}
 .bk-sheet>:is(.bk-dialog-head,.bk-dialog-body,.bk-dialog-footer) {width:100%;max-width:none;}
 .bk-sheet[data-bk-edit=false]>.bk-dialog-footer {justify-content:flex-end;}
+
+/* Compact ledger fields: pair short controls and reserve full width for free text/payment. */
+ .bk-app[data-page=ledger] .bk-sheet .bk-sheet-fields {grid-template-columns:repeat(12,minmax(0,1fr));gap:12px;}
+ .bk-app[data-page=ledger] .bk-sheet .bk-form-field {grid-column:span 6;}
+ .bk-app[data-page=ledger] .bk-sheet .bk-form-field[data-field=scope]:has(+[data-field=date]) {grid-column:span 4;}
+ .bk-app[data-page=ledger] .bk-sheet .bk-form-field[data-field=date] {grid-column:span 8;}
+ .bk-app[data-page=ledger] .bk-sheet .bk-form-field:is([data-field=note],[data-field=payment],[data-field=pay]),
+ .bk-app[data-page=ledger] .bk-sheet .bk-sheet-fields:not(:has([data-field=type]))>.bk-form-field[data-field=amount] {grid-column:1/-1;}
+ .bk-app[data-page=ledger] .bk-sheet .bk-form-field>span {margin-bottom:4px;}
+ .bk-app[data-page=ledger] .bk-sheet .bk-form-field :is(input,select) {min-width:0;padding-left:8px;padding-right:8px;}
+ .bk-app[data-page=ledger] .bk-sheet .bk-recurring-end {grid-column:1/-1;}
