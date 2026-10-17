@@ -236,9 +236,9 @@
 
   #appContent{display:none;}
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-workspace1">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-semantic3">
 <script src="./app-ui.js?v=20261017-workspace1" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-workspace1">
+<link rel="stylesheet" href="./app-content.css?v=20261017-semantic3">
 </head>
 <body>
 <script src="./nav.js?v=20261017-workspace1"></script>
@@ -294,7 +294,7 @@
    =========================================================== */
 const REGION_AREAS = ['용산구','마포구','영등포구','서대문구','강서구','고양시','파주시'];
 const SOURCES = ['디너의여왕','강남맛집','놀러와체험단','리뷰노트','레뷰'];
-const WEEKEND_LABEL = { possible: '🟢 주말가능', impossible: '🔴 주말불가', unknown: '⚪ 확인필요' };
+const WEEKEND_LABEL = { possible: '✓ 주말가능', impossible: '× 주말불가', unknown: '? 확인필요' };
 
 const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
   auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true }
@@ -360,7 +360,8 @@ function deadlineBadge(item){
     let label = `D-${dleft}`;
     if(dleft < 0) label = '마감';
     else if(dleft === 0) label = '오늘마감';
-    if(dleft <= 3) cls = 'soon';
+    if(dleft < 0) cls = 'closed';
+    else if(dleft <= 3) cls = 'soon';
     else if(dleft <= 7) cls = 'near';
     return `<span class="badge deadline ${cls}">${label}</span>`;
   }

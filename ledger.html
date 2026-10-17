@@ -707,9 +707,9 @@ tr.edit-row td{padding:12px 10px;}
 }
 
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-workspace1">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-semantic3">
 <script src="./app-ui.js?v=20261017-workspace1" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-workspace1">
+<link rel="stylesheet" href="./app-content.css?v=20261017-semantic3">
 </head>
 <body>
 <script src="./nav.js?v=20261017-workspace1"></script>
@@ -902,7 +902,7 @@ const TAXONOMY = {
 const TRANSFER_COUNTERPART_PAYMENT = { "농협[관]": "하나[보라]", "하나[보라]": "농협[관]" };
 const SCOPES = ["공동", "보라", "관"];
 // index.html 부부 일정 캘린더와 동일한 색상 체계(common.css의 --owner-* 변수)를 그대로 씀 —
-// 사이트 전체에서 "공동=초록 · 보라=보라 · 관=파랑"이 항상 같은 의미가 되도록.
+// 사이트 전체에서 공동=슬레이트 블루 · 보라=보라 · 관=황토색을 공유한다.
 const SCOPE_COLOR = {
   "공동": "var(--owner-common-ink)",
   "보라": "var(--owner-bora-ink)",
@@ -2311,8 +2311,8 @@ function renderIncomeExpenseChart(){
     data:{
       labels: MONTH_NAMES,
       datasets:[
-        {label:'수입', data:monthly.map(m=>m.income), backgroundColor:'#2F6F4E', borderRadius:4, maxBarThickness:22},
-        {label:'지출', data:monthly.map(m=>m.expense), backgroundColor:'#B5495B', borderRadius:4, maxBarThickness:22},
+        {label:'수입', data:monthly.map(m=>m.income), backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--income').trim(), borderRadius:4, maxBarThickness:22},
+        {label:'지출', data:monthly.map(m=>m.expense), backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--expense').trim(), borderRadius:4, maxBarThickness:22},
       ]
     },
     options:{
@@ -2901,7 +2901,7 @@ function renderCompareChart(ym){
     type:'bar',
     data:{ labels:cats.length?cats:['데이터 없음'], datasets:[
       {label:compareOptions(ym).find(o=>o.value===state.compareYm)?.label || '비교월', data:cats.length?prevByCat:[0], backgroundColor:'#D9D5C6', borderRadius:4, maxBarThickness:16},
-      {label:'이번 달', data:cats.length?curByCat:[0], backgroundColor:'#B5495B', borderRadius:4, maxBarThickness:16},
+      {label:'이번 달', data:cats.length?curByCat:[0], backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--expense').trim(), borderRadius:4, maxBarThickness:16},
     ]},
     options:{
       indexAxis:'y', responsive:true,
