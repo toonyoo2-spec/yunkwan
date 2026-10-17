@@ -175,7 +175,7 @@
     });
     document.querySelectorAll('.bk-form-dialog .bk-chrome-title').forEach(title=>{
       const body=title.closest('.bk-form-dialog').querySelector('.bk-dialog-body');
-      const source=body?.querySelector('#modalBody > h3,#modalBody > h2,.detail-title,.cal-modal-name');
+      const source=body?.querySelector('#modalBody > h3,#modalBody > h2,.detail-title,.cal-modal-name,#calModalBody > .cal-modal-title');
       if(source){if(!source.classList.contains('bk-dialog-source-title'))source.classList.add('bk-dialog-source-title');if(title.textContent!==source.textContent)title.textContent=source.textContent;}
     });
   }
