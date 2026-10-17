@@ -50,7 +50,12 @@
       const cancel=button('취소','ghost-btn',closeSheet);
       footer.prepend(cancel);if(actions)actions.classList.add('bk-entry-submit');
     }
-    if(page()==='ledger')body.classList.add('bk-sheet-fields');
+    if(page()==='ledger'){
+      body.classList.add('bk-sheet-fields');
+      const note=body.querySelector(':scope>.bk-form-field[data-field=note]');
+      const amount=body.querySelector(':scope>.bk-form-field[data-field=amount]');
+      if(note&&amount)note.before(amount);
+    }
     host.append(head,body,footer);
     if(edit)openSheet(host);
   }
