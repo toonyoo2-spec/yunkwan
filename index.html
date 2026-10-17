@@ -380,12 +380,12 @@
 
   }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-product4">
-<script src="./app-ui.js?v=20261017-product4" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-product4">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-product5">
+<script src="./app-ui.js?v=20261017-product5" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-product5">
 </head>
 <body>
-<script src="./nav.js?v=20261017-product4"></script>
+<script src="./nav.js?v=20261017-product5"></script>
 <div class="wrap" id="appContent">
 
   <nav class="bk-home-links" aria-label="자주 하는 일">
@@ -772,26 +772,11 @@ function calRender(){
       return ta.localeCompare(tb);
     });
 
-    const eventsHtml = dayEntries.map(entry => {
-      if(entry.kind === 'campaign'){
-        const it = entry.data;
-        const timeLabel = it.resvTime ? `${escapeHtml(it.resvTime)} ` : '';
-        const statusLabel = `[${calStatusLabel[it.status]||it.status}]`;
-        return `<div class="cal-event ${it.status}" onclick="calShowDetail('${it.id}','campaign')" title="${timeLabel}${statusLabel} ${escapeHtml(it.name)}"><span class="cal-event-time">${timeLabel}</span>${statusLabel} ${escapeHtml(it.name)}</div>`;
-      } else {
-        const it = entry.data;
-        let timeLabel = it.time ? escapeHtml(it.time) : '';
-        if(it.endTime) timeLabel = timeLabel ? `${timeLabel}~${escapeHtml(it.endTime)}` : escapeHtml(it.endTime);
-        if(timeLabel) timeLabel += ' ';
-        const ownerClass = coupleOwnerClass(it);
-        const ownerLabel = `[${escapeHtml(it.owner||'관')}]`;
-        return `<div class="cal-event ${ownerClass}" onclick="calShowDetail('${it.id}','couple')" title="${timeLabel}${ownerLabel} ${escapeHtml(it.title)}"><span class="cal-event-time">${timeLabel}</span>${ownerLabel} ${escapeHtml(it.title)}</div>`;
-      }
-    }).join('');
+    const eventsHtml = dayEntries.map(calEventHtml).join('');
 
     const slotsHtml = rc ? slotsHtmlForCol(rc.row, rc.col) : '';
 
-    const holidayHtml = holidayName ? `<div class="cal-holiday-name" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName)}</div>` : '';
+    const holidayHtml = holidayName ? `<div class="cal-holiday-name" title="${escapeHtml(holidayName)}">${escapeHtml(holidayName.endsWith('대체공휴일') ? '대체휴일' : holidayName)}</div>` : '';
 
     cells.push(`<div class="cal-cell ${isToday?'today':''}"><div class="cal-daynum-row"><div class="cal-daynum ${(isWeekend||holidayName)?'weekend':''}" title="${escapeHtml(holidayName)}">${d}</div></div>${holidayHtml}${slotsHtml}${eventsHtml}</div>`);
   }
@@ -842,6 +827,27 @@ function calRenderAgenda(y, m){
   }
 }
 
+function calSummaryTitle(value, kind){
+  const original = String(value || '').replace(/\s+/g,' ').trim();
+  if(kind !== 'campaign') return original;
+  // Calendar-only preview: retain the original business name in details/list/accessible label.
+  const core = original.replace(/\s*[（(][^()（）]*[)）]/g,'').trim();
+  const parts = core.split(/\s+/);
+  if(parts.length > 1 && /(?:본점|지점|점)$/.test(parts[parts.length-1])) parts.pop();
+  return parts.join(' ') || original;
+}
+function calCompactTime(value){ return String(value || '').slice(0,5).replace(/^0(?=\d:)/,''); }
+function calEventHtml(entry){
+  const it = entry.data, campaign = entry.kind === 'campaign';
+  const time = campaign ? it.resvTime : it.time;
+  const name = campaign ? it.name : it.title;
+  const meta = campaign ? (calStatusLabel[it.status] || it.status) : (it.owner || '관');
+  const fullTime = campaign ? time : [it.time,it.endTime].filter(Boolean).join(' ~ ');
+  const full = [fullTime,meta,name].filter(Boolean).join(' · ');
+  const cls = campaign ? it.status : coupleOwnerClass(it);
+  return `<button type="button" class="cal-event ${cls}" onclick="calShowDetail('${it.id}','${entry.kind}')" title="${escapeHtml(full)}" aria-label="${escapeHtml(full)} 상세 보기">${time ? `<span class="cal-event-time">${escapeHtml(calCompactTime(time))}</span>` : ''}<span class="cal-event-title">${escapeHtml(calSummaryTitle(name,entry.kind))}</span></button>`;
+}
+
 function calDateRowCol(dateStr, y, m){
   const [ey, em, ed] = dateStr.split('-').map(Number);
   if(ey !== y || em !== m+1) return null;
@@ -872,12 +878,12 @@ function calPositionBars(){
     const it = seg.it;
     const ownerClass = coupleOwnerClass(it);
     const roundClass = (seg.isGlobalStart ? 'round-left ' : '') + (seg.isGlobalEnd ? 'round-right' : '');
-    const label = coupleTimeLabel(it, seg.isGlobalStart, seg.isGlobalEnd);
+    const label = seg.isGlobalStart ? calCompactTime(it.time) : '';
     const ownerLabel = `[${escapeHtml(it.owner||'관')}]`;
-    const text = (label ? label + ' ' : '') + ownerLabel + ' ' + escapeHtml(it.title);
+    const text = (label ? escapeHtml(label) + ' ' : '') + escapeHtml(calSummaryTitle(it.title,'couple'));
     const style = `left:${left - wrapRect.left}px; top:${top - wrapRect.top}px; width:${right-left}px; height:${bottom-top}px;`;
     const titleAttr = `${it.time?escapeHtml(it.time):''}${it.endTime?('~'+escapeHtml(it.endTime)):''} ${ownerLabel} ${escapeHtml(it.title)}`;
-    return `<div class="cal-bar ${ownerClass} ${roundClass}" style="${style}" onclick="calShowDetail('${it.id}','couple')" title="${titleAttr}">${text}</div>`;
+    return `<div class="cal-bar ${ownerClass} ${roundClass}" role="button" tabindex="0" aria-label="${titleAttr} 상세 보기" style="${style}" onclick="calShowDetail('${it.id}','couple')" title="${titleAttr}">${text}</div>`;
   }).join('');
 
   layer.innerHTML = html;
