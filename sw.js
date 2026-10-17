@@ -7,7 +7,7 @@
     배포 직후에도 새로고침 한 번으로 바로 최신 내용이 보이게 합니다.
   - 나머지 정적 파일만 stale-while-revalidate(캐시 먼저 보여주고 백그라운드 갱신)로 처리합니다.
 */
-const CACHE_NAME = "borakwan-shell-v23";
+const CACHE_NAME = "borakwan-shell-v24";
 
 /*
   어떤 페이지에 들어가도 항상 최신이어야 하는 공용 파일들.

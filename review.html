@@ -684,12 +684,12 @@
   }
 }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-5">
-<script src="./app-ui.js?v=20261017-5" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-5">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-product1">
+<script src="./app-ui.js?v=20261017-product1" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-product1">
 </head>
 <body>
-<script src="./nav.js?v=20261017"></script>
+<script src="./nav.js?v=20261017-product1"></script>
 <div class="wrap" id="appContent">
 
   <div class="subnav">
@@ -1045,6 +1045,7 @@ async function addItem(){
     return;
   }
   await loadInitialData();
+  window.BKUI?.closeEntry();
 
   document.getElementById('in-region').value = "";
   document.getElementById('in-name').value = "";
@@ -1352,10 +1353,10 @@ function render(){
   const counts = { wait:0, confirm:0, done:0, end:0 };
   items.forEach(it => counts[it.status]++);
   document.getElementById('summary').innerHTML = `
-    <div class="sum-card wait"><div class="num">${counts.wait}</div><div class="lbl">예약대기</div></div>
-    <div class="sum-card conf"><div class="num">${counts.confirm}</div><div class="lbl">예약완료</div></div>
-    <div class="sum-card done"><div class="num">${counts.done}</div><div class="lbl">체험완료</div></div>
-    <div class="sum-card end"><div class="num">${counts.end}</div><div class="lbl">종료</div></div>
+    <button type="button" class="sum-card wait" onclick="setFilter('wait')"><span class="num">${counts.wait}</span><span class="lbl">예약대기</span></button>
+    <button type="button" class="sum-card conf" onclick="setFilter('confirm')"><span class="num">${counts.confirm}</span><span class="lbl">예약완료</span></button>
+    <button type="button" class="sum-card done" onclick="setFilter('done')"><span class="num">${counts.done}</span><span class="lbl">체험완료</span></button>
+    <button type="button" class="sum-card end" onclick="setFilter('end')"><span class="num">${counts.end}</span><span class="lbl">종료</span></button>
   `;
 
   const tabDefs = [
@@ -1409,7 +1410,7 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
       ? `${normalizeDate(it.resvDate).slice(5).replace('-', '/')}${it.resvTime ? ' ' + it.resvTime : ''}`
       : "";
     return `
-      <tr>
+      <tr data-search="${escapeHtml([it.name,it.region,it.provide,it.address,it.contact,it.parking,it.keyword,it.platform].join(' '))}">
         <td data-label="지역" class="ellipsis-cell" title="${escapeHtml(it.region)}">
           ${escapeHtml(it.region) || '-'}
           ${doneActionHtml(it)}
@@ -1437,7 +1438,7 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
     const deadlineStr = normalizeDate(it.deadline);
     const dateLabel = resvText ? `예약 ${resvText}` : (deadlineStr ? `마감 ${deadlineStr.slice(5)}` : '');
     return `
-      <div class="rv-card" onclick="openDetailModal('${it.id}')">
+      <div class="rv-card" data-search="${escapeHtml([it.name,it.region,it.provide,it.address,it.contact,it.parking,it.keyword,it.platform].join(' '))}" onclick="openDetailModal('${it.id}')">
         <div class="rv-row1">
           <button type="button" class="rv-name bk-record-title" onclick="event.stopPropagation();openDetailModal('${it.id}')" style="color:${STATUS_INK[it.status] || 'inherit'};">${escapeHtml(it.name)} ${postBadgeHtml(it)}</button>
           <span style="font-size:11.5px;white-space:nowrap;flex-shrink:0;">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>
@@ -1474,7 +1475,7 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
         </div>
       </div>`;
     return sec.key === 'end'
-      ? `<details class="status-section bk-archive" ${filter === 'end' ? 'open' : ''}><summary>종료된 체험단 <span>${secItems.length}건 · 펼쳐보기</span></summary>${tableHtml}</details>`
+      ? `<details class="status-section bk-archive" ${filter === 'end' ? 'open' : ''}><summary>종료된 체험단 <span>${secItems.length}건</span></summary>${tableHtml}</details>`
       : `<section class="status-section">${title}${tableHtml}</section>`;
   }).join('');
   tableSectionsEl.innerHTML = sectionsHtml;
@@ -1487,7 +1488,7 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
       const cardsHtml = secItems.map(cardHtml).join('');
       const body = `<div class="rv-cards">${cardsHtml}</div>`;
       return sec.key === 'end'
-        ? `<details class="status-section bk-archive" ${filter === 'end' ? 'open' : ''}><summary>종료된 체험단 <span>${secItems.length}건 · 펼쳐보기</span></summary>${body}</details>`
+        ? `<details class="status-section bk-archive" ${filter === 'end' ? 'open' : ''}><summary>종료된 체험단 <span>${secItems.length}건</span></summary>${body}</details>`
         : `<section class="status-section">${title}${body}</section>`;
     }).join('');
   }
