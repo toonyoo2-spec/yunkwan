@@ -236,12 +236,12 @@
 
   #appContent{display:none;}
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-product6">
-<script src="./app-ui.js?v=20261017-product6" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-product6">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-workspace1">
+<script src="./app-ui.js?v=20261017-workspace1" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-workspace1">
 </head>
 <body>
-<script src="./nav.js?v=20261017-product6"></script>
+<script src="./nav.js?v=20261017-workspace1"></script>
 <div class="wrap" id="appContent">
 
   <div class="subnav">
@@ -257,7 +257,7 @@
   </header>
 
   <div class="panel">
-    <div class="filter-row">
+    <details class="bk-filter-panel" open><summary>지역·플랫폼 필터</summary><div class="filter-row">
       <div>
         <div class="lbl">지역</div>
         <div class="chip-group" id="regionChips"></div>
@@ -272,25 +272,12 @@
           주말 가능 확인된 것만 보기
         </label>
       </div>
-    </div>
+    </div></details>
   </div>
 
   <div class="panel">
     <div class="bk-discovery-tools"><label class="bk-search"><span class="bk-sr-only">체험단 검색</span><input type="search" id="listingSearch" placeholder="장소·체험내용 검색" autocomplete="off"></label><div class="count-line" id="countLine" role="status"></div></div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th></th>
-            <th>지역</th>
-            <th>장소명</th>
-            <th>체험내용</th>
-            <th>마감 · 주말</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
+    <div id="tbody" hidden></div>
     <div class="mobile-cards" id="cardList"></div>
     <div class="empty" id="emptyMsg" style="display:none;"></div>
     <button type="button" id="listingMore" class="bk-secondary bk-load-more" hidden onclick="listingLimit += 30; renderList()">더 보기</button>
@@ -300,6 +287,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
+<script src="./common.js"></script>
 <script>
 /* ===========================================================
    지역/사이트 캐노니컬 정의 + Supabase 연동 (campaign_listings 테이블)
@@ -440,33 +428,17 @@ function renderList(){
       : '선택한 조건에 해당하는 캠페인이 없습니다.';
   } else {
     emptyMsg.style.display = 'none';
-    tbody.innerHTML = visible.map(it => `
-      <tr class="${it.picked ? 'picked' : ''}" data-id="${it.id}">
-        <td class="pick-cell">
-          <input type="checkbox" class="pick-box" ${it.picked ? 'checked' : ''} data-id="${it.id}" data-picked="${it.picked}">
-        </td>
-        <td class="region-cell">
-          <span class="badge region">${it.region_area}</span>
-          <span class="badge source">${it.source}</span>
-        </td>
-        <td class="place-cell"><a href="${it.url || '#'}" target="_blank" rel="noopener">${placeName(it)}</a></td>
-        <td class="content-cell">${it.reward_text || '-'}</td>
-        <td class="status-cell">
-          ${deadlineBadge(it)}
-          <span class="weekend-tag ${it.weekend_ok}">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>
-        </td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = '';
 
     cardList.innerHTML = visible.map(it => `
       <div class="camp-card ${it.picked ? 'picked' : ''}" data-id="${it.id}">
         <div class="card-top">
-          <input type="checkbox" class="pick-box" ${it.picked ? 'checked' : ''} data-id="${it.id}" data-picked="${it.picked}">
+          <input type="checkbox" class="pick-box" aria-label="${escapeHtml(placeName(it))} 찜하기" ${it.picked ? 'checked' : ''} data-id="${it.id}" data-picked="${it.picked}">
           <span class="badge region">${it.region_area}</span>
           <span class="badge source" style="margin-top:0;">${it.source}</span>
         </div>
-        <a class="card-title" href="${it.url || '#'}" target="_blank" rel="noopener">${placeName(it)}</a>
-        <div class="card-content">${it.reward_text || '-'}</div>
+        <a class="card-title" href="${it.url || '#'}" target="_blank" rel="noopener">${escapeHtml(placeName(it))}</a>
+        <div class="card-content">${escapeHtml(it.reward_text || '-')}</div>
         <div class="card-status">
           ${deadlineBadge(it)}
           <span class="weekend-tag ${it.weekend_ok}">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>

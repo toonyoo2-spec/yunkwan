@@ -707,12 +707,12 @@ tr.edit-row td{padding:12px 10px;}
 }
 
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-product6">
-<script src="./app-ui.js?v=20261017-product6" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-product6">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-workspace1">
+<script src="./app-ui.js?v=20261017-workspace1" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-workspace1">
 </head>
 <body>
-<script src="./nav.js?v=20261017-product6"></script>
+<script src="./nav.js?v=20261017-workspace1"></script>
 <div id="app" class="wrap"></div>
 
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal()">
@@ -2097,7 +2097,7 @@ function render(){
       </div>
     </div>
     <div id="view"></div>
-    <footer class="foot">yunkwan.cloud · ledger.html — 데이터는 Supabase에 저장되며 로그인한 모든 기기에서 동기화됩니다.</footer>
+    <footer class="foot">로그인한 기기에서 기록이 동기화됩니다.</footer>
   `;
 
   if(isSummary) renderSummary();
@@ -2585,12 +2585,12 @@ function renderMonth(ym){
           <button class="bk-budget-link" onclick="setMonthlyBudget('${ym}')">${monthlyBudget ? `예산 ${budgetDiff<0 ? won(Math.abs(budgetDiff))+' 초과' : won(budgetDiff)+' 남음'}` : '예산 설정'}</button>
         </div>
         <button class="bk-money-value" onclick="openTotalExpenseModal('${ym}')">${won(totalSummary.expense)}</button>
-        <div class="bk-money-owners">${kpiBlocks[0].lines.map(line=>`<button onclick="${line.onclick}"><span>${line.name}</span><b>${line.value}</b></button>`).join('')}</div>
+        <details class="bk-money-breakdown"><summary>사용자별 지출</summary><div class="bk-money-owners">${kpiBlocks[0].lines.map(line=>`<button onclick="${line.onclick}"><span>${line.name}</span><b>${line.value}</b></button>`).join('')}</div></details>
       </section>
       <section class="card bk-money-card income">
         <div class="bk-money-head"><h2>이번 달 수입</h2></div>
         <button class="bk-money-value" onclick="openTotalIncomeModal('${ym}')">${won(totalSummary.income)}</button>
-        <div class="bk-money-owners">${kpiBlocks[1].lines.map(line=>`<button onclick="${line.onclick}"><span>${line.name}</span><b>${line.value}</b></button>`).join('')}</div>
+        <details class="bk-money-breakdown"><summary>사용자별 수입</summary><div class="bk-money-owners">${kpiBlocks[1].lines.map(line=>`<button onclick="${line.onclick}"><span>${line.name}</span><b>${line.value}</b></button>`).join('')}</div></details>
       </section>
     </div>
 
@@ -2691,9 +2691,9 @@ function renderMonth(ym){
           <button class="add-btn" onclick="submitTx('${ym}')" title="추가">+</button>
         </div>
         <div style="overflow-x:auto;">
-        <table class="tx-table tx-table-main">
+        <table class="tx-table tx-table-main bk-transaction-table">
           <thead><tr>
-            <th>구분</th><th>날짜</th><th>대분류</th><th>중분류</th><th>소분류</th><th>내용</th><th style="text-align:right">금액</th><th>결제수단</th>
+            <th>구분</th><th>거래 내용 · 분류</th><th style="text-align:right">금액</th><th>결제수단</th>
           </tr></thead>
           <tbody id="txBody"></tbody>
         </table>
@@ -3756,7 +3756,7 @@ function renderTxTable(ym){
 
   const body = document.getElementById('txBody');
   if(!tx.length){
-    body.innerHTML = `<tr class="empty-row"><td colspan="8">해당 조건의 거래 내역이 없습니다.</td></tr>`;
+    body.innerHTML = `<tr class="empty-row"><td colspan="4">해당 조건의 거래 내역이 없습니다.</td></tr>`;
     return;
   }
 
@@ -3793,7 +3793,7 @@ function renderTxTable(ym){
     const mm = Number(mmStr), dd = Number(ddStr);
     const dow = DOW[new Date(g.date+'T00:00:00').getDay()];
     const dateLabel = g.date===todayD ? `${dd}일 오늘` : `${mm}/${dd} ${dow}요일`;
-    const headerRow = `<tr class="tx-date-header"><td colspan="8"><span>${dateLabel}</span><span class="tx-date-total">${dayExpense ? '-'+won(dayExpense) : ''}</span></td></tr>`;
+    const headerRow = `<tr class="tx-date-header"><td colspan="4"><span>${dateLabel}</span><span class="tx-date-total">${dayExpense ? '-'+won(dayExpense) : ''}</span></td></tr>`;
     const rowsHtml = g.items.map(t => {
       if(t.pending){
         if(!showPending) return '';
@@ -3819,17 +3819,13 @@ function pendingRowHtml(t, ym){
 
   const desktopRow = `<tr class="tx-row tx-row-desktop tx-row-pending" ${clickAttr} title="아직 활성화되지 않았어요 · 눌러서 이번 달 예정 금액을 수정할 수 있어요">
     <td data-label="구분">${t.scope ? escapeHtml(t.scope) : '-'}<span class="pending-badge">예정</span></td>
-    <td class="mono" data-label="날짜" title="${t.date}">${t.date.slice(5)}</td>
-    <td data-label="대분류"><span class="badge expense" style="opacity:.55;">지출</span></td>
-    <td data-label="중분류" title="${escapeHtml(t.main)}">${escapeHtml(t.main)}</td>
-    <td data-label="소분류" title="${escapeHtml(t.category)}">${escapeHtml(t.category)}</td>
-    <td data-label="내용" title="${escapeHtml(t.note)}">${escapeHtml(t.note)}</td>
+    <td data-label="거래 내용" class="bk-tx-description"><strong>${escapeHtml(t.note)||escapeHtml(t.category)}</strong><div class="bk-tx-meta">지출 · ${escapeHtml(t.main)} · ${escapeHtml(t.category)}</div></td>
     <td class="amt expense" data-label="금액">${amountStr}</td>
-    <td data-label="결제수단" style="font-size:11.5px;">${escapeHtml(t.payment||'')}</td>
+    <td data-label="결제수단">${escapeHtml(t.payment||'')}</td>
   </tr>`;
 
   const mobileRow = `<tr class="tx-row tx-row-mobile tx-row-pending" ${clickAttr}>
-    <td colspan="8">
+    <td colspan="4">
       <div class="tx-card-line1">
         <span class="tx-card-icon" style="box-shadow:0 0 0 2px ${scopeDotColor} inset;">${categoryIcon(t)}</span>
         <span class="tx-card-body">
@@ -3876,14 +3872,10 @@ function displayRowHtml(t){
   // 지금 수정 중인 행이면 살짝 강조해서 아래에 붙는 수정 폼과 연결되어 보이게 함.
   const isEditingRow = t.id === state.editingTxId;
 
-  // PC 화면용: 열이 넉넉해서 구분/날짜/대분류/중분류/소분류/내용/금액/결제수단을 각 칸에 그대로 보여줌.
+  // PC: 날짜는 그룹 헤더, 분류는 거래 내용 아래에 묶어 네 개의 작업 열로 표시.
   const desktopRow = `<tr class="tx-row tx-row-desktop${isEditingRow?' tx-row-editing':''}" ${rowClickAttr}>
     <td data-label="구분">${scopeBadge}</td>
-    <td class="mono" data-label="날짜" style="color:var(--muted)" title="${t.date}">${t.date.slice(5)}</td>
-    <td data-label="대분류"><span class="badge ${TYPE_KEY[t.type]}">${t.type}</span></td>
-    <td data-label="중분류" style="color:var(--muted)" title="${escapeHtml(t.main)}">${mainLabel}</td>
-    <td data-label="소분류" style="font-weight:600" title="${escapeHtml(t.category)}">${catLabel}</td>
-    <td data-label="내용" title="${escapeHtml(t.note)}">${escapeHtml(t.note)}</td>
+    <td data-label="거래 내용" class="bk-tx-description"><strong>${escapeHtml(t.note)||escapeHtml(t.category)||'내용 없음'}</strong><div class="bk-tx-meta"><span>${t.type}</span> · ${mainLabel} · ${catLabel}</div></td>
     <td class="amt ${TYPE_KEY[t.type]}" data-label="금액">${Number(t.amount).toLocaleString('ko-KR')}</td>
     <td data-label="결제수단" onclick="event.stopPropagation()">${paySelect}</td>
   </tr>`;
@@ -3893,12 +3885,12 @@ function displayRowHtml(t){
   // 헤더 줄에서 한 번만 보여주므로 행 자체에는 넣지 않음.
   const titleText = escapeHtml(t.note) || escapeHtml(t.category) || '내용 없음';
   const mobileRow = `<tr class="tx-row tx-row-mobile${isEditingRow?' tx-row-editing':''}" ${rowClickAttr}>
-    <td colspan="8">
+    <td colspan="4">
       <div class="tx-card-line1">
         <span class="tx-card-icon" style="box-shadow:0 0 0 2px ${scopeDotColor} inset;" title="${escapeHtml(t.scope||'미지정')}">${categoryIcon(t)}</span>
         <span class="tx-card-body">
           <span class="tx-card-title" title="${escapeHtml(t.note)}">${titleText}${fixedTag}</span>
-          <span class="tx-card-sub">${escapeHtml(t.scope||'미지정')} · ${mainLabel} · ${catLabel} · <span onclick="event.stopPropagation()">${paySelect}</span></span>
+          <span class="tx-card-sub">${escapeHtml(t.scope||'미지정')} · ${mainLabel} · ${catLabel} · ${escapeHtml(t.user||t.payment||'결제수단 미지정')}</span>
         </span>
         <span class="tx-card-amt amt ${TYPE_KEY[t.type]}">${(t.type==='지출'||t.type==='카드대금'||isTransferOut(t))?'-':'+'}${Number(t.amount).toLocaleString('ko-KR')}원</span>
       </div>
@@ -3933,7 +3925,7 @@ function openCardBillRowAmountEdit(id){
 function editRowHtml(t){
   const scope = t.scope || (t.type === '수입' ? '보라' : SCOPES[0]);
   return `<tr class="edit-row">
-    <td colspan="8">
+    <td colspan="4">
       <div class="tx-edit-form">
         <select id="e_scope_${t.id}" class="tx-edit-scope" onchange="onEditScopeChange('${t.id}')">
           <option value="" ${!t.scope?'selected':''}>미지정</option>

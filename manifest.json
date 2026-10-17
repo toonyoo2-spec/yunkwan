@@ -1,7 +1,7 @@
 {
   "name": "BORAKWAN",
   "short_name": "BORAKWAN",
-  "description": "우리 부부 공용 앱 - 가계부, 블로그 체험단, 문서함, 리포트, 부업 관리",
+  "description": "함께 쓰는 일정, 가계부, 체험단, 문서와 프로젝트 관리",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

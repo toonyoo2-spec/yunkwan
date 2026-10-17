@@ -98,19 +98,9 @@
   }
   function primaryAction(){
     if(page()==='index')return{label:'일정 추가',run:()=>document.querySelector('.cal-add-couple-btn')?.click()};
-    if(page()==='routine')return{label:'기록 저장',run:()=>document.getElementById('saveBtn')?.click(),disabled:!visible(document.querySelector('.save-row'))};
+
     if(entry?.host?.isConnected)return{label:entry.label,run:()=>openSheet(entry.host)};
     return null;
-  }
-  function routineProgress(){
-    if(page()!=='routine')return;
-    const checks=[...document.querySelectorAll('.check-item input[type=checkbox]')];
-    let progress=document.getElementById('bkRoutineProgress');
-    if(!progress){progress=document.createElement('div');progress.id='bkRoutineProgress';progress.className='bk-routine-progress';document.querySelector('.date-nav')?.after(progress);}
-    progress.hidden=!checks.length;
-    const done=checks.filter(c=>c.checked).length;
-    const label=`선택한 날의 루틴 ${done} / ${checks.length}`;
-    if(progress.dataset.label!==label){progress.dataset.label=label;progress.replaceChildren();const text=document.createElement('span');text.textContent=label;const bar=document.createElement('progress');bar.max=checks.length||1;bar.value=done;bar.setAttribute('aria-label',label);progress.append(text,bar);}
   }
   function mountActions(){
     const heading=document.querySelector('#appContent h1,#app h1');if(!heading)return;
@@ -129,7 +119,7 @@
     }
     if(requestedEntry&&entry?.host?.isConnected&&!visible(document.querySelector('#authGate,#authOverlay.open,#coupleLoginOverlay.open'))){requestedEntry=false;openSheet(entry.host);}
   }
-  const records={review:'#tableSections tbody tr,#cardList .rv-card',docs:'.doc-row',task:'.project-card',trip:'.trip-card'};
+  const records={review:'#cardList .rv-card',docs:'.doc-row',task:'.project-card'};
   function applySearch(){
     const tools=document.getElementById('bkListTools');if(!tools)return;
     const query=tools.querySelector('input').value.trim().toLocaleLowerCase();
@@ -146,7 +136,7 @@
         if(query){if(!archive.hasAttribute('data-search-open'))archive.dataset.searchOpen=String(archive.open);archive.open=true;}
         else if(archive.hasAttribute('data-search-open')){archive.open=archive.dataset.searchOpen==='true';archive.removeAttribute('data-search-open');}
       });
-      count=Math.floor(count/2);
+
     }
     const counter=tools.querySelector('.bk-search-count');const message=query?`${count}건 검색됨`:'';if(counter.textContent!==message)counter.textContent=message;
     const empty=document.getElementById('bkSearchEmpty');empty.hidden=!query||count>0;
@@ -203,7 +193,15 @@
     activeDialog=dialog;
   }
   function enhance(){
-    queued=false;organizeEntry();organizeDialogs();mountActions();mountSearch();routineProgress();
+    queued=false;
+    const editor=document.querySelector('#editModalOverlay .edit-form-grid');
+    if(editor&&!editor.dataset.bkOrdered){
+      editor.dataset.bkOrdered='true';
+      const order=['edit-name','edit-status','edit-weekend','edit-platform','edit-deadline','edit-provide','edit-address','edit-contact','edit-resvDate','edit-keyword','edit-guide'];
+      const fields=[...editor.children];fields.sort((a,b)=>order.indexOf(a.querySelector('input,select,textarea')?.id)-order.indexOf(b.querySelector('input,select,textarea')?.id));fields.forEach(field=>editor.append(field));
+    }
+    organizeEntry();organizeDialogs();mountActions();mountSearch();
+    const filters=document.querySelector('.bk-filter-panel');if(filters&&!filters.dataset.bkReady){filters.dataset.bkReady='true';filters.open=innerWidth>820;}
     document.querySelectorAll('label:not([for])').forEach(label=>{const field=label.parentElement.querySelector('input:not([type=hidden]),select,textarea');if(field?.id&&!label.contains(field))label.htmlFor=field.id;});
     document.querySelectorAll('.cal-nav-btn,.modal-close,.cal-modal-close,.preview-head .close-btn').forEach(b=>{if(!b.hasAttribute('aria-label'))b.setAttribute('aria-label',b.classList.contains('cal-nav-btn')?(b.textContent.includes('‹')?'이전 달':'다음 달'):'닫기');});
     document.querySelectorAll('.tabs button,.owner-toggle button,.type-toggle button,.chip-group button,.cat-tabs button').forEach(b=>{const value=String(b.classList.contains('active')||b.classList.contains('on'));if(b.getAttribute('aria-pressed')!==value)b.setAttribute('aria-pressed',value);});

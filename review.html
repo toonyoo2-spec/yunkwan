@@ -684,12 +684,12 @@
   }
 }
 </style>
-<link rel="stylesheet" href="./app-ui.css?v=20261017-product6">
-<script src="./app-ui.js?v=20261017-product6" defer></script>
-<link rel="stylesheet" href="./app-content.css?v=20261017-product6">
+<link rel="stylesheet" href="./app-ui.css?v=20261017-workspace1">
+<script src="./app-ui.js?v=20261017-workspace1" defer></script>
+<link rel="stylesheet" href="./app-content.css?v=20261017-workspace1">
 </head>
 <body>
-<script src="./nav.js?v=20261017-product6"></script>
+<script src="./nav.js?v=20261017-workspace1"></script>
 <div class="wrap" id="appContent">
 
   <div class="subnav">
@@ -703,7 +703,7 @@
     </div>
   </header>
 
-  <div class="summary" id="summary"></div>
+  <div class="summary" id="summary" hidden></div>
 
   <div class="panel" id="addPanel">
     <div class="toolbar" style="margin-bottom:0;">
@@ -954,11 +954,7 @@ const STATUS_SECTIONS = [
   { key:"end",     scrollable:true },
 ];
 
-const TABLE_COLGROUP_HTML = `<colgroup>
-  <col style="width:8%"><col style="width:23%"><col style="width:23%">
-  <col style="width:14%"><col style="width:132px"><col style="width:100px"><col style="width:64px">
-</colgroup>`;
-const TABLE_THEAD_HTML = `<thead><tr><th>지역</th><th>체험단 이름</th><th>제공내역</th><th>예약 · 방문</th><th>플랫폼</th><th>마감일</th><th>상세</th></tr></thead>`;
+
 
 const platformList = ["디너의여왕","리뷰노트","놀러와체험단","레뷰","데일리뷰","파블로체험단","서울오빠","강남맛집","리뷰플레이스","기타"];
 
@@ -1405,93 +1401,22 @@ const statusOrder = { confirm: 0, wait: 1, done: 2, end: 3 };
   }
   emptyMsg.style.display = "none";
 
-  const tableRowHtml = (it) => {
-    const resvText = (it.status === "confirm" && normalizeDate(it.resvDate))
-      ? `${normalizeDate(it.resvDate).slice(5).replace('-', '/')}${it.resvTime ? ' ' + it.resvTime : ''}`
-      : "";
-    return `
-      <tr data-search="${escapeHtml([it.name,it.region,it.provide,it.address,it.contact,it.parking,it.keyword,it.platform].join(' '))}">
-        <td data-label="지역" class="ellipsis-cell" title="${escapeHtml(it.region)}">
-          ${escapeHtml(it.region) || '-'}
-          ${doneActionHtml(it)}
-        </td>
-        <td data-label="체험단 이름" class="name-cell" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기">${escapeHtml(it.name)} ${postBadgeHtml(it)}</td>
-        <td data-label="제공내역" class="ellipsis-cell" title="${escapeHtml(it.provide)}" onclick="openDetailModal('${it.id}')" style="cursor:pointer;">${escapeHtml(it.provide) || '-'}</td>
-        <td data-label="상태/예약" onclick="openDetailModal('${it.id}')" title="클릭하면 요약 보기" style="cursor:pointer;">
-          <span class="status-badge ${statusMeta[it.status].cls}">${statusMeta[it.status].label}</span>
-          ${resvText ? `<div class="resv-text">${resvText}</div>` : ''}<div class="bk-visit-note">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</div>
-        </td>
-        <td data-label="플랫폼"><span class="bk-platform">${platformValueHtml(it)}</span></td>
-        <td data-label="마감일자">${escapeHtml(normalizeDate(it.deadline)) || '-'}</td>
-        <td><button type="button" class="bk-detail-button" onclick="openDetailModal('${it.id}')" aria-label="${escapeHtml(it.name)} 상세 보기">상세</button></td>
-      </tr>
-    `;
-  };
-
-  // 모바일/태블릿 카드: 미리보기 성격이라 지역/이름/날짜/주말가능여부만 최소한으로
-  // 보여준다(상태는 구역 제목에 이미 나오니 배지 대신 이름 글자색으로만 표시).
-  // 플랫폼·제공내역 등 나머지는 카드를 눌러 요약 팝업(openDetailModal)에서 확인.
   const cardHtml = (it) => {
-    const resvText = (it.status === "confirm" && normalizeDate(it.resvDate))
-      ? `${normalizeDate(it.resvDate).slice(5).replace('-', '/')}${it.resvTime ? ' ' + it.resvTime : ''}`
-      : "";
-    const deadlineStr = normalizeDate(it.deadline);
-    const dateLabel = resvText ? `예약 ${resvText}` : (deadlineStr ? `마감 ${deadlineStr.slice(5)}` : '');
-    return `
-      <div class="rv-card" data-search="${escapeHtml([it.name,it.region,it.provide,it.address,it.contact,it.parking,it.keyword,it.platform].join(' '))}" onclick="openDetailModal('${it.id}')">
-        <div class="rv-row1">
-          <button type="button" class="rv-name bk-record-title" onclick="event.stopPropagation();openDetailModal('${it.id}')" style="color:${STATUS_INK[it.status] || 'inherit'};">${escapeHtml(it.name)} ${postBadgeHtml(it)}</button>
-          <span style="font-size:11.5px;white-space:nowrap;flex-shrink:0;">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>
-        </div>
-        <div class="rv-row2">
-          ${it.region ? `<span class="rv-date">${escapeHtml(it.region)}</span>` : ''}
-          ${it.region && dateLabel ? `<span class="rv-dot">·</span>` : ''}
-          ${dateLabel ? `<span class="rv-date">${dateLabel}</span>` : ''}
-          ${doneActionHtml(it)}
-        </div>
-        ${(it.provide || it.platform) ? `<div class="rv-row3">
-          <span class="rv-row3-provide">${escapeHtml(it.provide)}</span>
-          <span class="rv-row3-platform">${platformValueHtml(it, 'onclick="event.stopPropagation()"')}</span>
-        </div>` : ''}
-      </div>
-    `;
+    const reservation=it.status==='confirm'&&normalizeDate(it.resvDate)?`${normalizeDate(it.resvDate)} ${it.resvTime||''}`:'';
+    const due=reservation?`예약 ${reservation}`:(normalizeDate(it.deadline)?`마감 ${normalizeDate(it.deadline)}`:'날짜 미정');
+    return `<article class="rv-card" data-search="${escapeHtml([it.name,it.region,it.provide,it.address,it.contact,it.parking,it.keyword,it.platform].join(' '))}"><div class="rv-record-heading"><button type="button" class="rv-name bk-record-title" onclick="openDetailModal('${it.id}')">${escapeHtml(it.name)} ${postBadgeHtml(it)}</button><span class="rv-row3-platform">${platformValueHtml(it)}</span></div><div class="rv-record-meta"><span>${escapeHtml(it.region||'지역 미정')}</span><span>${due}</span><span>${WEEKEND_LABEL[it.weekend_ok]||WEEKEND_LABEL.unknown}</span></div><p class="rv-row3-provide">${escapeHtml(it.provide||'제공 내역 없음')}</p><div class="rv-record-actions">${doneActionHtml(it)}<button type="button" class="bk-detail-button" onclick="openDetailModal('${it.id}')">상세 보기 →</button></div></article>`;
   };
 
   // 예약완료/예약대기/체험완료/종료 상태별로 구역을 나눠서 보여준다(선택된 탭과
   // 무관하게 항상 동일하게). 이미 위에서 상태 순서 → 상태 내부 정렬까지 끝난
   // list를 상태별로 다시 묶기만 하면 되므로 그룹 내부 순서는 그대로 유지된다.
-  const sectionsHtml = STATUS_SECTIONS.map(sec => {
-    const secItems = list.filter(it => it.status === sec.key);
-    if(!secItems.length) return '';
-    const title = `<div class="status-section-title ${sec.key}"><span class="dot"></span>${statusMeta[sec.key].label} (${secItems.length})</div>`;
-    const tableHtml = `
-      <div class="table-scroll">
-        <div class="table-wrap">
-          <table>
-            ${TABLE_COLGROUP_HTML}
-            ${TABLE_THEAD_HTML}
-            <tbody>${secItems.map(tableRowHtml).join('')}</tbody>
-          </table>
-        </div>
-      </div>`;
-    return sec.key === 'end'
-      ? `<details class="status-section bk-archive" ${filter === 'end' ? 'open' : ''}><summary>종료된 체험단 <span>${secItems.length}건</span></summary>${tableHtml}</details>`
-      : `<section class="status-section">${title}${tableHtml}</section>`;
+  tableSectionsEl.innerHTML='';
+  if(cardList)cardList.innerHTML=STATUS_SECTIONS.map(sec=>{
+    const records=list.filter(it=>it.status===sec.key);if(!records.length)return '';
+    const body=`<div class="rv-cards">${records.map(cardHtml).join('')}</div>`;
+    return sec.key==='end'?`<details class="status-section bk-archive" ${filter==='end'?'open':''}><summary>종료된 체험단 <span>${records.length}건</span></summary>${body}</details>`:`<section class="status-section"><h2 class="status-section-title ${sec.key}">${statusMeta[sec.key].label}<span>${records.length}</span></h2>${body}</section>`;
   }).join('');
-  tableSectionsEl.innerHTML = sectionsHtml;
 
-  if(cardList){
-    cardList.innerHTML = STATUS_SECTIONS.map(sec => {
-      const secItems = list.filter(it => it.status === sec.key);
-      if(!secItems.length) return '';
-      const title = `<div class="status-section-title ${sec.key}"><span class="dot"></span>${statusMeta[sec.key].label} (${secItems.length})</div>`;
-      const cardsHtml = secItems.map(cardHtml).join('');
-      const body = `<div class="rv-cards">${cardsHtml}</div>`;
-      return sec.key === 'end'
-        ? `<details class="status-section bk-archive" ${filter === 'end' ? 'open' : ''}><summary>종료된 체험단 <span>${secItems.length}건</span></summary>${body}</details>`
-        : `<section class="status-section">${title}${body}</section>`;
-    }).join('');
-  }
 }
 
 function hourOptions(selected){
@@ -1499,9 +1424,7 @@ function hourOptions(selected){
   for(let h = 0; h < 24; h++){
     for(const m of [0, 30]){
       const value = String(h).padStart(2,'0') + ":" + String(m).padStart(2,'0');
-      const period = h < 12 ? "오전" : "오후";
-      const displayHour = h % 12 === 0 ? 12 : h % 12;
-      const label = m===0 ? `${period} ${displayHour}시` : `${period} ${displayHour}시 30분`;
+      const label = value;
       opts += `<option value="${value}" ${value===selected?'selected':''}>${label}</option>`;
     }
   }
