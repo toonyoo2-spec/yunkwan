@@ -201,8 +201,20 @@
       const fields=[...editor.children];fields.sort((a,b)=>order.indexOf(a.querySelector('input,select,textarea')?.id)-order.indexOf(b.querySelector('input,select,textarea')?.id));fields.forEach(field=>editor.append(field));
     }
     organizeEntry();organizeDialogs();mountActions();mountSearch();
+    if(page()==='ledger')document.querySelectorAll('.bk-form-field[data-field=date]').forEach(label=>{
+      const input=label.querySelector('input[type=date]');if(!input||label.querySelector('.bk-date-trigger'))return;
+      input.setAttribute('aria-label','날짜');
+      const trigger=document.createElement('button');trigger.type='button';trigger.className='bk-date-trigger';
+      trigger.setAttribute('aria-label','날짜 선택');trigger.setAttribute('aria-haspopup','dialog');
+      trigger.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>';
+      trigger.addEventListener('click',event=>{
+        event.preventDefault();input.focus();
+        try{if(typeof input.showPicker==='function')input.showPicker();else input.click();}catch{input.click();}
+      });
+      label.append(trigger);
+    });
     const filters=document.querySelector('.bk-filter-panel');if(filters&&!filters.dataset.bkReady){filters.dataset.bkReady='true';filters.open=innerWidth>820;}
-    document.querySelectorAll('label:not([for])').forEach(label=>{const field=label.parentElement.querySelector('input:not([type=hidden]),select,textarea');if(field?.id&&!label.contains(field))label.htmlFor=field.id;});
+    document.querySelectorAll('label:not([for])').forEach(label=>{const selector='input:not([type=hidden]),select,textarea';const field=label.querySelector(selector)||label.parentElement.querySelector(selector);if(field?.id)label.htmlFor=field.id;});
     document.querySelectorAll('.cal-nav-btn,.modal-close,.cal-modal-close,.preview-head .close-btn').forEach(b=>{if(!b.hasAttribute('aria-label'))b.setAttribute('aria-label',b.classList.contains('cal-nav-btn')?(b.textContent.includes('‹')?'이전 달':'다음 달'):'닫기');});
     document.querySelectorAll('.tabs button,.owner-toggle button,.type-toggle button,.chip-group button,.cat-tabs button').forEach(b=>{const value=String(b.classList.contains('active')||b.classList.contains('on'));if(b.getAttribute('aria-pressed')!==value)b.setAttribute('aria-pressed',value);});
     document.querySelectorAll('.sum-card[onclick],.trip-card[onclick],.proj-card[onclick],.doc-card[onclick],.rv-card[onclick],.kpi-row-clickable[onclick]').forEach(card=>{if(card.matches('a,button')||card.querySelector('button,a,input,select,textarea'))return;card.setAttribute('role','button');card.tabIndex=0;});
