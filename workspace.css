@@ -292,3 +292,10 @@ body.bk-app {padding:0 40px 64px;font-family:-apple-system,BlinkMacSystemFont,"P
 @media(prefers-reduced-motion:no-preference){
  @keyframes bk-dialog-arrive{from{opacity:.5}to{opacity:1}}
 }
+
+/* An explicit calendar action keeps the date selector visible and keyboard-accessible. */
+.bk-app[data-page=ledger] .bk-form-field[data-field=date]{position:relative;}
+.bk-app[data-page=ledger] .bk-sheet .bk-form-field input[type=date]{padding-right:48px;background-image:none;}
+.bk-app[data-page=ledger] .bk-date-trigger{position:absolute;right:1px;bottom:1px;width:44px;height:42px;min-height:42px;display:grid;place-items:center;padding:0;background:transparent;border:0;border-radius:9px;color:var(--sub);}
+.bk-app[data-page=ledger] .bk-date-trigger:hover{background:var(--accent-soft);color:var(--accent);}
+.bk-date-trigger svg{pointer-events:none;}
