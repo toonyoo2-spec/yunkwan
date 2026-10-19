@@ -1265,7 +1265,8 @@ function openGuideFromDetailModal(){
   document.getElementById('guideModalTitle').textContent = `${it.name} · 캠페인 가이드`;
   const body = document.getElementById('guideModalBody');
   if(it.guide && it.guide.trim()){
-    body.textContent = it.guide;
+    body.textContent = it.guide.replace(/\\n/g, '\n').replace(/\r\n?/g, '\n');
+    body.style.whiteSpace = 'pre-wrap';
     body.classList.remove('empty');
   } else {
     body.textContent = '등록된 가이드가 없습니다. 수정하기에서 캠페인 가이드 내용을 붙여넣어 저장해주세요.';
