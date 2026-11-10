@@ -270,7 +270,7 @@ body.bk-app[data-page="campaigns"] .bk-page-heading{margin-bottom:26px}
 
 body.bk-app[data-page="campaigns"] #cardList .camp-card{align-items:stretch}body.bk-app[data-page="campaigns"] #cardList .camp-body{box-sizing:border-box;width:100%}
 
-.apply-direct,.apply-job a{border:1px solid var(--line);border-radius:8px;padding:7px 12px;color:var(--accent);text-decoration:none;font-size:12px;background:#fff}.apply-direct:hover,.apply-job a:hover{border-color:var(--accent)}.apply-complete{border:1px solid var(--accent);border-radius:8px;padding:7px 12px;background:#fff;color:var(--accent);font-size:12px;cursor:pointer}.apply-done{font-size:12px;font-weight:600;color:var(--accent)}body.bk-app[data-page="campaigns"] #cardList .camp-thumb.placeholder{font-size:14px;font-weight:600;letter-spacing:.08em;color:#a79db3}body.bk-app[data-page="campaigns"] #cardList .apply-start,body.bk-app[data-page="campaigns"] #cardList .apply-direct,body.bk-app[data-page="campaigns"] #cardList .apply-job{margin-left:auto}
+.apply-direct,.apply-job a{border:1px solid var(--line);border-radius:8px;padding:7px 12px;color:var(--accent);text-decoration:none;font-size:12px;background:#fff}.apply-direct:hover,.apply-job a:hover{border-color:var(--accent)}.filter-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 20px}.filter-bar .chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:7px 14px;font-size:13px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--sub);cursor:pointer;font-weight:550}.filter-bar .chip small{font-size:11px;opacity:.7;font-weight:500}.filter-bar .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}.filter-bar .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.filter-bar .filter-sep{width:1px;height:20px;background:var(--line);margin:0 6px}@media(max-width:760px){.filter-bar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin-right:-4px}.filter-bar .chip{flex:0 0 auto}}.apply-complete{border:1px solid var(--accent);border-radius:8px;padding:7px 12px;background:#fff;color:var(--accent);font-size:12px;cursor:pointer}.apply-done{font-size:12px;font-weight:600;color:var(--accent)}body.bk-app[data-page="campaigns"] #cardList .camp-thumb.placeholder{font-size:14px;font-weight:600;letter-spacing:.08em;color:#a79db3}body.bk-app[data-page="campaigns"] #cardList .apply-start,body.bk-app[data-page="campaigns"] #cardList .apply-direct,body.bk-app[data-page="campaigns"] #cardList .apply-job{margin-left:auto}
 </style>
 </head>
 <body>
@@ -285,9 +285,10 @@ body.bk-app[data-page="campaigns"] #cardList .camp-card{align-items:stretch}body
   <header>
     <div>
       <h1>체험단 확인</h1>
-      <p>4만원 이상 또는 2인 제공 체험단을 화·금에 갱신해요. 이미 체험한 곳은 제외합니다.</p>
     </div>
   </header>
+
+  <div class="filter-bar" id="filterBar" role="group" aria-label="지역과 주말 필터"></div>
 
   <div class="panel">
     <div class="bk-discovery-tools"><label class="bk-search"><span class="bk-sr-only">체험단 검색</span><input type="search" id="listingSearch" placeholder="장소·체험내용 검색" autocomplete="off"></label><div class="count-line" id="countLine" role="status"></div></div>
@@ -324,7 +325,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 const NEIGHBORHOODS = ['합정','홍대','덕양구','일산','영등포','여의도','가양','발산','마곡'];
-const state = { items: [] };
+const state = { items: [], nbh: 'all', weekendOnly: false };
 function cleanTitle(title){
   let s=(title||'').trim(); const br=[...s.matchAll(/\[([^\]]+)\]/g)].map(m=>m[1].trim());
   if(br.length && s.endsWith(']') && !/^(서울|경기|인천|고양|마포|홍대|합정|연남|여의도|영등포|마곡|강서|일산)/.test(br.at(-1))) s=br.at(-1);
@@ -374,18 +375,35 @@ async function togglePicked(id, current){
   // realtime 구독이 다시 불러오므로 여기선 별도 갱신 안 해도 됨
 }
 
+function isLive(it){ return it.curated && (it.picked || !effDeadline(it) || daysLeft(effDeadline(it)) >= 0); }
+function renderFilters(){
+  const bar=document.getElementById('filterBar'); if(!bar) return;
+  const live=state.items.filter(isLive);
+  const base=state.weekendOnly?live.filter(it=>it.weekend_ok==='possible'):live;
+  const counts={}; for(const it of base){ counts[it.neighborhood]=(counts[it.neighborhood]||0)+1; }
+  const weekendCount=live.filter(it=>it.weekend_ok==='possible').length;
+  const chip=(key,label,n,on)=>'<button type="button" class="chip'+(on?' on':'')+'" data-nbh="'+key+'" aria-pressed="'+on+'">'+label+' <small>'+n+'</small></button>';
+  bar.innerHTML=chip('all','전체',base.length,state.nbh==='all')+NEIGHBORHOODS.filter(n=>counts[n]||state.nbh===n).map(n=>chip(n,n,counts[n]||0,state.nbh===n)).join('')+'<span class="filter-sep" aria-hidden="true"></span><button type="button" class="chip'+(state.weekendOnly?' on':'')+'" data-weekend="1" aria-pressed="'+state.weekendOnly+'">주말 가능 <small>'+weekendCount+'</small></button>';
+}
+document.getElementById('filterBar')?.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.weekend){ state.weekendOnly=!state.weekendOnly; }
+  else if(b.dataset.nbh){ state.nbh=b.dataset.nbh; }
+  renderList();
+});
 let listingLimit = 30;
 let listingSignature = '';
 function renderList(){
+  renderFilters();
   const search = (document.getElementById('listingSearch')?.value || '').trim().toLocaleLowerCase();
-  const signature = search;
+  const signature = search+'|'+state.nbh+'|'+state.weekendOnly;
   if(signature !== listingSignature){ listingLimit=30;listingSignature=signature; }
   // 마감일이 지난 건(수집만 되고 자동으로 안 지워지는 항목)은 기본 목록에서 빼서,
   // 새로고침해도 이미 끝난 캠페인들이 위쪽(마감일 오름차순이라 지난 날짜가 먼저 옴)에
   // 계속 쌓여 보이는 문제를 막는다. 찜한(picked) 건은 지나도 계속 보여준다.
   const filtered = state.items.filter(it =>
     (!search || [placeName(it),it.title,it.reward_text,it.curated_reward,it.neighborhood,it.source,it.region_area].join(' ').toLocaleLowerCase().includes(search)) &&
-    it.curated &&
+    it.curated && (state.nbh === 'all' || it.neighborhood === state.nbh) && (!state.weekendOnly || it.weekend_ok === 'possible') &&
     (it.picked || !effDeadline(it) || daysLeft(effDeadline(it)) >= 0)
   );
 
