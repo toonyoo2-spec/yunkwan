@@ -246,6 +246,30 @@
 <link rel="stylesheet" href="./app-content.css?v=20261017-semantic3">
 <link rel="stylesheet" href="./workspace.css?v=20261018-date1">
 <script src="./workspace.js?v=20261017-apple1" defer></script>
+<style id="campaign-layout">
+/* Scoped after shared styles: never inherit the old card's two-column internals. */
+body.bk-app[data-page="campaigns"] #cardList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
+body.bk-app[data-page="campaigns"] #cardList .camp-card{display:flex;flex-direction:column;grid-template-columns:none;gap:0;padding:0;margin:0;min-width:0;overflow:hidden;border:1px solid #e8e3ed;border-radius:18px;background:#fff;box-shadow:0 3px 14px #34234f06}
+body.bk-app[data-page="campaigns"] #cardList .camp-card.picked{border-color:#b398d2;box-shadow:0 0 0 1px #b398d2}
+body.bk-app[data-page="campaigns"] #cardList .camp-thumb{display:block;width:100%;height:200px;flex-shrink:0;object-fit:cover;object-position:center;border-radius:0;background:#f0edf4}
+body.bk-app[data-page="campaigns"] #cardList .camp-thumb.placeholder{display:flex;align-items:center;justify-content:center;color:#92889e;font-size:12px;letter-spacing:.02em;background:linear-gradient(135deg,#f5f2f8,#eeebf2)}
+body.bk-app[data-page="campaigns"] #cardList .camp-body{display:flex;flex-direction:column;flex:1;min-width:0;gap:10px;padding:20px 22px}
+body.bk-app[data-page="campaigns"] #cardList .card-top{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0;min-height:24px}
+body.bk-app[data-page="campaigns"] #cardList .card-top .pick-box{margin:0 0 0 auto;order:99;width:18px;height:18px;accent-color:var(--accent)}
+body.bk-app[data-page="campaigns"] #cardList .card-top .badge{font-size:10px;padding:3px 7px;border-radius:5px;font-weight:550;line-height:1.5}
+body.bk-app[data-page="campaigns"] #cardList .card-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:ellipsis;min-height:50px;margin:0;font-size:18px;font-weight:650;line-height:1.4;letter-spacing:-.45px;color:#292333;text-align:left;overflow-wrap:anywhere}
+body.bk-app[data-page="campaigns"] #cardList .card-content{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;text-overflow:ellipsis;min-height:60px;max-height:60px;margin:0;font-size:13px;line-height:20px;color:#756d7e;text-align:left;overflow-wrap:anywhere}
+body.bk-app[data-page="campaigns"] #cardList .card-status{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:13px;border-top:1px solid #f0edf4;min-height:38px}
+body.bk-app[data-page="campaigns"] #cardList .card-status .badge.deadline{margin:0;padding:4px 8px;font-size:10px;line-height:1.4}
+body.bk-app[data-page="campaigns"] #cardList .weekend-tag{font-size:11px;line-height:1.5}
+body.bk-app[data-page="campaigns"] .bk-discovery-tools{margin-bottom:18px;gap:16px}
+body.bk-app[data-page="campaigns"] .bk-page-heading{margin-bottom:26px}
+@media(min-width:1600px){body.bk-app[data-page="campaigns"] #cardList .camp-thumb{height:220px}}
+@media(max-width:760px){body.bk-app[data-page="campaigns"] #cardList{grid-template-columns:1fr;gap:16px}body.bk-app[data-page="campaigns"] #cardList .camp-thumb{height:200px}body.bk-app[data-page="campaigns"] #cardList .camp-body{padding:18px 20px}body.bk-app[data-page="campaigns"] #cardList .card-title{font-size:17px;min-height:24px}body.bk-app[data-page="campaigns"] #cardList .card-content{min-height:40px;max-height:60px}}
+
+body.bk-app[data-page="campaigns"] #cardList .camp-card{align-items:stretch}body.bk-app[data-page="campaigns"] #cardList .camp-body{box-sizing:border-box;width:100%}
+
+</style>
 </head>
 <body>
 <script src="./nav.js?v=20261017-workspace1"></script>
@@ -395,7 +419,7 @@ function renderList(){
 
     cardList.innerHTML = visible.map(it => `
       <div class="camp-card ${it.picked ? 'picked' : ''}" data-id="${it.id}">
-        ${it.thumbnail ? `<img class="camp-thumb" src="${escapeHtml(it.thumbnail)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="camp-thumb placeholder">사진 없음</div>'}
+        ${it.thumbnail ? `<img class="camp-thumb" src="${escapeHtml(it.thumbnail)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="camp-thumb placeholder">이미지 준비 중</div>'}
         <div class="camp-body">
         <div class="card-top">
           <input type="checkbox" class="pick-box" aria-label="${escapeHtml(placeName(it))} 찜하기" ${it.picked ? 'checked' : ''} data-id="${it.id}" data-picked="${it.picked}">
@@ -414,7 +438,7 @@ function renderList(){
       </div>
     `).join('');
 
-    cardList.querySelectorAll('.camp-thumb').forEach(img => img.addEventListener('error', () => { const fallback=document.createElement('div'); fallback.className='camp-thumb placeholder'; fallback.textContent='사진 없음'; img.replaceWith(fallback); }, {once:true}));
+    cardList.querySelectorAll('.camp-thumb').forEach(img => img.addEventListener('error', () => { const fallback=document.createElement('div'); fallback.className='camp-thumb placeholder'; fallback.textContent='이미지 준비 중'; img.replaceWith(fallback); }, {once:true}));
     document.querySelectorAll('.pick-box').forEach(box => {
       box.addEventListener('click', (e) => {
         e.stopPropagation();
