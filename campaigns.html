@@ -169,6 +169,10 @@
   .badge.deadline.soon{background:#fbe3db;color:#b3452f;}
   .badge.deadline.near{background:var(--wait-bg);color:var(--wait-ink);}
   .badge.deadline.rolling{background:var(--conf-bg);color:var(--conf-ink);}
+  .badge.nbh{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:#efe9fb;color:#5b3fa8;white-space:nowrap;}
+  .badge.two{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;background:#fff1d6;color:#8a5a00;white-space:nowrap;}
+  .curated-toggle{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:6px;}
+  .curated-note{font-size:12px;color:var(--sub);}
   .weekend-tag{
     display:block;
     font-size:11.5px;
@@ -269,6 +273,14 @@
         <div class="chip-group" id="sourceChips"></div>
       </div>
       <div>
+        <label class="weekend-toggle curated-toggle">
+          <input type="checkbox" id="curatedOnly" checked>
+          추천만 보기
+        </label>
+        <div class="curated-note" id="curatedNote">4만원 이상·2인 제공 / 합정·홍대·덕양구·일산·영등포·여의도·가양·발산·마곡 · 화·금 자동 갱신</div>
+        <div class="chip-group" id="nbhChips" style="margin-top:8px;"></div>
+      </div>
+      <div>
         <label class="weekend-toggle">
           <input type="checkbox" id="weekendOnly">
           주말 가능 확인된 것만 보기
@@ -311,14 +323,35 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+const NEIGHBORHOODS = ['합정','홍대','덕양구','일산','영등포','여의도','가양','발산','마곡'];
 const state = {
   regions: new Set(REGION_AREAS),
   sources: new Set(SOURCES),
+  nbhs: new Set(NEIGHBORHOODS),
+  curatedOnly: true,
   weekendOnly: false,
   items: []
 };
 
+function renderNbhChips(){
+  const el = document.getElementById('nbhChips');
+  if(!el) return;
+  el.style.display = state.curatedOnly ? '' : 'none';
+  el.innerHTML = NEIGHBORHOODS.map(n =>
+    `<button type="button" class="chip ${state.nbhs.has(n) ? 'on' : ''}" data-nbh="${n}">${n}</button>`
+  ).join('');
+  el.querySelectorAll('.chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const n = btn.dataset.nbh;
+      if(state.nbhs.has(n)) state.nbhs.delete(n); else state.nbhs.add(n);
+      renderNbhChips();
+      renderList();
+    });
+  });
+}
+
 function renderChips(){
+  renderNbhChips();
   const regionEl = document.getElementById('regionChips');
   regionEl.innerHTML = REGION_AREAS.map(r =>
     `<button type="button" class="chip ${state.regions.has(r) ? 'on' : ''}" data-region="${r}">${r}</button>`
@@ -355,9 +388,13 @@ function daysLeft(dateStr){
   return Math.round((d - today) / 86400000);
 }
 
+function effDeadline(item){
+  return item.curated && item.curated_deadline ? item.curated_deadline : (item.deadline_type === 'dated' ? item.deadline_date : null);
+}
+
 function deadlineBadge(item){
-  if(item.deadline_type === 'dated' && item.deadline_date){
-    const dleft = daysLeft(item.deadline_date);
+  if(effDeadline(item)){
+    const dleft = daysLeft(effDeadline(item));
     let cls = '';
     let label = `D-${dleft}`;
     if(dleft < 0) label = '마감';
@@ -390,24 +427,25 @@ let listingLimit = 30;
 let listingSignature = '';
 function renderList(){
   const search = (document.getElementById('listingSearch')?.value || '').trim().toLocaleLowerCase();
-  const signature = JSON.stringify([[...state.regions].sort(),[...state.sources].sort(),state.weekendOnly,search]);
+  const signature = JSON.stringify([[...state.regions].sort(),[...state.sources].sort(),[...state.nbhs].sort(),state.curatedOnly,state.weekendOnly,search]);
   if(signature !== listingSignature){ listingLimit=30;listingSignature=signature; }
   // 마감일이 지난 건(수집만 되고 자동으로 안 지워지는 항목)은 기본 목록에서 빼서,
   // 새로고침해도 이미 끝난 캠페인들이 위쪽(마감일 오름차순이라 지난 날짜가 먼저 옴)에
   // 계속 쌓여 보이는 문제를 막는다. 찜한(picked) 건은 지나도 계속 보여준다.
   const filtered = state.items.filter(it =>
-    (!search || [it.title,it.reward_text,it.source,it.region_area].join(' ').toLocaleLowerCase().includes(search)) &&
+    (!search || [it.title,it.reward_text,it.curated_reward,it.neighborhood,it.source,it.region_area].join(' ').toLocaleLowerCase().includes(search)) &&
     state.regions.has(it.region_area) &&
     state.sources.has(it.source) &&
     (!state.weekendOnly || it.weekend_ok === 'possible') &&
-    (it.picked || it.deadline_type !== 'dated' || !it.deadline_date || daysLeft(it.deadline_date) >= 0)
+    (!state.curatedOnly || (it.curated && state.nbhs.has(it.neighborhood))) &&
+    (it.picked || !effDeadline(it) || daysLeft(effDeadline(it)) >= 0)
   );
 
   // 정렬: 픽된 것 먼저, 그 다음 마감일 확정 건 → 임박순, 그 다음 선착순/상시
   filtered.sort((a, b) => {
     if(a.picked !== b.picked) return a.picked ? -1 : 1;
-    const da = a.deadline_type === 'dated' && a.deadline_date ? new Date(a.deadline_date) : null;
-    const db = b.deadline_type === 'dated' && b.deadline_date ? new Date(b.deadline_date) : null;
+    const da = effDeadline(a) ? new Date(effDeadline(a)) : null;
+    const db = effDeadline(b) ? new Date(effDeadline(b)) : null;
     if(da && db) return da - db;
     if(da) return -1;
     if(db) return 1;
@@ -439,9 +477,11 @@ function renderList(){
           <input type="checkbox" class="pick-box" aria-label="${escapeHtml(placeName(it))} 찜하기" ${it.picked ? 'checked' : ''} data-id="${it.id}" data-picked="${it.picked}">
           <span class="badge region">${it.region_area}</span>
           <span class="badge source" style="margin-top:0;">${it.source}</span>
+          ${it.curated && it.neighborhood ? `<span class="badge nbh">${escapeHtml(it.neighborhood)}</span>` : ''}
+          ${it.curated && it.two_person ? `<span class="badge two">2인</span>` : ''}
         </div>
         <a class="card-title" href="${it.url || '#'}" target="_blank" rel="noopener">${escapeHtml(placeName(it))}</a>
-        <div class="card-content">${escapeHtml(it.reward_text || '-')}</div>
+        <div class="card-content">${escapeHtml((it.curated && it.curated_reward) || it.reward_text || '-')}</div>
         <div class="card-status">
           ${deadlineBadge(it)}
           <span class="weekend-tag ${it.weekend_ok}">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>
@@ -493,6 +533,12 @@ window.addEventListener('authReady', () => {
   loadListings();
   if(listingsLiveStarted) return;
   listingsLiveStarted = true;
+
+  document.getElementById('curatedOnly').addEventListener('change', (e) => {
+    state.curatedOnly = e.target.checked;
+    renderNbhChips();
+    renderList();
+  });
 
   document.getElementById('weekendOnly').addEventListener('change', (e) => {
     state.weekendOnly = e.target.checked;
