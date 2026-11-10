@@ -511,6 +511,19 @@ const APPLY_TERMS = [
  '이전 신청 내역 기반 매장·서비스 추천 광고메일을 받습니다.'
 ];
 const APPLY_NOTES={site_submitted:'사이트 신청 완료 확인',special_question:'별도 질문에 답변이 필요합니다',cost_required:'추가 비용 조건을 확인해 주세요',extra_consent_required:'추가 동의가 필요합니다',personal_data_disclosure:'개인정보 제공 조건 확인이 필요합니다',login_changed:'로그인·블로그 계정을 확인해 주세요',manual_input_required:'추가 입력을 직접 확인해 주세요',site_error:'모집 상태 또는 신청 화면을 확인해 주세요',outcome_uncertain:'중복 방지를 위해 자동 재시도하지 않습니다',stale_processing_timeout:'처리가 중단되어 결과 확인이 필요합니다',listing_not_eligible:'마감·기체험 제외 또는 캠페인 정보가 변경됐습니다',user_cancelled:'대기 중 취소했습니다'};
+const APPLY_PLATFORMS = {
+ '디너의여왕': { version:'dq-20261110', terms: APPLY_TERMS, extra:[] },
+ '놀러와체험단': { version:'ct-20261110', terms:[
+   '정당한 사유 없이 기한 내 리뷰를 작성하지 않으면 제공 대가를 환불해야 하며 법적 처벌 대상이 될 수 있습니다.',
+   '등록한 콘텐츠를 6개월 유지해야 하며 미준수 시 제공내역 비용이 청구될 수 있습니다.',
+   '등록한 콘텐츠가 홍보나 필요에 따라 사용될 수 있습니다.',
+   '제공내역은 타인에게 양도·판매할 수 없습니다.',
+   '개인정보 수집 및 이용에 동의합니다.'], extra:['신청자 한마디: “현직 광고감독입니다. 알찬 포스팅 남길게요”','안내 기재란: “없음”','리뷰 매체: 블로그(yunkwann)'] },
+ '레뷰': { version:'rv-20261110', terms:[
+   '초상권 활용에 동의합니다.',
+   '캠페인 유의사항, 콘텐츠 제3자 제공, 저작물 이용에 동의합니다.',
+   '개인정보 제3자 제공에 동의합니다.'], extra:['블로그 연결: 이슈메이커 Mr.Yun','카메라 휴대폰, 공동 운영 1명(본인) 기본값 사용'] }
+};
 let applyJobs = new Map();
 let applyQueueReady = false;
 let applyBusy = false;
@@ -523,23 +536,23 @@ async function loadApplyJobs(){
  } catch(e){applyQueueReady=false;}
 }
 function applyControls(it){
- if(it.source!=='디너의여왕') return `<a class="apply-direct" href="${escapeHtml(it.url||'#')}" target="_blank" rel="noopener">사이트에서 신청</a>`;
+ if(!APPLY_PLATFORMS[it.source]) return `<a class="apply-direct" href="${escapeHtml(it.url||'#')}" target="_blank" rel="noopener">사이트에서 신청</a>`;
  const j=applyJobs.get(it.id);
  if(j){const label=APPLY_LABELS[j.status]||'확인 필요';const done=j.status==='submitted'?(it.picked?`<span class="apply-done">완료 처리됨</span>`:`<button type="button" class="apply-complete" data-complete-id="${escapeHtml(it.id)}">신청 완료 체크</button>`):'';return `<div class="apply-job" role="status"><span>${label}</span>${j.note?`<small>${escapeHtml(APPLY_NOTES[j.note]||'직접 확인해 주세요')}</small>`:''}${done}${j.status==='pending'?`<button type="button" data-cancel-job="${escapeHtml(j.id)}">대기 취소</button>`:''}${['needs_input','failed','uncertain'].includes(j.status)?`<a href="${escapeHtml(it.url)}" target="_blank" rel="noopener">직접 확인</a>`:''}</div>`;}
  return `<button type="button" class="apply-start" data-apply-id="${escapeHtml(it.id)}" ${!applyQueueReady?'disabled':''}>${applyQueueReady?'자동 신청':'신청 연결 확인 중'}</button>`;
 }
 function openApplyApproval(id){
- const it=state.items.find(x=>x.id===id);if(!it||it.source!=='디너의여왕'||!it.curated||applyJobs.has(id))return;
+ const it=state.items.find(x=>x.id===id);if(!it||!APPLY_PLATFORMS[it.source]||!it.curated||applyJobs.has(id))return;const plat=APPLY_PLATFORMS[it.source];
  document.getElementById('applyApproval')?.remove();
  const d=document.createElement('dialog');d.id='applyApproval';d.setAttribute('aria-labelledby','applyHeading');
- d.innerHTML=`<form method="dialog"><h2 id="applyHeading">${escapeHtml(placeName(it))} 신청 승인</h2><p>${escapeHtml(it.curated_reward||it.reward_text||'')}</p><p>${escapeHtml(it.notice_text||'체험 조건은 상세 페이지에서 확인해 주세요.')}</p><a href="${escapeHtml(it.url)}" target="_blank" rel="noopener">캠페인 상세·방문 조건 확인</a><p><strong>이 한 건만 블로그 계정으로 신청합니다.</strong> 아래는 디너의여왕이 요구하는 신청 동의입니다.</p><ol>${APPLY_TERMS.map(t=>`<li>${escapeHtml(t)}</li>`).join('')}</ol><label class="apply-consent"><input type="checkbox" id="applyConsent"> 위 동의와 해당 캠페인의 방문·리뷰 조건을 확인했고, 이 건의 실제 신청을 승인합니다.</label><p class="apply-help">컴퓨터·Aside와 로그인된 브라우저가 켜져 있어야 처리됩니다. 약 5분 간격으로 대기열을 확인하며 신청 간 최소 5분을 둡니다. 추가 문항·동의가 있으면 직접 확인으로 멈춥니다.</p><p id="applyError" role="alert"></p><div class="apply-actions"><button type="button" id="applyClose">취소</button><button type="button" id="applyApprove" disabled>이 건 신청 승인</button></div></form>`;
+ d.innerHTML=`<form method="dialog"><h2 id="applyHeading">${escapeHtml(placeName(it))} 신청 승인</h2><p>${escapeHtml(it.curated_reward||it.reward_text||'')}</p><p>${escapeHtml(it.notice_text||'체험 조건은 상세 페이지에서 확인해 주세요.')}</p><a href="${escapeHtml(it.url)}" target="_blank" rel="noopener">캠페인 상세·방문 조건 확인</a><p><strong>이 한 건만 블로그 계정으로 신청합니다.</strong> 아래는 ${escapeHtml(it.source)}이 요구하는 신청 동의입니다.</p><ol>${plat.terms.map(t=>`<li>${escapeHtml(t)}</li>`).join('')}</ol>${plat.extra.length?`<p class="apply-help">자동으로 입력되는 내용<br>${plat.extra.map(t=>escapeHtml(t)).join('<br>')}</p>`:''}<label class="apply-consent"><input type="checkbox" id="applyConsent"> 위 동의와 해당 캠페인의 방문·리뷰 조건을 확인했고, 이 건의 실제 신청을 승인합니다.</label><p class="apply-help">컴퓨터·Aside와 로그인된 브라우저가 켜져 있어야 처리됩니다. 약 5분 간격으로 대기열을 확인하며 신청 간 최소 5분을 둡니다. 추가 문항·동의가 있으면 직접 확인으로 멈춥니다.</p><p id="applyError" role="alert"></p><div class="apply-actions"><button type="button" id="applyClose">취소</button><button type="button" id="applyApprove" disabled>이 건 신청 승인</button></div></form>`;
  document.body.append(d);
  d.querySelector('#applyClose').addEventListener('click',()=>{if(!applyBusy)d.close();});
  d.querySelector('#applyConsent').addEventListener('change',e=>{d.querySelector('#applyApprove').disabled=!e.target.checked;});
  d.addEventListener('cancel',e=>{if(applyBusy)e.preventDefault();});
  d.querySelector('#applyApprove').addEventListener('click',async()=>{
   if(applyBusy||!d.querySelector('#applyConsent').checked)return;applyBusy=true;d.querySelector('#applyApprove').disabled=true;d.querySelector('#applyClose').disabled=true;
-  try {const {error}=await sb.rpc('enqueue_campaign_apply_job',{p_listing_id:id,p_approved:true,p_consent_version:APPLY_CONSENT_VERSION});if(error)throw error;await loadApplyJobs();d.close();renderList();}
+  try {const {error}=await sb.rpc('enqueue_campaign_apply_job',{p_listing_id:id,p_approved:true,p_consent_version:plat.version});if(error)throw error;await loadApplyJobs();d.close();renderList();}
   catch(e){d.querySelector('#applyError').textContent='신청 대기 등록을 확인하지 못했어요. 대기열을 새로 확인해 주세요.';await loadApplyJobs();if(applyJobs.has(id)){d.close();renderList();}else{d.querySelector('#applyApprove').disabled=false;}}
   finally{applyBusy=false;d.querySelector('#applyClose').disabled=false;}
  });d.showModal();
