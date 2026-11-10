@@ -239,6 +239,7 @@
   }
 
   #appContent{display:none;}
+  .camp-card{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;align-items:start}.camp-thumb{width:76px;height:76px;border-radius:10px;object-fit:cover;background:var(--line);display:block}.camp-thumb.placeholder{display:grid;place-items:center;color:var(--sub);font-size:11px}.camp-body{min-width:0}
 </style>
 <link rel="stylesheet" href="./app-ui.css?v=20261017-semantic3">
 <script src="./app-ui.js?v=20261018-date1" defer></script>
@@ -258,36 +259,9 @@
   <header>
     <div>
       <h1>체험단 확인</h1>
-      <p>지역 · 장소명 · 체험내용 · 주말가능여부만 간단히 봅니다. 체크하면 배우자에게도 바로 보여요.</p>
+      <p>4만원 이상 또는 2인 제공 체험단을 화·금에 갱신해요. 이미 체험한 곳은 제외합니다.</p>
     </div>
   </header>
-
-  <div class="panel">
-    <details class="bk-filter-panel" open><summary>지역·플랫폼 필터</summary><div class="filter-row">
-      <div>
-        <div class="lbl">지역</div>
-        <div class="chip-group" id="regionChips"></div>
-      </div>
-      <div>
-        <div class="lbl">사이트</div>
-        <div class="chip-group" id="sourceChips"></div>
-      </div>
-      <div>
-        <label class="weekend-toggle curated-toggle">
-          <input type="checkbox" id="curatedOnly" checked>
-          추천만 보기
-        </label>
-        <div class="curated-note" id="curatedNote">4만원 이상·2인 제공 / 합정·홍대·덕양구·일산·영등포·여의도·가양·발산·마곡 · 화·금 자동 갱신</div>
-        <div class="chip-group" id="nbhChips" style="margin-top:8px;"></div>
-      </div>
-      <div>
-        <label class="weekend-toggle">
-          <input type="checkbox" id="weekendOnly">
-          주말 가능 확인된 것만 보기
-        </label>
-      </div>
-    </div></details>
-  </div>
 
   <div class="panel">
     <div class="bk-discovery-tools"><label class="bk-search"><span class="bk-sr-only">체험단 검색</span><input type="search" id="listingSearch" placeholder="장소·체험내용 검색" autocomplete="off"></label><div class="count-line" id="countLine" role="status"></div></div>
@@ -324,59 +298,12 @@ document.addEventListener('visibilitychange', () => {
 });
 
 const NEIGHBORHOODS = ['합정','홍대','덕양구','일산','영등포','여의도','가양','발산','마곡'];
-const state = {
-  regions: new Set(REGION_AREAS),
-  sources: new Set(SOURCES),
-  nbhs: new Set(NEIGHBORHOODS),
-  curatedOnly: true,
-  weekendOnly: false,
-  items: []
-};
-
-function renderNbhChips(){
-  const el = document.getElementById('nbhChips');
-  if(!el) return;
-  el.style.display = state.curatedOnly ? '' : 'none';
-  el.innerHTML = NEIGHBORHOODS.map(n =>
-    `<button type="button" class="chip ${state.nbhs.has(n) ? 'on' : ''}" data-nbh="${n}">${n}</button>`
-  ).join('');
-  el.querySelectorAll('.chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const n = btn.dataset.nbh;
-      if(state.nbhs.has(n)) state.nbhs.delete(n); else state.nbhs.add(n);
-      renderNbhChips();
-      renderList();
-    });
-  });
-}
-
-function renderChips(){
-  renderNbhChips();
-  const regionEl = document.getElementById('regionChips');
-  regionEl.innerHTML = REGION_AREAS.map(r =>
-    `<button type="button" class="chip ${state.regions.has(r) ? 'on' : ''}" data-region="${r}">${r}</button>`
-  ).join('');
-  regionEl.querySelectorAll('.chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const r = btn.dataset.region;
-      if(state.regions.has(r)) state.regions.delete(r); else state.regions.add(r);
-      renderChips();
-      renderList();
-    });
-  });
-
-  const sourceEl = document.getElementById('sourceChips');
-  sourceEl.innerHTML = SOURCES.map(s =>
-    `<button type="button" class="chip ${state.sources.has(s) ? 'on' : ''}" data-source="${s}">${s}</button>`
-  ).join('');
-  sourceEl.querySelectorAll('.chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const s = btn.dataset.source;
-      if(state.sources.has(s)) state.sources.delete(s); else state.sources.add(s);
-      renderChips();
-      renderList();
-    });
-  });
+const state = { items: [] };
+function cleanTitle(title){
+  let s=(title||'').trim(); const br=[...s.matchAll(/\[([^\]]+)\]/g)].map(m=>m[1].trim());
+  if(br.length && s.endsWith(']') && !/^(서울|경기|인천|고양|마포|홍대|합정|연남|여의도|영등포|마곡|강서|일산)/.test(br.at(-1))) s=br.at(-1);
+  s=s.replace(/\[[^\]]*\]/g,' ').replace(/\s*\d+\s*차\s*$/,'').replace(/\([^)]*(체험|런치|점심|저녁)[^)]*\)/g,' ').replace(/[\u{1F300}-\u{1FAFF}]/gu,'').replace(/\s+(점심|저녁|런치)$/,'').replace(/^\d+\s*만원\s*(식사권|체험권|이용권)!?\s*/,'').trim();
+  return s.replace(/\s+/g,' ') || title || '(제목 없음)';
 }
 
 function daysLeft(dateStr){
@@ -410,9 +337,7 @@ function deadlineBadge(item){
   return `<span class="badge deadline">${item.raw_deadline_text || '상시'}</span>`;
 }
 
-function placeName(it){
-  return (it.title || '').replace(/^\[[^\]]+\]\s*/, '') || it.title || '(제목 없음)';
-}
+function placeName(it){ return it.id === '놀러와체험단_1793751426' ? '여의녘' : cleanTitle(it.title); }
 
 async function togglePicked(id, current){
   const { error } = await sb
@@ -427,17 +352,14 @@ let listingLimit = 30;
 let listingSignature = '';
 function renderList(){
   const search = (document.getElementById('listingSearch')?.value || '').trim().toLocaleLowerCase();
-  const signature = JSON.stringify([[...state.regions].sort(),[...state.sources].sort(),[...state.nbhs].sort(),state.curatedOnly,state.weekendOnly,search]);
+  const signature = search;
   if(signature !== listingSignature){ listingLimit=30;listingSignature=signature; }
   // 마감일이 지난 건(수집만 되고 자동으로 안 지워지는 항목)은 기본 목록에서 빼서,
   // 새로고침해도 이미 끝난 캠페인들이 위쪽(마감일 오름차순이라 지난 날짜가 먼저 옴)에
   // 계속 쌓여 보이는 문제를 막는다. 찜한(picked) 건은 지나도 계속 보여준다.
   const filtered = state.items.filter(it =>
-    (!search || [it.title,it.reward_text,it.curated_reward,it.neighborhood,it.source,it.region_area].join(' ').toLocaleLowerCase().includes(search)) &&
-    state.regions.has(it.region_area) &&
-    state.sources.has(it.source) &&
-    (!state.weekendOnly || it.weekend_ok === 'possible') &&
-    (!state.curatedOnly || (it.curated && state.nbhs.has(it.neighborhood))) &&
+    (!search || [placeName(it),it.title,it.reward_text,it.curated_reward,it.neighborhood,it.source,it.region_area].join(' ').toLocaleLowerCase().includes(search)) &&
+    it.curated &&
     (it.picked || !effDeadline(it) || daysLeft(effDeadline(it)) >= 0)
   );
 
@@ -473,6 +395,8 @@ function renderList(){
 
     cardList.innerHTML = visible.map(it => `
       <div class="camp-card ${it.picked ? 'picked' : ''}" data-id="${it.id}">
+        ${it.thumbnail ? `<img class="camp-thumb" src="${escapeHtml(it.thumbnail)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<div class="camp-thumb placeholder">사진 없음</div>'}
+        <div class="camp-body">
         <div class="card-top">
           <input type="checkbox" class="pick-box" aria-label="${escapeHtml(placeName(it))} 찜하기" ${it.picked ? 'checked' : ''} data-id="${it.id}" data-picked="${it.picked}">
           <span class="badge region">${it.region_area}</span>
@@ -486,9 +410,11 @@ function renderList(){
           ${deadlineBadge(it)}
           <span class="weekend-tag ${it.weekend_ok}">${WEEKEND_LABEL[it.weekend_ok] || WEEKEND_LABEL.unknown}</span>
         </div>
+        </div>
       </div>
     `).join('');
 
+    cardList.querySelectorAll('.camp-thumb').forEach(img => img.addEventListener('error', () => { const fallback=document.createElement('div'); fallback.className='camp-thumb placeholder'; fallback.textContent='사진 없음'; img.replaceWith(fallback); }, {once:true}));
     document.querySelectorAll('.pick-box').forEach(box => {
       box.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -529,21 +455,10 @@ async function loadListings(){
 document.getElementById('listingSearch').addEventListener('input',renderList);
 let listingsLiveStarted = false;
 window.addEventListener('authReady', () => {
-  renderChips();
   loadListings();
   if(listingsLiveStarted) return;
   listingsLiveStarted = true;
 
-  document.getElementById('curatedOnly').addEventListener('change', (e) => {
-    state.curatedOnly = e.target.checked;
-    renderNbhChips();
-    renderList();
-  });
-
-  document.getElementById('weekendOnly').addEventListener('change', (e) => {
-    state.weekendOnly = e.target.checked;
-    renderList();
-  });
 
   sb.channel('campaign-listings-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_listings' }, () => {
